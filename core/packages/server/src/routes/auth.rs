@@ -6,12 +6,12 @@ use axum::{
 };
 use serde::Deserialize;
 use tower_sessions::Session;
-use uuid::Uuid;
 
-use super::AppState;
+use super::{
+    AppState,
+    current_user::{CurrentUser, USER_ID_KEY},
+};
 use crate::{models::user::User, services::users as user_service};
-
-const USER_ID_KEY: &str = "user_id";
 
 #[derive(Deserialize)]
 struct LoginRequest {
@@ -46,17 +46,8 @@ async fn login(
     Ok(Json(user))
 }
 
-async fn me(State(state): State<AppState>, session: Session) -> Result<Json<User>, ApiError> {
-    let user_id = session
-        .get::<Uuid>(USER_ID_KEY)
-        .await
-        .map_err(map_session_error)?
-        .ok_or((StatusCode::UNAUTHORIZED, "authentication required"))?;
-
-    user_service::get_user(&state.database, user_id)
-        .await
-        .map(Json)
-        .map_err(map_current_user_error)
+async fn me(CurrentUser(user): CurrentUser) -> Json<User> {
+    Json(user)
 }
 
 async fn logout(session: Session) -> Result<StatusCode, ApiError> {
@@ -91,28 +82,6 @@ fn map_service_error(error: user_service::UserServiceError) -> ApiError {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "failed to authenticate user",
-            )
-        }
-    }
-}
-
-fn map_current_user_error(error: user_service::UserServiceError) -> ApiError {
-    match error {
-        user_service::UserServiceError::NotFound => {
-            (StatusCode::UNAUTHORIZED, "authentication required")
-        }
-        user_service::UserServiceError::Database(error) => {
-            tracing::error!(%error, "current user database operation failed");
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "failed to load current user",
-            )
-        }
-        _ => {
-            tracing::error!("unexpected user service error while loading current user");
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "failed to load current user",
             )
         }
     }

@@ -1,4 +1,5 @@
 mod auth;
+mod current_user;
 mod users;
 
 use axum::{Router, routing::get};
