@@ -1,0 +1,8 @@
+[package]
+name = "enspatium-http"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8"
+tower-http = { version = "0.7", features = ["trace"] }
