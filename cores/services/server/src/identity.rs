@@ -1,16 +1,12 @@
 use argon2::{
     Argon2,
-    password_hash::{
-        PasswordHash,
-        PasswordHasher,
-        PasswordVerifier,
-        SaltString,
-        rand_core::OsRng,
-    },
+    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
 };
+use serde::Serialize;
+use sqlx::PgPool;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct User {
     pub id: Uuid,
     pub username: String,
@@ -43,6 +39,35 @@ pub fn verify_password(password: &str, password_hash: &str) -> bool {
     Argon2::default()
         .verify_password(password.as_bytes(), &parsed_hash)
         .is_ok()
+}
+
+pub async fn create_user(
+    database: &PgPool,
+    username: String,
+    email: String,
+    password_hash: String,
+) -> Result<User, sqlx::Error> {
+    let user = User::new(username, email);
+
+    sqlx::query(
+        r#"
+        INSERT INTO users (
+            id,
+            username,
+            email,
+            password_hash
+        )
+        VALUES ($1, $2, $3, $4)
+        "#,
+    )
+    .bind(user.id)
+    .bind(&user.username)
+    .bind(&user.email)
+    .bind(password_hash)
+    .execute(database)
+    .await?;
+
+    Ok(user)
 }
 
 #[cfg(test)]

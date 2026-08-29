@@ -28,7 +28,7 @@ async fn main() {
 
     tracing::info!("database migrations completed");
 
-    let app = http::router();
+    let app = http::router(database);
 
     let listener = tokio::net::TcpListener::bind(&config.address)
         .await
