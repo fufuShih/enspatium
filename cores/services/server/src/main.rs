@@ -2,8 +2,9 @@ use tracing_subscriber::EnvFilter;
 
 mod config;
 mod database;
-mod http;
-mod identity;
+mod models;
+mod routes;
+mod services;
 
 #[tokio::main]
 async fn main() {
@@ -28,7 +29,7 @@ async fn main() {
 
     tracing::info!("database migrations completed");
 
-    let app = http::router(database);
+    let app = routes::router(database);
 
     let listener = tokio::net::TcpListener::bind(&config.address)
         .await
