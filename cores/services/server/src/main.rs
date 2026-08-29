@@ -3,6 +3,7 @@ use tracing_subscriber::EnvFilter;
 mod config;
 mod database;
 mod http;
+mod identity;
 
 #[tokio::main]
 async fn main() {
