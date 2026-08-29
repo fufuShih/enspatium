@@ -2,6 +2,8 @@ use std::env;
 
 use tracing_subscriber::EnvFilter;
 
+mod http;
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -13,7 +15,7 @@ async fn main() {
 
     let address = env::var("APP_ADDR").unwrap_or_else(|_| "127.0.0.1:3000".to_owned());
 
-    let app = enspatium_http::router();
+    let app = http::router();
 
     let listener = tokio::net::TcpListener::bind(&address)
         .await
