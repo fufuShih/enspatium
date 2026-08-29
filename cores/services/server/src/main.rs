@@ -1,7 +1,7 @@
-use std::env;
-
 use tracing_subscriber::EnvFilter;
 
+mod config;
+mod database;
 mod http;
 
 #[tokio::main]
@@ -13,15 +13,21 @@ async fn main() {
         )
         .init();
 
-    let address = env::var("APP_ADDR").unwrap_or_else(|_| "127.0.0.1:3000".to_owned());
+    let config = config::Config::from_env();
+
+    let database = database::connect(&config.database_url)
+        .await
+        .expect("failed to connect to PostgreSQL");
+
+    tracing::info!(connections = database.size(), "connected to PostgreSQL");
 
     let app = http::router();
 
-    let listener = tokio::net::TcpListener::bind(&address)
+    let listener = tokio::net::TcpListener::bind(&config.address)
         .await
         .expect("failed to bind server");
 
-    tracing::info!(%address, "server started");
+    tracing::info!(address = %config.address, "server started");
 
     axum::serve(listener, app).await.expect("server failed");
 }
