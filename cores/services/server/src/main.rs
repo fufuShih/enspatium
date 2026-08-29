@@ -21,6 +21,12 @@ async fn main() {
 
     tracing::info!(connections = database.size(), "connected to PostgreSQL");
 
+    database::migrate(&database)
+        .await
+        .expect("failed to run database migrations");
+
+    tracing::info!("database migrations completed");
+
     let app = http::router();
 
     let listener = tokio::net::TcpListener::bind(&config.address)
