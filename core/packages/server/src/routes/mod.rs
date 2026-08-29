@@ -1,5 +1,6 @@
 mod auth;
 mod current_user;
+mod namespaces;
 mod users;
 
 use axum::{Router, routing::get};
@@ -25,6 +26,7 @@ pub fn router(database: PgPool, session_secure: bool) -> Router {
     Router::new()
         .route("/health", get(health))
         .merge(auth::router())
+        .merge(namespaces::router())
         .merge(users::router())
         .with_state(AppState { database })
         .layer(TraceLayer::new_for_http())
