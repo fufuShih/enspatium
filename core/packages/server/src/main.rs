@@ -8,6 +8,8 @@ mod services;
 
 #[tokio::main]
 async fn main() {
+    dotenvy::dotenv().ok();
+
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env()
