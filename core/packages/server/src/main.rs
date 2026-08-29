@@ -29,7 +29,7 @@ async fn main() {
 
     tracing::info!("database migrations completed");
 
-    let app = routes::router(database);
+    let app = routes::router(database, config.session_secure);
 
     let listener = tokio::net::TcpListener::bind(&config.address)
         .await

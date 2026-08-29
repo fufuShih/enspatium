@@ -1,8 +1,17 @@
-use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
+use axum::{
+    Json, Router,
+    extract::State,
+    http::StatusCode,
+    routing::{get, post},
+};
 use serde::Deserialize;
+use tower_sessions::Session;
+use uuid::Uuid;
 
 use super::AppState;
 use crate::{models::user::User, services::users as user_service};
+
+const USER_ID_KEY: &str = "user_id";
 
 #[derive(Deserialize)]
 struct LoginRequest {
@@ -13,17 +22,47 @@ struct LoginRequest {
 type ApiError = (StatusCode, &'static str);
 
 pub(super) fn router() -> Router<AppState> {
-    Router::new().route("/auth/login", post(login))
+    Router::new()
+        .route("/auth/login", post(login))
+        .route("/auth/me", get(me))
+        .route("/auth/logout", post(logout))
 }
 
 async fn login(
     State(state): State<AppState>,
+    session: Session,
     Json(request): Json<LoginRequest>,
 ) -> Result<Json<User>, ApiError> {
-    user_service::authenticate_user(&state.database, request.email, request.password)
+    let user = user_service::authenticate_user(&state.database, request.email, request.password)
+        .await
+        .map_err(map_service_error)?;
+
+    session
+        .insert(USER_ID_KEY, user.id)
+        .await
+        .map_err(map_session_error)?;
+    session.cycle_id().await.map_err(map_session_error)?;
+
+    Ok(Json(user))
+}
+
+async fn me(State(state): State<AppState>, session: Session) -> Result<Json<User>, ApiError> {
+    let user_id = session
+        .get::<Uuid>(USER_ID_KEY)
+        .await
+        .map_err(map_session_error)?
+        .ok_or((StatusCode::UNAUTHORIZED, "authentication required"))?;
+
+    user_service::get_user(&state.database, user_id)
         .await
         .map(Json)
-        .map_err(map_service_error)
+        .map_err(map_current_user_error)
+}
+
+async fn logout(session: Session) -> Result<StatusCode, ApiError> {
+    session.flush().await.map_err(map_session_error)?;
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 fn map_service_error(error: user_service::UserServiceError) -> ApiError {
@@ -55,4 +94,34 @@ fn map_service_error(error: user_service::UserServiceError) -> ApiError {
             )
         }
     }
+}
+
+fn map_current_user_error(error: user_service::UserServiceError) -> ApiError {
+    match error {
+        user_service::UserServiceError::NotFound => {
+            (StatusCode::UNAUTHORIZED, "authentication required")
+        }
+        user_service::UserServiceError::Database(error) => {
+            tracing::error!(%error, "current user database operation failed");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "failed to load current user",
+            )
+        }
+        _ => {
+            tracing::error!("unexpected user service error while loading current user");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "failed to load current user",
+            )
+        }
+    }
+}
+
+fn map_session_error(error: tower_sessions::session::Error) -> ApiError {
+    tracing::error!(%error, "session operation failed");
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "session operation failed",
+    )
 }
