@@ -6,4 +6,4 @@ Enspatium is a self-hosted platform for managing content, storage, and collabora
 ## Project Structure
 
 - `apps` — React frontend
-- `cores` — Rust backend
+- `core` — Rust workspace for server, worker, and system processing

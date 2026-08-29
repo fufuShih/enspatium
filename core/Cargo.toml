@@ -1,8 +1,8 @@
 [workspace]
 resolver = "3"
 members = [
-    "services/server",
+    "packages/server",
 ]
 default-members = [
-    "services/server",
+    "packages/server",
 ]

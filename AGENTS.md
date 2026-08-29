@@ -1,4 +1,4 @@
-The project simple structure:
+The project has a simple structure:
 
-- web
-- server
+- apps
+- core
