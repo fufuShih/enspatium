@@ -1,3 +1,4 @@
+mod auth;
 mod users;
 
 use axum::{Router, routing::get};
@@ -12,6 +13,7 @@ pub(super) struct AppState {
 pub fn router(database: PgPool) -> Router {
     Router::new()
         .route("/health", get(health))
+        .merge(auth::router())
         .merge(users::router())
         .with_state(AppState { database })
         .layer(TraceLayer::new_for_http())

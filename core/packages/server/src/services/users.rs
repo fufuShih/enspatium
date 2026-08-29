@@ -1,6 +1,6 @@
 use argon2::{
     Argon2,
-    password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
+    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
 };
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -10,6 +10,7 @@ use crate::models::user::User;
 #[derive(Debug)]
 pub enum UserServiceError {
     InvalidInput(&'static str),
+    InvalidCredentials,
     Conflict,
     NotFound,
     PasswordHash,
@@ -69,12 +70,66 @@ pub async fn get_user(database: &PgPool, id: Uuid) -> Result<User, UserServiceEr
     .ok_or(UserServiceError::NotFound)
 }
 
+pub async fn authenticate_user(
+    database: &PgPool,
+    email: String,
+    password: String,
+) -> Result<User, UserServiceError> {
+    let email = email.trim().to_ascii_lowercase();
+
+    if email.is_empty() || password.is_empty() {
+        return Err(UserServiceError::InvalidCredentials);
+    }
+
+    let row = sqlx::query_as::<_, (Uuid, String, String, String)>(
+        r#"
+        SELECT id, username, email, password_hash
+        FROM users
+        WHERE email = $1
+        "#,
+    )
+    .bind(&email)
+    .fetch_optional(database)
+    .await
+    .map_err(UserServiceError::Database)?
+    .ok_or(UserServiceError::InvalidCredentials)?;
+
+    let (id, username, email, password_hash) = row;
+
+    let password_matches =
+        tokio::task::spawn_blocking(move || verify_password(&password, &password_hash))
+            .await
+            .map_err(|_| UserServiceError::PasswordHash)?
+            .map_err(|_| UserServiceError::PasswordHash)?;
+
+    if !password_matches {
+        return Err(UserServiceError::InvalidCredentials);
+    }
+
+    Ok(User {
+        id,
+        username,
+        email,
+    })
+}
+
 fn hash_password(password: &str) -> Result<String, argon2::password_hash::Error> {
     let salt = SaltString::generate(&mut OsRng);
 
     Argon2::default()
         .hash_password(password.as_bytes(), &salt)
         .map(|hash| hash.to_string())
+}
+
+fn verify_password(
+    password: &str,
+    password_hash: &str,
+) -> Result<bool, argon2::password_hash::Error> {
+    let parsed_hash = PasswordHash::new(password_hash)?;
+
+    Ok(Argon2::default()
+        .verify_password(password.as_bytes(), &parsed_hash)
+        .is_ok())
 }
 
 fn validate_create_user(
@@ -112,26 +167,26 @@ fn map_database_error(error: sqlx::Error) -> UserServiceError {
 
 #[cfg(test)]
 mod tests {
-    use argon2::password_hash::{PasswordHash, PasswordVerifier};
-
     use super::*;
 
     #[test]
     fn hashes_and_verifies_password() {
         let password_hash = hash_password("correct-password").expect("password hashing failed");
-        let parsed_hash = PasswordHash::new(&password_hash).expect("password hash parsing failed");
 
         assert!(password_hash.starts_with("$argon2id$"));
         assert!(
-            Argon2::default()
-                .verify_password("correct-password".as_bytes(), &parsed_hash)
-                .is_ok()
+            verify_password("correct-password", &password_hash)
+                .expect("password verification failed")
         );
         assert!(
-            Argon2::default()
-                .verify_password("wrong-password".as_bytes(), &parsed_hash)
-                .is_err()
+            !verify_password("wrong-password", &password_hash)
+                .expect("password verification failed")
         );
+    }
+
+    #[test]
+    fn rejects_invalid_password_hash() {
+        assert!(verify_password("password", "invalid-hash").is_err());
     }
 
     #[test]

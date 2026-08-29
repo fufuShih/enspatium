@@ -54,6 +54,9 @@ async fn get_user(
 fn map_service_error(error: user_service::UserServiceError) -> ApiError {
     match error {
         user_service::UserServiceError::InvalidInput(message) => (StatusCode::BAD_REQUEST, message),
+        user_service::UserServiceError::InvalidCredentials => {
+            (StatusCode::UNAUTHORIZED, "invalid email or password")
+        }
         user_service::UserServiceError::Conflict => {
             (StatusCode::CONFLICT, "username or email already exists")
         }
