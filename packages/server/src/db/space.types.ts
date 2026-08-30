@@ -31,6 +31,11 @@ export interface CreateSpaceInput {
   visibility?: SpaceVisibility
 }
 
+export interface UpdateSpaceInput {
+  name?: string
+  visibility?: SpaceVisibility
+}
+
 export interface PublicSpace {
   id: string
   namespaceId: string

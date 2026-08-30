@@ -5,6 +5,7 @@ import {
   createSpace,
   getSpaceBySlug,
   listSpaces,
+  updateSpace,
 } from '../services/space.js'
 import {
   getCurrentUserId,
@@ -28,6 +29,19 @@ const CreateSpaceBodySchema = Type.Object({
     Type.Union([Type.Literal('public'), Type.Literal('private')]),
   ),
 })
+
+const UpdateSpaceBodySchema = Type.Object(
+  {
+    name: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
+    visibility: Type.Optional(
+      Type.Union([Type.Literal('public'), Type.Literal('private')]),
+    ),
+  },
+  {
+    additionalProperties: false,
+    minProperties: 1,
+  },
+)
 
 const SpaceResponseSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
@@ -105,6 +119,30 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
         getCurrentUserId(request),
         request.params.namespaceSlug,
         request.params.spaceSlug,
+      )
+    },
+  )
+
+  app.patch(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug',
+    {
+      schema: {
+        params: SpaceParamsSchema,
+        body: UpdateSpaceBodySchema,
+        response: {
+          200: SpaceResponseSchema,
+        },
+      },
+    },
+    async (request) => {
+      const userId = requireCurrentUserId(request)
+
+      return updateSpace(
+        app.db,
+        userId,
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+        request.body,
       )
     },
   )

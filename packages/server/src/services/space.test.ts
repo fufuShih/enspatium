@@ -4,6 +4,7 @@ import {
   SpaceServiceError,
   normalizeSpaceSlug,
   validateSpace,
+  validateSpaceUpdate,
 } from './space.js'
 
 describe('space service', () => {
@@ -36,5 +37,21 @@ describe('space service', () => {
     expect(() =>
       validateSpace('My Repository', 'my-repository', 'git', 'internal'),
     ).toThrow(SpaceServiceError)
+  })
+
+  it('accepts a space name and visibility update', () => {
+    expect(() =>
+      validateSpaceUpdate({ name: 'New Name', visibility: 'public' }),
+    ).not.toThrow()
+  })
+
+  it('rejects an empty space update', () => {
+    expect(() => validateSpaceUpdate({})).toThrow(SpaceServiceError)
+  })
+
+  it('rejects an empty updated space name', () => {
+    expect(() => validateSpaceUpdate({ name: '' })).toThrow(
+      SpaceServiceError,
+    )
   })
 })

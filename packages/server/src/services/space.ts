@@ -6,6 +6,7 @@ import type {
   PublicSpace,
   Space,
   SpaceServiceErrorCode,
+  UpdateSpaceInput,
 } from '../db/space.types.js'
 
 export class SpaceServiceError extends Error {
@@ -176,6 +177,78 @@ export async function getSpaceBySlug(
   }
 }
 
+export async function updateSpace(
+  db: Kysely<Database>,
+  actorUserId: string,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+  input: UpdateSpaceInput,
+): Promise<PublicSpace> {
+  const spaceSlug = normalizeSpaceSlug(inputSpaceSlug)
+  const name = input.name?.trim()
+  const normalizedInput: UpdateSpaceInput = {}
+
+  if (name !== undefined) {
+    normalizedInput.name = name
+  }
+
+  if (input.visibility !== undefined) {
+    normalizedInput.visibility = input.visibility
+  }
+
+  validateSlug(spaceSlug, 'space')
+  validateSpaceUpdate(normalizedInput)
+
+  const namespace = await requireNamespaceMembership(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+  )
+
+  if (namespace.memberRole !== 'owner') {
+    throw new SpaceServiceError(
+      'FORBIDDEN',
+      403,
+      'namespace owner permission is required',
+    )
+  }
+
+  try {
+    const space = await db
+      .updateTable('spaces')
+      .set({
+        ...(normalizedInput.name !== undefined
+          ? { name: normalizedInput.name }
+          : {}),
+        ...(normalizedInput.visibility !== undefined
+          ? { visibility: normalizedInput.visibility }
+          : {}),
+        updated_at: new Date(),
+      })
+      .where('namespace_id', '=', namespace.id)
+      .where('slug', '=', spaceSlug)
+      .returningAll()
+      .executeTakeFirst()
+
+    if (!space) {
+      throw new SpaceServiceError('NOT_FOUND', 404, 'space not found')
+    }
+
+    return toPublicSpace(space)
+  } catch (error) {
+    if (error instanceof SpaceServiceError) {
+      throw error
+    }
+
+    throw new SpaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to update space',
+      error,
+    )
+  }
+}
+
 export function normalizeSpaceSlug(slug: string): string {
   return slug.trim().toLowerCase()
 }
@@ -213,6 +286,46 @@ export function validateSpace(
   }
 
   if (visibility !== 'public' && visibility !== 'private') {
+    throw new SpaceServiceError(
+      'INVALID_INPUT',
+      400,
+      'space visibility must be public or private',
+    )
+  }
+}
+
+export function validateSpaceUpdate(input: UpdateSpaceInput): void {
+  if (input.name === undefined && input.visibility === undefined) {
+    throw new SpaceServiceError(
+      'INVALID_INPUT',
+      400,
+      'at least one space field is required',
+    )
+  }
+
+  if (input.name !== undefined) {
+    if (!input.name) {
+      throw new SpaceServiceError(
+        'INVALID_INPUT',
+        400,
+        'space name is required',
+      )
+    }
+
+    if (input.name.length > 100) {
+      throw new SpaceServiceError(
+        'INVALID_INPUT',
+        400,
+        'space name must contain at most 100 characters',
+      )
+    }
+  }
+
+  if (
+    input.visibility !== undefined &&
+    input.visibility !== 'public' &&
+    input.visibility !== 'private'
+  ) {
     throw new SpaceServiceError(
       'INVALID_INPUT',
       400,
