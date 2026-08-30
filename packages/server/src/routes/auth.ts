@@ -6,13 +6,11 @@ import {
   authenticateUser,
   getUser,
 } from '../services/users.js'
+import {
+  authenticationRequired,
+  requireCurrentUserId,
+} from './current-user.js'
 import { UserResponseSchema } from './users.js'
-
-declare module '@fastify/secure-session' {
-  interface SessionData {
-    userId: string
-  }
-}
 
 const LoginBodySchema = Type.Object({
   email: Type.String({ minLength: 1, maxLength: 320 }),
@@ -54,11 +52,7 @@ export const authRoutes: FastifyPluginAsyncTypebox = async (app) => {
       },
     },
     async (request) => {
-      const userId = request.session.get('userId')
-
-      if (!userId) {
-        throw authenticationRequired()
-      }
+      const userId = requireCurrentUserId(request)
 
       try {
         return await getUser(app.db, userId)
@@ -78,12 +72,4 @@ export const authRoutes: FastifyPluginAsyncTypebox = async (app) => {
 
     return reply.code(204).send()
   })
-}
-
-function authenticationRequired(): UserServiceError {
-  return new UserServiceError(
-    'INVALID_CREDENTIALS',
-    401,
-    'authentication required',
-  )
 }

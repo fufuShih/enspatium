@@ -1,28 +1,14 @@
 import * as argon2 from 'argon2'
 import type { Kysely } from 'kysely'
 
-import type { Database, User } from '../db/types.js'
-
-export interface PublicUser {
-  id: string
-  email: string
-  displayName: string
-  createdAt: string
-  updatedAt: string
-}
-
-export interface CreateUserInput {
-  email: string
-  password: string
-  displayName: string
-}
-
-export type UserServiceErrorCode =
-  | 'INVALID_INPUT'
-  | 'INVALID_CREDENTIALS'
-  | 'CONFLICT'
-  | 'NOT_FOUND'
-  | 'INTERNAL'
+import type { Database } from '../db/index.js'
+import type {
+  CreateUserInput,
+  PublicUser,
+  User,
+  UserServiceErrorCode,
+} from '../db/user.types.js'
+import { createPersonalNamespace } from './namespaces.js'
 
 export class UserServiceError extends Error {
   constructor(
@@ -64,21 +50,31 @@ export async function createUser(
   }
 
   try {
-    const user = await db
-      .insertInto('users')
-      .values({
-        display_name: displayName,
-        email,
-        password_hash: passwordHash,
-      })
-      .returning([
-        'id',
-        'email',
-        'display_name',
-        'created_at',
-        'updated_at',
-      ])
-      .executeTakeFirstOrThrow()
+    const user = await db.transaction().execute(async (transaction) => {
+      const createdUser = await transaction
+        .insertInto('users')
+        .values({
+          display_name: displayName,
+          email,
+          password_hash: passwordHash,
+        })
+        .returning([
+          'id',
+          'email',
+          'display_name',
+          'created_at',
+          'updated_at',
+        ])
+        .executeTakeFirstOrThrow()
+
+      await createPersonalNamespace(
+        transaction,
+        createdUser.id,
+        createdUser.display_name,
+      )
+
+      return createdUser
+    })
 
     return toPublicUser(user)
   } catch (error) {
