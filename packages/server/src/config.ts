@@ -16,6 +16,7 @@ const configSchema = Type.Object({
   HOST: Type.String({ default: '127.0.0.1' }),
   PORT: Type.Integer({ default: 3000, minimum: 1, maximum: 65_535 }),
   DATABASE_URL: Type.String({ minLength: 1 }),
+  DATA_ROOT: Type.String({ minLength: 1, default: './data' }),
   LOG_LEVEL: Type.String({ default: 'info' }),
   SESSION_KEY: Type.String({
     minLength: 64,

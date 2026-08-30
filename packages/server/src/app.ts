@@ -9,6 +9,7 @@ import { authRoutes } from './routes/auth.js'
 import { healthRoutes } from './routes/health.js'
 import { namespaceRoutes } from './routes/namespaces.js'
 import { spaceRoutes } from './routes/spaces.js'
+import { initializeStorage } from './storage.js'
 import { userRoutes } from './routes/users.js'
 
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7
@@ -17,6 +18,7 @@ export async function buildApp() {
   const app = Fastify({ logger: true }).withTypeProvider<TypeBoxTypeProvider>()
 
   await app.register(configPlugin)
+  await initializeStorage(app.config.DATA_ROOT)
   await app.register(dbPlugin)
   await app.register(secureSession, {
     key: Buffer.from(app.config.SESSION_KEY, 'hex'),
