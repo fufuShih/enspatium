@@ -8,6 +8,7 @@ import { dbPlugin } from './db/index.js'
 import { authRoutes } from './routes/auth.js'
 import { healthRoutes } from './routes/health.js'
 import { namespaceRoutes } from './routes/namespaces.js'
+import { spaceRoutes } from './routes/spaces.js'
 import { userRoutes } from './routes/users.js'
 
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7
@@ -34,6 +35,7 @@ export async function buildApp() {
   await app.register(userRoutes)
   await app.register(authRoutes)
   await app.register(namespaceRoutes)
+  await app.register(spaceRoutes)
 
   return app
 }
