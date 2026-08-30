@@ -120,6 +120,44 @@ export async function listNamespaces(
   }
 }
 
+export async function getNamespaceBySlug(
+  db: Kysely<Database>,
+  inputSlug: string,
+): Promise<PublicNamespace> {
+  const slug = normalizeNamespaceSlug(inputSlug)
+
+  validateNamespaceSlug(slug)
+
+  try {
+    const namespace = await db
+      .selectFrom('namespaces')
+      .selectAll()
+      .where('slug', '=', slug)
+      .executeTakeFirst()
+
+    if (!namespace) {
+      throw new NamespaceServiceError(
+        'NOT_FOUND',
+        404,
+        'namespace not found',
+      )
+    }
+
+    return toPublicNamespace(namespace)
+  } catch (error) {
+    if (error instanceof NamespaceServiceError) {
+      throw error
+    }
+
+    throw new NamespaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to get namespace',
+      error,
+    )
+  }
+}
+
 export function personalNamespaceSlug(userId: string): string {
   return `u-${userId.replaceAll('-', '')}`
 }
@@ -145,6 +183,10 @@ export function validateNamespace(name: string, slug: string): void {
     )
   }
 
+  validateNamespaceSlug(slug)
+}
+
+export function validateNamespaceSlug(slug: string): void {
   if (slug.length < 3 || slug.length > 40) {
     throw new NamespaceServiceError(
       'INVALID_INPUT',

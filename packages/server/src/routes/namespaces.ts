@@ -3,6 +3,7 @@ import { Type } from '@sinclair/typebox'
 
 import {
   createOrganizationNamespace,
+  getNamespaceBySlug,
   listNamespaces,
 } from '../services/namespaces.js'
 import { requireCurrentUserId } from './current-user.js'
@@ -21,6 +22,10 @@ const NamespaceResponseSchema = Type.Object({
 
 const CreateOrganizationNamespaceBodySchema = Type.Object({
   name: Type.String({ minLength: 1, maxLength: 100 }),
+  slug: Type.String({ minLength: 1, maxLength: 100 }),
+})
+
+const NamespaceParamsSchema = Type.Object({
   slug: Type.String({ minLength: 1, maxLength: 100 }),
 })
 
@@ -60,6 +65,21 @@ export const namespaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
       const userId = requireCurrentUserId(request)
 
       return listNamespaces(app.db, userId)
+    },
+  )
+
+  app.get(
+    '/namespaces/:slug',
+    {
+      schema: {
+        params: NamespaceParamsSchema,
+        response: {
+          200: NamespaceResponseSchema,
+        },
+      },
+    },
+    async (request) => {
+      return getNamespaceBySlug(app.db, request.params.slug)
     },
   )
 }

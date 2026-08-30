@@ -37,4 +37,5 @@ export interface CreateOrganizationNamespaceInput {
 export type NamespaceServiceErrorCode =
   | 'INVALID_INPUT'
   | 'CONFLICT'
+  | 'NOT_FOUND'
   | 'INTERNAL'

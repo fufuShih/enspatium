@@ -5,6 +5,7 @@ import {
   normalizeNamespaceSlug,
   personalNamespaceSlug,
   validateNamespace,
+  validateNamespaceSlug,
 } from './namespaces.js'
 
 describe('namespace service', () => {
@@ -20,6 +21,10 @@ describe('namespace service', () => {
 
   it('accepts valid organization namespaces', () => {
     expect(() => validateNamespace('Game Team', 'game-team')).not.toThrow()
+  })
+
+  it('accepts a valid namespace slug for public lookup', () => {
+    expect(() => validateNamespaceSlug('game-team')).not.toThrow()
   })
 
   it.each(['ab', '-game', 'game-', 'game--team', 'game_team'])(
