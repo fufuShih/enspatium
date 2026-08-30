@@ -3,7 +3,7 @@ import fastifyPlugin from 'fastify-plugin'
 import { Kysely, PostgresDialect } from 'kysely'
 import { Pool } from 'pg'
 
-export interface Database {}
+import type { Database } from './types.js'
 
 export function createDb(databaseUrl: string) {
   return new Kysely<Database>({

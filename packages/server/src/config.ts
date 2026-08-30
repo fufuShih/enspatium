@@ -17,6 +17,12 @@ const configSchema = Type.Object({
   PORT: Type.Integer({ default: 3000, minimum: 1, maximum: 65_535 }),
   DATABASE_URL: Type.String({ minLength: 1 }),
   LOG_LEVEL: Type.String({ default: 'info' }),
+  SESSION_KEY: Type.String({
+    minLength: 64,
+    maxLength: 64,
+    pattern: '^[0-9a-fA-F]{64}$',
+  }),
+  SESSION_SECURE: Type.Boolean({ default: false }),
 })
 
 export type AppConfig = Static<typeof configSchema>

@@ -8,6 +8,8 @@ describe('server', () => {
       'DATABASE_URL',
       'postgres://enspatium:enspatium@127.0.0.1:5432/enspatium',
     )
+    vi.stubEnv('SESSION_KEY', '0'.repeat(64))
+    vi.stubEnv('SESSION_SECURE', 'false')
 
     const app = await buildApp()
 
