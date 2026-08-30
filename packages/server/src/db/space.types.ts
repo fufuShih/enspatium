@@ -52,6 +52,10 @@ export interface AddSpaceMemberInput {
   role: AssignableSpaceMemberRole
 }
 
+export interface UpdateSpaceMemberInput {
+  role: AssignableSpaceMemberRole
+}
+
 export interface PublicSpaceMember {
   userId: string
   email: string

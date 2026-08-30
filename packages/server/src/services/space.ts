@@ -8,6 +8,7 @@ import type {
   PublicSpaceMember,
   Space,
   SpaceServiceErrorCode,
+  UpdateSpaceMemberInput,
   UpdateSpaceInput,
 } from '../db/space.types.js'
 
@@ -434,6 +435,83 @@ export async function listSpaceMembers(
       'INTERNAL',
       500,
       'failed to list space members',
+      error,
+    )
+  }
+}
+
+export async function updateSpaceMember(
+  db: Kysely<Database>,
+  actorUserId: string,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+  memberUserId: string,
+  input: UpdateSpaceMemberInput,
+): Promise<PublicSpaceMember> {
+  validateAssignableSpaceMemberRole(input.role)
+
+  const spaceAccess = await requireSpaceOwnerAccess(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+    inputSpaceSlug,
+  )
+
+  try {
+    const member = await db
+      .selectFrom('space_members')
+      .innerJoin('users', 'users.id', 'space_members.user_id')
+      .select([
+        'users.id as userId',
+        'users.email',
+        'users.display_name as displayName',
+        'space_members.role',
+        'space_members.created_at as joinedAt',
+      ])
+      .where('space_members.space_id', '=', spaceAccess.spaceId)
+      .where('space_members.user_id', '=', memberUserId)
+      .executeTakeFirst()
+
+    if (!member) {
+      throw new SpaceServiceError(
+        'NOT_FOUND',
+        404,
+        'space member not found',
+      )
+    }
+
+    if (member.role === 'owner') {
+      throw new SpaceServiceError(
+        'CONFLICT',
+        409,
+        'space owner role cannot be changed',
+      )
+    }
+
+    const updatedMembership = await db
+      .updateTable('space_members')
+      .set({ role: input.role })
+      .where('space_id', '=', spaceAccess.spaceId)
+      .where('user_id', '=', memberUserId)
+      .returning('role')
+      .executeTakeFirstOrThrow()
+
+    return {
+      userId: member.userId,
+      email: member.email,
+      displayName: member.displayName,
+      role: updatedMembership.role,
+      joinedAt: member.joinedAt.toISOString(),
+    }
+  } catch (error) {
+    if (error instanceof SpaceServiceError) {
+      throw error
+    }
+
+    throw new SpaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to update space member',
       error,
     )
   }

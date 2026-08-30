@@ -10,6 +10,7 @@ import {
   listSpaces,
   removeSpaceMember,
   updateSpace,
+  updateSpaceMember,
 } from '../services/space.js'
 import {
   getCurrentUserId,
@@ -53,9 +54,18 @@ const UpdateSpaceBodySchema = Type.Object(
   },
 )
 
+const AssignableSpaceMemberRoleSchema = Type.Union([
+  Type.Literal('writer'),
+  Type.Literal('reader'),
+])
+
 const AddSpaceMemberBodySchema = Type.Object({
   email: Type.String({ minLength: 1, maxLength: 320 }),
-  role: Type.Union([Type.Literal('writer'), Type.Literal('reader')]),
+  role: AssignableSpaceMemberRoleSchema,
+})
+
+const UpdateSpaceMemberBodySchema = Type.Object({
+  role: AssignableSpaceMemberRoleSchema,
 })
 
 const SpaceResponseSchema = Type.Object({
@@ -238,6 +248,31 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
         userId,
         request.params.namespaceSlug,
         request.params.spaceSlug,
+      )
+    },
+  )
+
+  app.patch(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/members/:userId',
+    {
+      schema: {
+        params: SpaceMemberParamsSchema,
+        body: UpdateSpaceMemberBodySchema,
+        response: {
+          200: SpaceMemberResponseSchema,
+        },
+      },
+    },
+    async (request) => {
+      const userId = requireCurrentUserId(request)
+
+      return updateSpaceMember(
+        app.db,
+        userId,
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+        request.params.userId,
+        request.body,
       )
     },
   )
