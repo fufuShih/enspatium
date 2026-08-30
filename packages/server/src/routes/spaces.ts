@@ -3,6 +3,7 @@ import { Type } from '@sinclair/typebox'
 
 import {
   createSpace,
+  deleteSpace,
   getSpaceBySlug,
   listSpaces,
   updateSpace,
@@ -144,6 +145,27 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
         request.params.spaceSlug,
         request.body,
       )
+    },
+  )
+
+  app.delete(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug',
+    {
+      schema: {
+        params: SpaceParamsSchema,
+      },
+    },
+    async (request, reply) => {
+      const userId = requireCurrentUserId(request)
+
+      await deleteSpace(
+        app.db,
+        userId,
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+      )
+
+      return reply.code(204).send()
     },
   )
 }

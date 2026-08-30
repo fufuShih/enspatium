@@ -33,19 +33,11 @@ export async function createSpace(
 
   validateSpace(name, slug, input.type, visibility)
 
-  const namespace = await requireNamespaceMembership(
+  const namespace = await requireNamespaceOwner(
     db,
     actorUserId,
     inputNamespaceSlug,
   )
-
-  if (namespace.memberRole !== 'owner') {
-    throw new SpaceServiceError(
-      'FORBIDDEN',
-      403,
-      'namespace owner permission is required',
-    )
-  }
 
   try {
     const space = await db
@@ -199,19 +191,11 @@ export async function updateSpace(
   validateSlug(spaceSlug, 'space')
   validateSpaceUpdate(normalizedInput)
 
-  const namespace = await requireNamespaceMembership(
+  const namespace = await requireNamespaceOwner(
     db,
     actorUserId,
     inputNamespaceSlug,
   )
-
-  if (namespace.memberRole !== 'owner') {
-    throw new SpaceServiceError(
-      'FORBIDDEN',
-      403,
-      'namespace owner permission is required',
-    )
-  }
 
   try {
     const space = await db
@@ -244,6 +228,47 @@ export async function updateSpace(
       'INTERNAL',
       500,
       'failed to update space',
+      error,
+    )
+  }
+}
+
+export async function deleteSpace(
+  db: Kysely<Database>,
+  actorUserId: string,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+): Promise<void> {
+  const spaceSlug = normalizeSpaceSlug(inputSpaceSlug)
+
+  validateSlug(spaceSlug, 'space')
+
+  const namespace = await requireNamespaceOwner(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+  )
+
+  try {
+    const deletedSpace = await db
+      .deleteFrom('spaces')
+      .where('namespace_id', '=', namespace.id)
+      .where('slug', '=', spaceSlug)
+      .returning('id')
+      .executeTakeFirst()
+
+    if (!deletedSpace) {
+      throw new SpaceServiceError('NOT_FOUND', 404, 'space not found')
+    }
+  } catch (error) {
+    if (error instanceof SpaceServiceError) {
+      throw error
+    }
+
+    throw new SpaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to delete space',
       error,
     )
   }
@@ -389,6 +414,28 @@ async function requireNamespaceMembership(
       error,
     )
   }
+}
+
+async function requireNamespaceOwner(
+  db: Kysely<Database>,
+  actorUserId: string,
+  inputNamespaceSlug: string,
+) {
+  const namespace = await requireNamespaceMembership(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+  )
+
+  if (namespace.memberRole !== 'owner') {
+    throw new SpaceServiceError(
+      'FORBIDDEN',
+      403,
+      'namespace owner permission is required',
+    )
+  }
+
+  return namespace
 }
 
 function validateSlug(slug: string, subject: 'namespace' | 'space'): void {
