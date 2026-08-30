@@ -2,8 +2,10 @@ import type { Kysely } from 'kysely'
 
 import type { Database } from '../db/index.js'
 import type {
+  AddSpaceMemberInput,
   CreateSpaceInput,
   PublicSpace,
+  PublicSpaceMember,
   Space,
   SpaceServiceErrorCode,
   UpdateSpaceInput,
@@ -40,18 +42,31 @@ export async function createSpace(
   )
 
   try {
-    const space = await db
-      .insertInto('spaces')
-      .values({
-        namespace_id: namespace.id,
-        created_by_user_id: actorUserId,
-        name,
-        slug,
-        type: input.type,
-        visibility,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow()
+    const space = await db.transaction().execute(async (transaction) => {
+      const createdSpace = await transaction
+        .insertInto('spaces')
+        .values({
+          namespace_id: namespace.id,
+          created_by_user_id: actorUserId,
+          name,
+          slug,
+          type: input.type,
+          visibility,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      await transaction
+        .insertInto('space_members')
+        .values({
+          space_id: createdSpace.id,
+          user_id: actorUserId,
+          role: 'owner',
+        })
+        .execute()
+
+      return createdSpace
+    })
 
     return toPublicSpace(space)
   } catch (error) {
@@ -84,12 +99,31 @@ export async function listSpaces(
   )
 
   try {
-    const spaces = await db
-      .selectFrom('spaces')
-      .selectAll()
-      .where('namespace_id', '=', namespace.id)
-      .orderBy('created_at', 'asc')
-      .execute()
+    const spaces =
+      namespace.memberRole === 'owner'
+        ? await db
+            .selectFrom('spaces')
+            .selectAll()
+            .where('namespace_id', '=', namespace.id)
+            .orderBy('created_at', 'asc')
+            .execute()
+        : await db
+            .selectFrom('spaces')
+            .leftJoin('space_members', (join) =>
+              join
+                .onRef('space_members.space_id', '=', 'spaces.id')
+                .on('space_members.user_id', '=', actorUserId),
+            )
+            .selectAll('spaces')
+            .where('spaces.namespace_id', '=', namespace.id)
+            .where((expression) =>
+              expression.or([
+                expression('spaces.visibility', '=', 'public'),
+                expression('space_members.user_id', '=', actorUserId),
+              ]),
+            )
+            .orderBy('spaces.created_at', 'asc')
+            .execute()
 
     return spaces.map(toPublicSpace)
   } catch (error) {
@@ -139,18 +173,28 @@ export async function getSpaceBySlug(
       )
     }
 
-    const membership = await db
-      .selectFrom('namespace_members')
-      .select('user_id')
-      .where('namespace_id', '=', space.namespace_id)
+    const namespace = await requireNamespaceMembership(
+      db,
+      actorUserId,
+      namespaceSlug,
+    )
+
+    if (namespace.memberRole === 'owner') {
+      return toPublicSpace(space)
+    }
+
+    const spaceMembership = await db
+      .selectFrom('space_members')
+      .select('role')
+      .where('space_id', '=', space.id)
       .where('user_id', '=', actorUserId)
       .executeTakeFirst()
 
-    if (!membership) {
+    if (!spaceMembership) {
       throw new SpaceServiceError(
         'FORBIDDEN',
         403,
-        'namespace membership is required',
+        'space membership is required',
       )
     }
 
@@ -191,10 +235,11 @@ export async function updateSpace(
   validateSlug(spaceSlug, 'space')
   validateSpaceUpdate(normalizedInput)
 
-  const namespace = await requireNamespaceOwner(
+  const spaceAccess = await requireSpaceOwnerAccess(
     db,
     actorUserId,
     inputNamespaceSlug,
+    spaceSlug,
   )
 
   try {
@@ -209,8 +254,7 @@ export async function updateSpace(
           : {}),
         updated_at: new Date(),
       })
-      .where('namespace_id', '=', namespace.id)
-      .where('slug', '=', spaceSlug)
+      .where('id', '=', spaceAccess.spaceId)
       .returningAll()
       .executeTakeFirst()
 
@@ -243,17 +287,17 @@ export async function deleteSpace(
 
   validateSlug(spaceSlug, 'space')
 
-  const namespace = await requireNamespaceOwner(
+  const spaceAccess = await requireSpaceOwnerAccess(
     db,
     actorUserId,
     inputNamespaceSlug,
+    spaceSlug,
   )
 
   try {
     const deletedSpace = await db
       .deleteFrom('spaces')
-      .where('namespace_id', '=', namespace.id)
-      .where('slug', '=', spaceSlug)
+      .where('id', '=', spaceAccess.spaceId)
       .returning('id')
       .executeTakeFirst()
 
@@ -269,6 +313,184 @@ export async function deleteSpace(
       'INTERNAL',
       500,
       'failed to delete space',
+      error,
+    )
+  }
+}
+
+export async function addSpaceMember(
+  db: Kysely<Database>,
+  actorUserId: string,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+  input: AddSpaceMemberInput,
+): Promise<PublicSpaceMember> {
+  const email = input.email.trim().toLowerCase()
+
+  validateSpaceMemberEmail(email)
+  validateAssignableSpaceMemberRole(input.role)
+
+  const spaceAccess = await requireSpaceOwnerAccess(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+    inputSpaceSlug,
+  )
+
+  try {
+    const user = await db
+      .selectFrom('users')
+      .innerJoin(
+        'namespace_members',
+        'namespace_members.user_id',
+        'users.id',
+      )
+      .select(['users.id', 'users.email', 'users.display_name'])
+      .where('users.email', '=', email)
+      .where('namespace_members.namespace_id', '=', spaceAccess.namespaceId)
+      .executeTakeFirst()
+
+    if (!user) {
+      throw new SpaceServiceError(
+        'NOT_FOUND',
+        404,
+        'namespace member not found',
+      )
+    }
+
+    const membership = await db
+      .insertInto('space_members')
+      .values({
+        space_id: spaceAccess.spaceId,
+        user_id: user.id,
+        role: input.role,
+      })
+      .returning(['role', 'created_at'])
+      .executeTakeFirstOrThrow()
+
+    return {
+      userId: user.id,
+      email: user.email,
+      displayName: user.display_name,
+      role: membership.role,
+      joinedAt: membership.created_at.toISOString(),
+    }
+  } catch (error) {
+    if (error instanceof SpaceServiceError) {
+      throw error
+    }
+
+    if (isUniqueViolation(error)) {
+      throw new SpaceServiceError(
+        'CONFLICT',
+        409,
+        'user is already a space member',
+      )
+    }
+
+    throw new SpaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to add space member',
+      error,
+    )
+  }
+}
+
+export async function listSpaceMembers(
+  db: Kysely<Database>,
+  actorUserId: string,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+): Promise<PublicSpaceMember[]> {
+  const spaceAccess = await requireSpaceOwnerAccess(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+    inputSpaceSlug,
+  )
+
+  try {
+    const members = await db
+      .selectFrom('space_members')
+      .innerJoin('users', 'users.id', 'space_members.user_id')
+      .select([
+        'users.id as userId',
+        'users.email',
+        'users.display_name as displayName',
+        'space_members.role',
+        'space_members.created_at as joinedAt',
+      ])
+      .where('space_members.space_id', '=', spaceAccess.spaceId)
+      .orderBy('space_members.created_at', 'asc')
+      .execute()
+
+    return members.map((member) => ({
+      ...member,
+      joinedAt: member.joinedAt.toISOString(),
+    }))
+  } catch (error) {
+    throw new SpaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to list space members',
+      error,
+    )
+  }
+}
+
+export async function removeSpaceMember(
+  db: Kysely<Database>,
+  actorUserId: string,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+  memberUserId: string,
+): Promise<void> {
+  const spaceAccess = await requireSpaceOwnerAccess(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+    inputSpaceSlug,
+  )
+
+  try {
+    const membership = await db
+      .selectFrom('space_members')
+      .select('role')
+      .where('space_id', '=', spaceAccess.spaceId)
+      .where('user_id', '=', memberUserId)
+      .executeTakeFirst()
+
+    if (!membership) {
+      throw new SpaceServiceError(
+        'NOT_FOUND',
+        404,
+        'space member not found',
+      )
+    }
+
+    if (membership.role === 'owner') {
+      throw new SpaceServiceError(
+        'CONFLICT',
+        409,
+        'space owner cannot be removed',
+      )
+    }
+
+    await db
+      .deleteFrom('space_members')
+      .where('space_id', '=', spaceAccess.spaceId)
+      .where('user_id', '=', memberUserId)
+      .execute()
+  } catch (error) {
+    if (error instanceof SpaceServiceError) {
+      throw error
+    }
+
+    throw new SpaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to remove space member',
       error,
     )
   }
@@ -359,6 +581,30 @@ export function validateSpaceUpdate(input: UpdateSpaceInput): void {
   }
 }
 
+export function validateSpaceMemberEmail(email: string): void {
+  if (
+    !email ||
+    email.length > 320 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  ) {
+    throw new SpaceServiceError(
+      'INVALID_INPUT',
+      400,
+      'a valid email is required',
+    )
+  }
+}
+
+export function validateAssignableSpaceMemberRole(role: string): void {
+  if (role !== 'writer' && role !== 'reader') {
+    throw new SpaceServiceError(
+      'INVALID_INPUT',
+      400,
+      'space member role must be writer or reader',
+    )
+  }
+}
+
 async function requireNamespaceMembership(
   db: Kysely<Database>,
   actorUserId: string,
@@ -436,6 +682,74 @@ async function requireNamespaceOwner(
   }
 
   return namespace
+}
+
+async function requireSpaceOwnerAccess(
+  db: Kysely<Database>,
+  actorUserId: string,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+) {
+  const spaceSlug = normalizeSpaceSlug(inputSpaceSlug)
+
+  validateSlug(spaceSlug, 'space')
+
+  const namespace = await requireNamespaceMembership(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+  )
+
+  try {
+    const space = await db
+      .selectFrom('spaces')
+      .select('id')
+      .where('namespace_id', '=', namespace.id)
+      .where('slug', '=', spaceSlug)
+      .executeTakeFirst()
+
+    if (!space) {
+      throw new SpaceServiceError('NOT_FOUND', 404, 'space not found')
+    }
+
+    if (namespace.memberRole === 'owner') {
+      return {
+        namespaceId: namespace.id,
+        spaceId: space.id,
+      }
+    }
+
+    const membership = await db
+      .selectFrom('space_members')
+      .select('role')
+      .where('space_id', '=', space.id)
+      .where('user_id', '=', actorUserId)
+      .executeTakeFirst()
+
+    if (membership?.role !== 'owner') {
+      throw new SpaceServiceError(
+        'FORBIDDEN',
+        403,
+        'space owner permission is required',
+      )
+    }
+
+    return {
+      namespaceId: namespace.id,
+      spaceId: space.id,
+    }
+  } catch (error) {
+    if (error instanceof SpaceServiceError) {
+      throw error
+    }
+
+    throw new SpaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to check space permission',
+      error,
+    )
+  }
 }
 
 function validateSlug(slug: string, subject: 'namespace' | 'space'): void {

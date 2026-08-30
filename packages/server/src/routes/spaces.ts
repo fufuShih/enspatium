@@ -2,10 +2,13 @@ import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
 import { Type } from '@sinclair/typebox'
 
 import {
+  addSpaceMember,
   createSpace,
   deleteSpace,
   getSpaceBySlug,
+  listSpaceMembers,
   listSpaces,
+  removeSpaceMember,
   updateSpace,
 } from '../services/space.js'
 import {
@@ -20,6 +23,12 @@ const NamespaceParamsSchema = Type.Object({
 const SpaceParamsSchema = Type.Object({
   namespaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
   spaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
+})
+
+const SpaceMemberParamsSchema = Type.Object({
+  namespaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
+  spaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
+  userId: Type.String({ format: 'uuid' }),
 })
 
 const CreateSpaceBodySchema = Type.Object({
@@ -44,6 +53,11 @@ const UpdateSpaceBodySchema = Type.Object(
   },
 )
 
+const AddSpaceMemberBodySchema = Type.Object({
+  email: Type.String({ minLength: 1, maxLength: 320 }),
+  role: Type.Union([Type.Literal('writer'), Type.Literal('reader')]),
+})
+
 const SpaceResponseSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
   namespaceId: Type.String({ format: 'uuid' }),
@@ -60,6 +74,18 @@ const SpaceResponseSchema = Type.Object({
   ]),
   createdAt: Type.String(),
   updatedAt: Type.String(),
+})
+
+const SpaceMemberResponseSchema = Type.Object({
+  userId: Type.String({ format: 'uuid' }),
+  email: Type.String(),
+  displayName: Type.String(),
+  role: Type.Union([
+    Type.Literal('owner'),
+    Type.Literal('writer'),
+    Type.Literal('reader'),
+  ]),
+  joinedAt: Type.String(),
 })
 
 export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
@@ -163,6 +189,75 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
         userId,
         request.params.namespaceSlug,
         request.params.spaceSlug,
+      )
+
+      return reply.code(204).send()
+    },
+  )
+
+  app.post(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/members',
+    {
+      schema: {
+        params: SpaceParamsSchema,
+        body: AddSpaceMemberBodySchema,
+        response: {
+          201: SpaceMemberResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const userId = requireCurrentUserId(request)
+      const member = await addSpaceMember(
+        app.db,
+        userId,
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+        request.body,
+      )
+
+      return reply.code(201).send(member)
+    },
+  )
+
+  app.get(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/members',
+    {
+      schema: {
+        params: SpaceParamsSchema,
+        response: {
+          200: Type.Array(SpaceMemberResponseSchema),
+        },
+      },
+    },
+    async (request) => {
+      const userId = requireCurrentUserId(request)
+
+      return listSpaceMembers(
+        app.db,
+        userId,
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+      )
+    },
+  )
+
+  app.delete(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/members/:userId',
+    {
+      schema: {
+        params: SpaceMemberParamsSchema,
+      },
+    },
+    async (request, reply) => {
+      const userId = requireCurrentUserId(request)
+
+      await removeSpaceMember(
+        app.db,
+        userId,
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+        request.params.userId,
       )
 
       return reply.code(204).send()

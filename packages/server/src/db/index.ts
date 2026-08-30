@@ -7,7 +7,7 @@ import type {
   NamespaceMemberTable,
   NamespaceTable,
 } from './namespace.types.js'
-import type { SpaceTable } from './space.types.js'
+import type { SpaceMemberTable, SpaceTable } from './space.types.js'
 import type { UserTable } from './user.types.js'
 
 export interface Database {
@@ -15,6 +15,7 @@ export interface Database {
   namespaces: NamespaceTable
   namespace_members: NamespaceMemberTable
   spaces: SpaceTable
+  space_members: SpaceMemberTable
 }
 
 export function createDb(databaseUrl: string) {

@@ -313,21 +313,36 @@ export async function removeNamespaceMember(
   }
 
   try {
-    const removedMember = await db
-      .deleteFrom('namespace_members')
-      .where('namespace_id', '=', namespace.id)
-      .where('user_id', '=', memberUserId)
-      .where('role', '=', 'member')
-      .returning('user_id')
-      .executeTakeFirst()
+    await db.transaction().execute(async (transaction) => {
+      const removedMember = await transaction
+        .deleteFrom('namespace_members')
+        .where('namespace_id', '=', namespace.id)
+        .where('user_id', '=', memberUserId)
+        .where('role', '=', 'member')
+        .returning('user_id')
+        .executeTakeFirst()
 
-    if (!removedMember) {
-      throw new NamespaceServiceError(
-        'NOT_FOUND',
-        404,
-        'namespace member not found',
-      )
-    }
+      if (!removedMember) {
+        throw new NamespaceServiceError(
+          'NOT_FOUND',
+          404,
+          'namespace member not found',
+        )
+      }
+
+      await transaction
+        .deleteFrom('space_members')
+        .where('user_id', '=', memberUserId)
+        .where(
+          'space_id',
+          'in',
+          transaction
+            .selectFrom('spaces')
+            .select('id')
+            .where('namespace_id', '=', namespace.id),
+        )
+        .execute()
+    })
   } catch (error) {
     if (error instanceof NamespaceServiceError) {
       throw error

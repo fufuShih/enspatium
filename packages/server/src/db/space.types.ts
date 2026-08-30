@@ -7,6 +7,8 @@ import type {
 
 export type SpaceType = 'git' | 'object'
 export type SpaceVisibility = 'public' | 'private'
+export type SpaceMemberRole = 'owner' | 'writer' | 'reader'
+export type AssignableSpaceMemberRole = Exclude<SpaceMemberRole, 'owner'>
 
 export interface SpaceTable {
   id: Generated<string>
@@ -24,6 +26,15 @@ export type Space = Selectable<SpaceTable>
 export type NewSpace = Insertable<SpaceTable>
 export type SpaceUpdate = Updateable<SpaceTable>
 
+export interface SpaceMemberTable {
+  space_id: string
+  user_id: string
+  role: SpaceMemberRole
+  created_at: Generated<Date>
+}
+
+export type SpaceMember = Selectable<SpaceMemberTable>
+
 export interface CreateSpaceInput {
   name: string
   slug: string
@@ -34,6 +45,19 @@ export interface CreateSpaceInput {
 export interface UpdateSpaceInput {
   name?: string
   visibility?: SpaceVisibility
+}
+
+export interface AddSpaceMemberInput {
+  email: string
+  role: AssignableSpaceMemberRole
+}
+
+export interface PublicSpaceMember {
+  userId: string
+  email: string
+  displayName: string
+  role: SpaceMemberRole
+  joinedAt: string
 }
 
 export interface PublicSpace {

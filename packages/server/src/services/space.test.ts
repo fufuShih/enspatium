@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 import {
   SpaceServiceError,
   normalizeSpaceSlug,
+  validateAssignableSpaceMemberRole,
   validateSpace,
+  validateSpaceMemberEmail,
   validateSpaceUpdate,
 } from './space.js'
 
@@ -54,4 +56,35 @@ describe('space service', () => {
       SpaceServiceError,
     )
   })
+
+  it.each(['writer', 'reader'])(
+    'accepts assignable space member role %s',
+    (role) => {
+      expect(() => validateAssignableSpaceMemberRole(role)).not.toThrow()
+    },
+  )
+
+  it.each(['owner', 'member', 'admin'])(
+    'rejects unassignable space member role %s',
+    (role) => {
+      expect(() => validateAssignableSpaceMemberRole(role)).toThrow(
+        SpaceServiceError,
+      )
+    },
+  )
+
+  it('accepts a valid space member email', () => {
+    expect(() =>
+      validateSpaceMemberEmail('writer@example.com'),
+    ).not.toThrow()
+  })
+
+  it.each(['', 'writer', '@example.com', 'writer@example'])(
+    'rejects invalid space member email %s',
+    (email) => {
+      expect(() => validateSpaceMemberEmail(email)).toThrow(
+        SpaceServiceError,
+      )
+    },
+  )
 })
