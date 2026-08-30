@@ -2,6 +2,7 @@ import type { Kysely, Transaction } from 'kysely'
 
 import type { Database } from '../db/index.js'
 import type {
+  CreateOrganizationNamespaceInput,
   Namespace,
   NamespaceServiceErrorCode,
   PublicNamespace,
@@ -55,6 +56,47 @@ export async function createPersonalNamespace(
   }
 }
 
+export async function createOrganizationNamespace(
+  db: Kysely<Database>,
+  ownerUserId: string,
+  input: CreateOrganizationNamespaceInput,
+): Promise<PublicNamespace> {
+  const name = input.name.trim()
+  const slug = normalizeNamespaceSlug(input.slug)
+
+  validateNamespace(name, slug)
+
+  try {
+    const namespace = await db
+      .insertInto('namespaces')
+      .values({
+        owner_user_id: ownerUserId,
+        name,
+        slug,
+        kind: 'organization',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow()
+
+    return toPublicNamespace(namespace)
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      throw new NamespaceServiceError(
+        'CONFLICT',
+        409,
+        'namespace slug already exists',
+      )
+    }
+
+    throw new NamespaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to create organization namespace',
+      error,
+    )
+  }
+}
+
 export async function listNamespaces(
   db: Kysely<Database>,
   ownerUserId: string,
@@ -80,6 +122,44 @@ export async function listNamespaces(
 
 export function personalNamespaceSlug(userId: string): string {
   return `u-${userId.replaceAll('-', '')}`
+}
+
+export function normalizeNamespaceSlug(slug: string): string {
+  return slug.trim().toLowerCase()
+}
+
+export function validateNamespace(name: string, slug: string): void {
+  if (!name) {
+    throw new NamespaceServiceError(
+      'INVALID_INPUT',
+      400,
+      'namespace name is required',
+    )
+  }
+
+  if (name.length > 100) {
+    throw new NamespaceServiceError(
+      'INVALID_INPUT',
+      400,
+      'namespace name must contain at most 100 characters',
+    )
+  }
+
+  if (slug.length < 3 || slug.length > 40) {
+    throw new NamespaceServiceError(
+      'INVALID_INPUT',
+      400,
+      'namespace slug must contain between 3 and 40 characters',
+    )
+  }
+
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    throw new NamespaceServiceError(
+      'INVALID_INPUT',
+      400,
+      'namespace slug may only contain lowercase letters, numbers, and single hyphens',
+    )
+  }
 }
 
 function toPublicNamespace(namespace: Namespace): PublicNamespace {

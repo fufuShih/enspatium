@@ -29,4 +29,12 @@ export interface PublicNamespace {
   createdAt: string
 }
 
-export type NamespaceServiceErrorCode = 'CONFLICT' | 'INTERNAL'
+export interface CreateOrganizationNamespaceInput {
+  name: string
+  slug: string
+}
+
+export type NamespaceServiceErrorCode =
+  | 'INVALID_INPUT'
+  | 'CONFLICT'
+  | 'INTERNAL'
