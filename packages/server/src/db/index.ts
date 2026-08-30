@@ -5,6 +5,17 @@ import { Pool } from 'pg'
 
 export interface Database {}
 
+export function createDb(databaseUrl: string) {
+  return new Kysely<Database>({
+    dialect: new PostgresDialect({
+      pool: new Pool({
+        connectionString: databaseUrl,
+        max: 10,
+      }),
+    }),
+  })
+}
+
 declare module 'fastify' {
   interface FastifyInstance {
     db: Kysely<Database>
@@ -12,14 +23,7 @@ declare module 'fastify' {
 }
 
 const dbPluginCallback: FastifyPluginAsync = async (app) => {
-  const db = new Kysely<Database>({
-    dialect: new PostgresDialect({
-      pool: new Pool({
-        connectionString: app.config.DATABASE_URL,
-        max: 10,
-      }),
-    }),
-  })
+  const db = createDb(app.config.DATABASE_URL)
 
   app.decorate('db', db)
 
