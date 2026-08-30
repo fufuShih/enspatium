@@ -7,6 +7,7 @@ import {
   getNamespaceBySlug,
   listNamespaceMembers,
   listNamespaces,
+  removeNamespaceMember,
 } from '../services/namespaces.js'
 import { requireCurrentUserId } from './current-user.js'
 
@@ -29,6 +30,11 @@ const CreateOrganizationNamespaceBodySchema = Type.Object({
 
 const NamespaceParamsSchema = Type.Object({
   slug: Type.String({ minLength: 1, maxLength: 100 }),
+})
+
+const NamespaceMemberParamsSchema = Type.Object({
+  slug: Type.String({ minLength: 1, maxLength: 100 }),
+  userId: Type.String({ format: 'uuid' }),
 })
 
 const AddNamespaceMemberBodySchema = Type.Object({
@@ -135,6 +141,27 @@ export const namespaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
       const userId = requireCurrentUserId(request)
 
       return listNamespaceMembers(app.db, userId, request.params.slug)
+    },
+  )
+
+  app.delete(
+    '/namespaces/:slug/members/:userId',
+    {
+      schema: {
+        params: NamespaceMemberParamsSchema,
+      },
+    },
+    async (request, reply) => {
+      const userId = requireCurrentUserId(request)
+
+      await removeNamespaceMember(
+        app.db,
+        userId,
+        request.params.slug,
+        request.params.userId,
+      )
+
+      return reply.code(204).send()
     },
   )
 }

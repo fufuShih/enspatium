@@ -292,6 +292,56 @@ export async function listNamespaceMembers(
   }
 }
 
+export async function removeNamespaceMember(
+  db: Kysely<Database>,
+  actorUserId: string,
+  inputSlug: string,
+  memberUserId: string,
+): Promise<void> {
+  const namespace = await requireOwnedOrganizationNamespace(
+    db,
+    actorUserId,
+    inputSlug,
+  )
+
+  if (namespace.owner_user_id === memberUserId) {
+    throw new NamespaceServiceError(
+      'CONFLICT',
+      409,
+      'namespace owner cannot be removed',
+    )
+  }
+
+  try {
+    const removedMember = await db
+      .deleteFrom('namespace_members')
+      .where('namespace_id', '=', namespace.id)
+      .where('user_id', '=', memberUserId)
+      .where('role', '=', 'member')
+      .returning('user_id')
+      .executeTakeFirst()
+
+    if (!removedMember) {
+      throw new NamespaceServiceError(
+        'NOT_FOUND',
+        404,
+        'namespace member not found',
+      )
+    }
+  } catch (error) {
+    if (error instanceof NamespaceServiceError) {
+      throw error
+    }
+
+    throw new NamespaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to remove namespace member',
+      error,
+    )
+  }
+}
+
 export function personalNamespaceSlug(userId: string): string {
   return `u-${userId.replaceAll('-', '')}`
 }
