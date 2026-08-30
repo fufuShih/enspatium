@@ -5,6 +5,7 @@ import {
   addSpaceMember,
   createSpace,
   deleteSpace,
+  getGitSpaceInfo,
   getSpaceBySlug,
   listSpaceMembers,
   listSpaces,
@@ -98,6 +99,21 @@ const SpaceMemberResponseSchema = Type.Object({
   joinedAt: Type.String(),
 })
 
+const GitCommitResponseSchema = Type.Object({
+  id: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
+  shortId: Type.String({ pattern: '^[0-9a-f]+$' }),
+  authorName: Type.String(),
+  authorEmail: Type.String(),
+  authoredAt: Type.String({ format: 'date-time' }),
+  message: Type.String(),
+})
+
+const GitRepositoryInfoResponseSchema = Type.Object({
+  defaultBranch: Type.String(),
+  branches: Type.Array(Type.String()),
+  commits: Type.Array(GitCommitResponseSchema),
+})
+
 export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.post(
     '/namespaces/:namespaceSlug/spaces',
@@ -114,6 +130,7 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
       const userId = requireCurrentUserId(request)
       const space = await createSpace(
         app.db,
+        app.config.DATA_ROOT,
         userId,
         request.params.namespaceSlug,
         request.body,
@@ -160,6 +177,27 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     },
   )
 
+  app.get(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/git',
+    {
+      schema: {
+        params: SpaceParamsSchema,
+        response: {
+          200: GitRepositoryInfoResponseSchema,
+        },
+      },
+    },
+    async (request) => {
+      return getGitSpaceInfo(
+        app.db,
+        app.config.DATA_ROOT,
+        getCurrentUserId(request),
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+      )
+    },
+  )
+
   app.patch(
     '/namespaces/:namespaceSlug/spaces/:spaceSlug',
     {
@@ -196,6 +234,7 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
 
       await deleteSpace(
         app.db,
+        app.config.DATA_ROOT,
         userId,
         request.params.namespaceSlug,
         request.params.spaceSlug,

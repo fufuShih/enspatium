@@ -10,6 +10,23 @@ const execFileAsync = promisify(execFile)
 const repositoryRoot = fileURLToPath(new URL('../../../', import.meta.url))
 const spaceIdPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const gitFieldSeparator = '\u001f'
+const gitRecordSeparator = '\u001e'
+
+export interface GitCommit {
+  id: string
+  shortId: string
+  authorName: string
+  authorEmail: string
+  authoredAt: string
+  message: string
+}
+
+export interface GitRepositoryInfo {
+  defaultBranch: string
+  branches: string[]
+  commits: GitCommit[]
+}
 
 export function resolveDataRoot(configuredRoot: string): string {
   return isAbsolute(configuredRoot)
@@ -85,4 +102,96 @@ export async function deleteSpaceStorage(
     recursive: true,
     force: true,
   })
+}
+
+export async function getGitRepositoryInfo(
+  dataRoot: string,
+  spaceId: string,
+): Promise<GitRepositoryInfo> {
+  const repositoryPath = getSpaceStoragePath(dataRoot, spaceId, 'git')
+
+  const [defaultBranchOutput, branchesOutput] = await Promise.all([
+    runGit(repositoryPath, ['symbolic-ref', '--short', 'HEAD']),
+    runGit(repositoryPath, [
+      'for-each-ref',
+      '--sort=refname',
+      '--format=%(refname:short)',
+      'refs/heads/',
+    ]),
+  ])
+
+  const branches = branchesOutput
+    .split('\n')
+    .map((branch) => branch.trim())
+    .filter(Boolean)
+
+  if (branches.length === 0) {
+    return {
+      defaultBranch: defaultBranchOutput.trim(),
+      branches,
+      commits: [],
+    }
+  }
+
+  const commitsOutput = await runGit(repositoryPath, [
+    'log',
+    '--all',
+    '--max-count=20',
+    `--format=%H%x1f%h%x1f%an%x1f%ae%x1f%aI%x1f%s%x1e`,
+  ])
+
+  return {
+    defaultBranch: defaultBranchOutput.trim(),
+    branches,
+    commits: parseGitCommits(commitsOutput),
+  }
+}
+
+async function runGit(
+  repositoryPath: string,
+  arguments_: string[],
+): Promise<string> {
+  const { stdout } = await execFileAsync(
+    'git',
+    [`--git-dir=${repositoryPath}`, ...arguments_],
+    {
+      encoding: 'utf8',
+      maxBuffer: 1024 * 1024,
+      timeout: 10_000,
+      windowsHide: true,
+    },
+  )
+
+  return stdout
+}
+
+function parseGitCommits(output: string): GitCommit[] {
+  return output
+    .split(gitRecordSeparator)
+    .map((record) => record.trim())
+    .filter(Boolean)
+    .map((record) => {
+      const [id, shortId, authorName, authorEmail, authoredAt, message] =
+        record.split(gitFieldSeparator)
+
+      if (
+        !id ||
+        !shortId ||
+        authorName === undefined ||
+        authorEmail === undefined ||
+        !authoredAt ||
+        message === undefined
+      ) {
+        throw new Error('failed to parse Git commit')
+      }
+
+      return {
+        id,
+        shortId,
+        authorName,
+        authorEmail,
+        authoredAt,
+        message,
+      }
+    })
 }

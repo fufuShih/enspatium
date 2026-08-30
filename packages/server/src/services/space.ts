@@ -11,6 +11,12 @@ import type {
   UpdateSpaceMemberInput,
   UpdateSpaceInput,
 } from '../db/space.types.js'
+import {
+  createSpaceStorage,
+  deleteSpaceStorage,
+  getGitRepositoryInfo,
+  type GitRepositoryInfo,
+} from '../storage.js'
 
 export class SpaceServiceError extends Error {
   constructor(
@@ -26,6 +32,7 @@ export class SpaceServiceError extends Error {
 
 export async function createSpace(
   db: Kysely<Database>,
+  dataRoot: string,
   actorUserId: string,
   inputNamespaceSlug: string,
   input: CreateSpaceInput,
@@ -42,8 +49,10 @@ export async function createSpace(
     inputNamespaceSlug,
   )
 
+  let space: Space
+
   try {
-    const space = await db.transaction().execute(async (transaction) => {
+    space = await db.transaction().execute(async (transaction) => {
       const createdSpace = await transaction
         .insertInto('spaces')
         .values({
@@ -68,8 +77,6 @@ export async function createSpace(
 
       return createdSpace
     })
-
-    return toPublicSpace(space)
   } catch (error) {
     if (isUniqueViolation(error)) {
       throw new SpaceServiceError(
@@ -86,6 +93,30 @@ export async function createSpace(
       error,
     )
   }
+
+  try {
+    await createSpaceStorage(dataRoot, space.id, space.type)
+  } catch (storageError) {
+    let cause: unknown = storageError
+
+    try {
+      await db.deleteFrom('spaces').where('id', '=', space.id).execute()
+    } catch (cleanupError) {
+      cause = new AggregateError(
+        [storageError, cleanupError],
+        'storage creation and database cleanup both failed',
+      )
+    }
+
+    throw new SpaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to create space storage',
+      cause,
+    )
+  }
+
+  return toPublicSpace(space)
 }
 
 export async function listSpaces(
@@ -214,6 +245,40 @@ export async function getSpaceBySlug(
   }
 }
 
+export async function getGitSpaceInfo(
+  db: Kysely<Database>,
+  dataRoot: string,
+  actorUserId: string | undefined,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+): Promise<GitRepositoryInfo> {
+  const space = await getSpaceBySlug(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+    inputSpaceSlug,
+  )
+
+  if (space.type !== 'git') {
+    throw new SpaceServiceError(
+      'INVALID_INPUT',
+      400,
+      'space is not a Git space',
+    )
+  }
+
+  try {
+    return await getGitRepositoryInfo(dataRoot, space.id)
+  } catch (error) {
+    throw new SpaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to read Git repository',
+      error,
+    )
+  }
+}
+
 export async function updateSpace(
   db: Kysely<Database>,
   actorUserId: string,
@@ -280,6 +345,7 @@ export async function updateSpace(
 
 export async function deleteSpace(
   db: Kysely<Database>,
+  dataRoot: string,
   actorUserId: string,
   inputNamespaceSlug: string,
   inputSpaceSlug: string,
@@ -294,6 +360,21 @@ export async function deleteSpace(
     inputNamespaceSlug,
     spaceSlug,
   )
+
+  try {
+    await deleteSpaceStorage(
+      dataRoot,
+      spaceAccess.spaceId,
+      spaceAccess.spaceType,
+    )
+  } catch (error) {
+    throw new SpaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to delete space storage',
+      error,
+    )
+  }
 
   try {
     const deletedSpace = await db
@@ -781,7 +862,7 @@ async function requireSpaceOwnerAccess(
   try {
     const space = await db
       .selectFrom('spaces')
-      .select('id')
+      .select(['id', 'type'])
       .where('namespace_id', '=', namespace.id)
       .where('slug', '=', spaceSlug)
       .executeTakeFirst()
@@ -794,6 +875,7 @@ async function requireSpaceOwnerAccess(
       return {
         namespaceId: namespace.id,
         spaceId: space.id,
+        spaceType: space.type,
       }
     }
 
@@ -815,6 +897,7 @@ async function requireSpaceOwnerAccess(
     return {
       namespaceId: namespace.id,
       spaceId: space.id,
+      spaceType: space.type,
     }
   } catch (error) {
     if (error instanceof SpaceServiceError) {
