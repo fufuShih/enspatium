@@ -109,6 +109,73 @@ export async function listSpaces(
   }
 }
 
+export async function getSpaceBySlug(
+  db: Kysely<Database>,
+  actorUserId: string | undefined,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+): Promise<PublicSpace> {
+  const namespaceSlug = normalizeSpaceSlug(inputNamespaceSlug)
+  const spaceSlug = normalizeSpaceSlug(inputSpaceSlug)
+
+  validateSlug(namespaceSlug, 'namespace')
+  validateSlug(spaceSlug, 'space')
+
+  try {
+    const space = await db
+      .selectFrom('spaces')
+      .innerJoin('namespaces', 'namespaces.id', 'spaces.namespace_id')
+      .selectAll('spaces')
+      .where('namespaces.slug', '=', namespaceSlug)
+      .where('spaces.slug', '=', spaceSlug)
+      .executeTakeFirst()
+
+    if (!space) {
+      throw new SpaceServiceError('NOT_FOUND', 404, 'space not found')
+    }
+
+    if (space.visibility === 'public') {
+      return toPublicSpace(space)
+    }
+
+    if (!actorUserId) {
+      throw new SpaceServiceError(
+        'UNAUTHENTICATED',
+        401,
+        'authentication required',
+      )
+    }
+
+    const membership = await db
+      .selectFrom('namespace_members')
+      .select('user_id')
+      .where('namespace_id', '=', space.namespace_id)
+      .where('user_id', '=', actorUserId)
+      .executeTakeFirst()
+
+    if (!membership) {
+      throw new SpaceServiceError(
+        'FORBIDDEN',
+        403,
+        'namespace membership is required',
+      )
+    }
+
+    return toPublicSpace(space)
+  } catch (error) {
+    if (error instanceof SpaceServiceError) {
+      throw error
+    }
+
+    throw new SpaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to get space',
+      error,
+    )
+  }
+}
+
 export function normalizeSpaceSlug(slug: string): string {
   return slug.trim().toLowerCase()
 }

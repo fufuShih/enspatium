@@ -45,6 +45,7 @@ export interface PublicSpace {
 
 export type SpaceServiceErrorCode =
   | 'INVALID_INPUT'
+  | 'UNAUTHENTICATED'
   | 'CONFLICT'
   | 'FORBIDDEN'
   | 'NOT_FOUND'

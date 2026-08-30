@@ -9,13 +9,19 @@ declare module '@fastify/secure-session' {
 }
 
 export function requireCurrentUserId(request: FastifyRequest): string {
-  const userId = request.session.get('userId')
+  const userId = getCurrentUserId(request)
 
   if (!userId) {
     throw authenticationRequired()
   }
 
   return userId
+}
+
+export function getCurrentUserId(
+  request: FastifyRequest,
+): string | undefined {
+  return request.session.get('userId')
 }
 
 export function authenticationRequired(): UserServiceError {

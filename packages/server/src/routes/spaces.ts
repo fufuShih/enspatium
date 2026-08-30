@@ -1,11 +1,23 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
 import { Type } from '@sinclair/typebox'
 
-import { createSpace, listSpaces } from '../services/space.js'
-import { requireCurrentUserId } from './current-user.js'
+import {
+  createSpace,
+  getSpaceBySlug,
+  listSpaces,
+} from '../services/space.js'
+import {
+  getCurrentUserId,
+  requireCurrentUserId,
+} from './current-user.js'
 
 const NamespaceParamsSchema = Type.Object({
   namespaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
+})
+
+const SpaceParamsSchema = Type.Object({
+  namespaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
+  spaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
 })
 
 const CreateSpaceBodySchema = Type.Object({
@@ -74,6 +86,26 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
       const userId = requireCurrentUserId(request)
 
       return listSpaces(app.db, userId, request.params.namespaceSlug)
+    },
+  )
+
+  app.get(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug',
+    {
+      schema: {
+        params: SpaceParamsSchema,
+        response: {
+          200: SpaceResponseSchema,
+        },
+      },
+    },
+    async (request) => {
+      return getSpaceBySlug(
+        app.db,
+        getCurrentUserId(request),
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+      )
     },
   )
 }
