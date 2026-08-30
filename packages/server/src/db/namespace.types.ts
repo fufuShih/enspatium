@@ -34,8 +34,32 @@ export interface CreateOrganizationNamespaceInput {
   slug: string
 }
 
+export type NamespaceMemberRole = 'owner' | 'member'
+
+export interface NamespaceMemberTable {
+  namespace_id: string
+  user_id: string
+  role: NamespaceMemberRole
+  created_at: Generated<Date>
+}
+
+export type NamespaceMember = Selectable<NamespaceMemberTable>
+
+export interface AddNamespaceMemberInput {
+  email: string
+}
+
+export interface PublicNamespaceMember {
+  userId: string
+  email: string
+  displayName: string
+  role: NamespaceMemberRole
+  joinedAt: string
+}
+
 export type NamespaceServiceErrorCode =
   | 'INVALID_INPUT'
   | 'CONFLICT'
+  | 'FORBIDDEN'
   | 'NOT_FOUND'
   | 'INTERNAL'

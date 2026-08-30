@@ -2,10 +2,12 @@ import type { Kysely, Transaction } from 'kysely'
 
 import type { Database } from '../db/index.js'
 import type {
+  AddNamespaceMemberInput,
   CreateOrganizationNamespaceInput,
   Namespace,
   NamespaceServiceErrorCode,
   PublicNamespace,
+  PublicNamespaceMember,
 } from '../db/namespace.types.js'
 
 export class NamespaceServiceError extends Error {
@@ -37,6 +39,15 @@ export async function createPersonalNamespace(
       .returningAll()
       .executeTakeFirstOrThrow()
 
+    await transaction
+      .insertInto('namespace_members')
+      .values({
+        namespace_id: namespace.id,
+        user_id: ownerUserId,
+        role: 'owner',
+      })
+      .execute()
+
     return toPublicNamespace(namespace)
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -67,16 +78,29 @@ export async function createOrganizationNamespace(
   validateNamespace(name, slug)
 
   try {
-    const namespace = await db
-      .insertInto('namespaces')
-      .values({
-        owner_user_id: ownerUserId,
-        name,
-        slug,
-        kind: 'organization',
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow()
+    const namespace = await db.transaction().execute(async (transaction) => {
+      const createdNamespace = await transaction
+        .insertInto('namespaces')
+        .values({
+          owner_user_id: ownerUserId,
+          name,
+          slug,
+          kind: 'organization',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow()
+
+      await transaction
+        .insertInto('namespace_members')
+        .values({
+          namespace_id: createdNamespace.id,
+          user_id: ownerUserId,
+          role: 'owner',
+        })
+        .execute()
+
+      return createdNamespace
+    })
 
     return toPublicNamespace(namespace)
   } catch (error) {
@@ -104,9 +128,14 @@ export async function listNamespaces(
   try {
     const namespaces = await db
       .selectFrom('namespaces')
-      .selectAll()
-      .where('owner_user_id', '=', ownerUserId)
-      .orderBy('created_at', 'asc')
+      .innerJoin(
+        'namespace_members',
+        'namespace_members.namespace_id',
+        'namespaces.id',
+      )
+      .selectAll('namespaces')
+      .where('namespace_members.user_id', '=', ownerUserId)
+      .orderBy('namespaces.created_at', 'asc')
       .execute()
 
     return namespaces.map(toPublicNamespace)
@@ -158,6 +187,111 @@ export async function getNamespaceBySlug(
   }
 }
 
+export async function addNamespaceMember(
+  db: Kysely<Database>,
+  actorUserId: string,
+  inputSlug: string,
+  input: AddNamespaceMemberInput,
+): Promise<PublicNamespaceMember> {
+  const namespace = await requireOwnedOrganizationNamespace(
+    db,
+    actorUserId,
+    inputSlug,
+  )
+  const email = input.email.trim().toLowerCase()
+
+  validateNamespaceMemberEmail(email)
+
+  try {
+    const user = await db
+      .selectFrom('users')
+      .select(['id', 'email', 'display_name'])
+      .where('email', '=', email)
+      .executeTakeFirst()
+
+    if (!user) {
+      throw new NamespaceServiceError('NOT_FOUND', 404, 'user not found')
+    }
+
+    const membership = await db
+      .insertInto('namespace_members')
+      .values({
+        namespace_id: namespace.id,
+        user_id: user.id,
+        role: 'member',
+      })
+      .returning(['role', 'created_at'])
+      .executeTakeFirstOrThrow()
+
+    return {
+      userId: user.id,
+      email: user.email,
+      displayName: user.display_name,
+      role: membership.role,
+      joinedAt: membership.created_at.toISOString(),
+    }
+  } catch (error) {
+    if (error instanceof NamespaceServiceError) {
+      throw error
+    }
+
+    if (isUniqueViolation(error)) {
+      throw new NamespaceServiceError(
+        'CONFLICT',
+        409,
+        'user is already a namespace member',
+      )
+    }
+
+    throw new NamespaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to add namespace member',
+      error,
+    )
+  }
+}
+
+export async function listNamespaceMembers(
+  db: Kysely<Database>,
+  actorUserId: string,
+  inputSlug: string,
+): Promise<PublicNamespaceMember[]> {
+  const namespace = await requireOwnedOrganizationNamespace(
+    db,
+    actorUserId,
+    inputSlug,
+  )
+
+  try {
+    const members = await db
+      .selectFrom('namespace_members')
+      .innerJoin('users', 'users.id', 'namespace_members.user_id')
+      .select([
+        'users.id as userId',
+        'users.email',
+        'users.display_name as displayName',
+        'namespace_members.role',
+        'namespace_members.created_at as joinedAt',
+      ])
+      .where('namespace_members.namespace_id', '=', namespace.id)
+      .orderBy('namespace_members.created_at', 'asc')
+      .execute()
+
+    return members.map((member) => ({
+      ...member,
+      joinedAt: member.joinedAt.toISOString(),
+    }))
+  } catch (error) {
+    throw new NamespaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to list namespace members',
+      error,
+    )
+  }
+}
+
 export function personalNamespaceSlug(userId: string): string {
   return `u-${userId.replaceAll('-', '')}`
 }
@@ -202,6 +336,69 @@ export function validateNamespaceSlug(slug: string): void {
       'namespace slug may only contain lowercase letters, numbers, and single hyphens',
     )
   }
+}
+
+export function validateNamespaceMemberEmail(email: string): void {
+  if (
+    !email ||
+    email.length > 320 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  ) {
+    throw new NamespaceServiceError(
+      'INVALID_INPUT',
+      400,
+      'a valid email is required',
+    )
+  }
+}
+
+async function requireOwnedOrganizationNamespace(
+  db: Kysely<Database>,
+  actorUserId: string,
+  inputSlug: string,
+) {
+  const slug = normalizeNamespaceSlug(inputSlug)
+
+  validateNamespaceSlug(slug)
+
+  let namespace
+
+  try {
+    namespace = await db
+      .selectFrom('namespaces')
+      .select(['id', 'kind', 'owner_user_id'])
+      .where('slug', '=', slug)
+      .executeTakeFirst()
+  } catch (error) {
+    throw new NamespaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to check namespace permission',
+      error,
+    )
+  }
+
+  if (!namespace) {
+    throw new NamespaceServiceError('NOT_FOUND', 404, 'namespace not found')
+  }
+
+  if (namespace.kind !== 'organization') {
+    throw new NamespaceServiceError(
+      'INVALID_INPUT',
+      400,
+      'personal namespaces do not support additional members',
+    )
+  }
+
+  if (namespace.owner_user_id !== actorUserId) {
+    throw new NamespaceServiceError(
+      'FORBIDDEN',
+      403,
+      'namespace owner permission is required',
+    )
+  }
+
+  return namespace
 }
 
 function toPublicNamespace(namespace: Namespace): PublicNamespace {

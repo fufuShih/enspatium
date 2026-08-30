@@ -5,6 +5,7 @@ import {
   normalizeNamespaceSlug,
   personalNamespaceSlug,
   validateNamespace,
+  validateNamespaceMemberEmail,
   validateNamespaceSlug,
 } from './namespaces.js'
 
@@ -26,6 +27,19 @@ describe('namespace service', () => {
   it('accepts a valid namespace slug for public lookup', () => {
     expect(() => validateNamespaceSlug('game-team')).not.toThrow()
   })
+
+  it('accepts a valid namespace member email', () => {
+    expect(() => validateNamespaceMemberEmail('member@example.com')).not.toThrow()
+  })
+
+  it.each(['', 'member', '@example.com', 'member@example'])(
+    'rejects invalid namespace member email %s',
+    (email) => {
+      expect(() => validateNamespaceMemberEmail(email)).toThrow(
+        NamespaceServiceError,
+      )
+    },
+  )
 
   it.each(['ab', '-game', 'game-', 'game--team', 'game_team'])(
     'rejects invalid namespace slug %s',

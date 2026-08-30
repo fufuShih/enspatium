@@ -2,8 +2,10 @@ import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
 import { Type } from '@sinclair/typebox'
 
 import {
+  addNamespaceMember,
   createOrganizationNamespace,
   getNamespaceBySlug,
+  listNamespaceMembers,
   listNamespaces,
 } from '../services/namespaces.js'
 import { requireCurrentUserId } from './current-user.js'
@@ -27,6 +29,18 @@ const CreateOrganizationNamespaceBodySchema = Type.Object({
 
 const NamespaceParamsSchema = Type.Object({
   slug: Type.String({ minLength: 1, maxLength: 100 }),
+})
+
+const AddNamespaceMemberBodySchema = Type.Object({
+  email: Type.String({ minLength: 1, maxLength: 320 }),
+})
+
+const NamespaceMemberResponseSchema = Type.Object({
+  userId: Type.String({ format: 'uuid' }),
+  email: Type.String(),
+  displayName: Type.String(),
+  role: Type.Union([Type.Literal('owner'), Type.Literal('member')]),
+  joinedAt: Type.String(),
 })
 
 export const namespaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
@@ -80,6 +94,47 @@ export const namespaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     },
     async (request) => {
       return getNamespaceBySlug(app.db, request.params.slug)
+    },
+  )
+
+  app.post(
+    '/namespaces/:slug/members',
+    {
+      schema: {
+        params: NamespaceParamsSchema,
+        body: AddNamespaceMemberBodySchema,
+        response: {
+          201: NamespaceMemberResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const userId = requireCurrentUserId(request)
+      const member = await addNamespaceMember(
+        app.db,
+        userId,
+        request.params.slug,
+        request.body,
+      )
+
+      return reply.code(201).send(member)
+    },
+  )
+
+  app.get(
+    '/namespaces/:slug/members',
+    {
+      schema: {
+        params: NamespaceParamsSchema,
+        response: {
+          200: Type.Array(NamespaceMemberResponseSchema),
+        },
+      },
+    },
+    async (request) => {
+      const userId = requireCurrentUserId(request)
+
+      return listNamespaceMembers(app.db, userId, request.params.slug)
     },
   )
 }
