@@ -5,5 +5,14 @@ Enspatium is a self-hosted platform for managing content, storage, and collabora
 
 ## Project Structure
 
-- `apps` — React frontend
-- `core` — Rust workspace for server, worker, and system processing
+- `apps` — deployable frontend applications
+- `packages` — Node.js server and shared packages
+
+## Development
+
+```powershell
+pnpm install
+pnpm dev
+```
+
+The server exposes `GET http://127.0.0.1:3000/health`.
