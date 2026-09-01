@@ -1,14 +1,26 @@
 import { execFile } from 'node:child_process'
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
+  getGitFile,
+  getGitReadme,
+  getGitRepositoryInfo,
+  getGitTree,
+} from './git.js'
+import {
   createSpaceStorage,
   deleteSpaceStorage,
-  getGitRepositoryInfo,
   getSpaceStoragePath,
   initializeStorage,
 } from './storage.js'
@@ -99,7 +111,13 @@ describe('local storage', () => {
       'test@example.com',
     ])
     await writeFile(join(worktreePath, 'README.md'), '# Test\n', 'utf8')
-    await execFileAsync('git', ['-C', worktreePath, 'add', 'README.md'])
+    await mkdir(join(worktreePath, 'src'))
+    await writeFile(
+      join(worktreePath, 'src', 'index.ts'),
+      "export const value = 'test'\n",
+      'utf8',
+    )
+    await execFileAsync('git', ['-C', worktreePath, 'add', '.'])
     await execFileAsync('git', [
       '-C',
       worktreePath,
@@ -135,6 +153,56 @@ describe('local storage', () => {
     })
     expect(info.commits[0]?.id).toMatch(/^[0-9a-f]{40}$/)
     expect(info.commits[0]?.authoredAt).not.toBe('')
+
+    const rootTree = await getGitTree(root, spaceId, 'main')
+
+    expect(rootTree.entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'README.md',
+          path: 'README.md',
+          type: 'file',
+        }),
+        expect.objectContaining({
+          name: 'src',
+          path: 'src',
+          type: 'directory',
+        }),
+      ]),
+    )
+
+    const sourceTree = await getGitTree(root, spaceId, 'main', 'src')
+
+    expect(sourceTree.entries).toEqual([
+      expect.objectContaining({
+        name: 'index.ts',
+        path: 'src/index.ts',
+        type: 'file',
+      }),
+    ])
+
+    const file = await getGitFile(root, spaceId, 'main', 'src/index.ts')
+
+    expect(file).toMatchObject({
+      ref: 'main',
+      path: 'src/index.ts',
+      name: 'index.ts',
+      encoding: 'utf-8',
+      content: "export const value = 'test'\n",
+    })
+
+    const readme = await getGitReadme(root, spaceId, 'main')
+
+    expect(readme).toMatchObject({
+      ref: 'main',
+      path: 'README.md',
+      encoding: 'utf-8',
+      content: '# Test\n',
+    })
+
+    await expect(
+      getGitFile(root, spaceId, 'main', '../README.md'),
+    ).rejects.toMatchObject({ code: 'INVALID_PATH' })
   })
 
   it('rejects an invalid space id', async () => {

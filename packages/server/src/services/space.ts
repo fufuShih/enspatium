@@ -12,11 +12,16 @@ import type {
   UpdateSpaceInput,
 } from '../db/space.types.js'
 import {
-  createSpaceStorage,
-  deleteSpaceStorage,
+  getGitFile,
+  getGitReadme,
   getGitRepositoryInfo,
+  getGitTree,
+  GitStorageError,
+  type GitFile,
   type GitRepositoryInfo,
-} from '../storage.js'
+  type GitTree,
+} from '../git.js'
+import { createSpaceStorage, deleteSpaceStorage } from '../storage.js'
 
 export class SpaceServiceError extends Error {
   constructor(
@@ -252,6 +257,94 @@ export async function getGitSpaceInfo(
   inputNamespaceSlug: string,
   inputSpaceSlug: string,
 ): Promise<GitRepositoryInfo> {
+  const space = await requireReadableGitSpace(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+    inputSpaceSlug,
+  )
+
+  try {
+    return await getGitRepositoryInfo(dataRoot, space.id)
+  } catch (error) {
+    throwGitStorageError(error, 'failed to read Git repository')
+  }
+}
+
+export async function getGitSpaceTree(
+  db: Kysely<Database>,
+  dataRoot: string,
+  actorUserId: string | undefined,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+  inputRef?: string,
+  inputPath = '',
+): Promise<GitTree> {
+  const space = await requireReadableGitSpace(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+    inputSpaceSlug,
+  )
+
+  try {
+    return await getGitTree(dataRoot, space.id, inputRef, inputPath)
+  } catch (error) {
+    throwGitStorageError(error, 'failed to read Git tree')
+  }
+}
+
+export async function getGitSpaceFile(
+  db: Kysely<Database>,
+  dataRoot: string,
+  actorUserId: string | undefined,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+  inputRef: string | undefined,
+  inputPath: string,
+): Promise<GitFile> {
+  const space = await requireReadableGitSpace(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+    inputSpaceSlug,
+  )
+
+  try {
+    return await getGitFile(dataRoot, space.id, inputRef, inputPath)
+  } catch (error) {
+    throwGitStorageError(error, 'failed to read Git file')
+  }
+}
+
+export async function getGitSpaceReadme(
+  db: Kysely<Database>,
+  dataRoot: string,
+  actorUserId: string | undefined,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+  inputRef?: string,
+): Promise<GitFile | null> {
+  const space = await requireReadableGitSpace(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+    inputSpaceSlug,
+  )
+
+  try {
+    return await getGitReadme(dataRoot, space.id, inputRef)
+  } catch (error) {
+    throwGitStorageError(error, 'failed to read Git README')
+  }
+}
+
+async function requireReadableGitSpace(
+  db: Kysely<Database>,
+  actorUserId: string | undefined,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+): Promise<PublicSpace> {
   const space = await getSpaceBySlug(
     db,
     actorUserId,
@@ -267,16 +360,23 @@ export async function getGitSpaceInfo(
     )
   }
 
-  try {
-    return await getGitRepositoryInfo(dataRoot, space.id)
-  } catch (error) {
-    throw new SpaceServiceError(
-      'INTERNAL',
-      500,
-      'failed to read Git repository',
-      error,
-    )
+  return space
+}
+
+function throwGitStorageError(error: unknown, message: string): never {
+  if (error instanceof GitStorageError) {
+    if (error.code === 'REF_NOT_FOUND' || error.code === 'PATH_NOT_FOUND') {
+      throw new SpaceServiceError('NOT_FOUND', 404, error.message, error)
+    }
+
+    if (error.code === 'FILE_TOO_LARGE') {
+      throw new SpaceServiceError('INVALID_INPUT', 413, error.message, error)
+    }
+
+    throw new SpaceServiceError('INVALID_INPUT', 400, error.message, error)
   }
+
+  throw new SpaceServiceError('INTERNAL', 500, message, error)
 }
 
 export async function updateSpace(

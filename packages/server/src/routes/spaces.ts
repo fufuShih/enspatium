@@ -5,7 +5,10 @@ import {
   addSpaceMember,
   createSpace,
   deleteSpace,
+  getGitSpaceFile,
   getGitSpaceInfo,
+  getGitSpaceReadme,
+  getGitSpaceTree,
   getSpaceBySlug,
   listSpaceMembers,
   listSpaces,
@@ -114,6 +117,50 @@ const GitRepositoryInfoResponseSchema = Type.Object({
   commits: Type.Array(GitCommitResponseSchema),
 })
 
+const GitRefQuerySchema = Type.Object({
+  ref: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+})
+
+const GitTreeQuerySchema = Type.Object({
+  ref: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+  path: Type.Optional(Type.String({ maxLength: 4096 })),
+})
+
+const GitFileQuerySchema = Type.Object({
+  ref: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+  path: Type.String({ minLength: 1, maxLength: 4096 }),
+})
+
+const GitTreeEntryResponseSchema = Type.Object({
+  id: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
+  name: Type.String(),
+  path: Type.String(),
+  type: Type.Union([
+    Type.Literal('file'),
+    Type.Literal('directory'),
+    Type.Literal('symlink'),
+    Type.Literal('submodule'),
+  ]),
+  size: Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]),
+})
+
+const GitTreeResponseSchema = Type.Object({
+  ref: Type.String(),
+  commitId: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
+  path: Type.String(),
+  entries: Type.Array(GitTreeEntryResponseSchema),
+})
+
+const GitFileResponseSchema = Type.Object({
+  ref: Type.String(),
+  commitId: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
+  path: Type.String(),
+  name: Type.String(),
+  size: Type.Integer({ minimum: 0 }),
+  encoding: Type.Union([Type.Literal('utf-8'), Type.Literal('base64')]),
+  content: Type.String(),
+})
+
 export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.post(
     '/namespaces/:namespaceSlug/spaces',
@@ -194,6 +241,77 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
         getCurrentUserId(request),
         request.params.namespaceSlug,
         request.params.spaceSlug,
+      )
+    },
+  )
+
+  app.get(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/tree',
+    {
+      schema: {
+        params: SpaceParamsSchema,
+        querystring: GitTreeQuerySchema,
+        response: {
+          200: GitTreeResponseSchema,
+        },
+      },
+    },
+    async (request) => {
+      return getGitSpaceTree(
+        app.db,
+        app.config.DATA_ROOT,
+        getCurrentUserId(request),
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+        request.query.ref,
+        request.query.path,
+      )
+    },
+  )
+
+  app.get(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/file',
+    {
+      schema: {
+        params: SpaceParamsSchema,
+        querystring: GitFileQuerySchema,
+        response: {
+          200: GitFileResponseSchema,
+        },
+      },
+    },
+    async (request) => {
+      return getGitSpaceFile(
+        app.db,
+        app.config.DATA_ROOT,
+        getCurrentUserId(request),
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+        request.query.ref,
+        request.query.path,
+      )
+    },
+  )
+
+  app.get(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/readme',
+    {
+      schema: {
+        params: SpaceParamsSchema,
+        querystring: GitRefQuerySchema,
+        response: {
+          200: Type.Union([GitFileResponseSchema, Type.Null()]),
+        },
+      },
+    },
+    async (request) => {
+      return getGitSpaceReadme(
+        app.db,
+        app.config.DATA_ROOT,
+        getCurrentUserId(request),
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+        request.query.ref,
       )
     },
   )
