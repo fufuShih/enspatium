@@ -12,6 +12,7 @@ import type {
   UpdateSpaceMemberInput,
   UpdateSpaceInput,
 } from '../../db/space.types.js'
+import { createAuditEvent } from '../audit/audit.js'
 import {
   getGitCommit,
   getGitDiff,
@@ -87,6 +88,19 @@ export async function createSpace(
         })
         .execute()
 
+      await createAuditEvent(transaction, {
+        actorUserId,
+        namespaceId: namespace.id,
+        spaceId: createdSpace.id,
+        action: 'space.created',
+        metadata: {
+          name: createdSpace.name,
+          slug: createdSpace.slug,
+          type: createdSpace.type,
+          visibility: createdSpace.visibility,
+        },
+      })
+
       return createdSpace
     })
   } catch (error) {
@@ -112,7 +126,17 @@ export async function createSpace(
     let cause: unknown = storageError
 
     try {
-      await db.deleteFrom('spaces').where('id', '=', space.id).execute()
+      await db.transaction().execute(async (transaction) => {
+        await transaction
+          .deleteFrom('audit_events')
+          .where('space_id', '=', space.id)
+          .execute()
+
+        await transaction
+          .deleteFrom('spaces')
+          .where('id', '=', space.id)
+          .execute()
+      })
     } catch (cleanupError) {
       cause = new AggregateError(
         [storageError, cleanupError],
@@ -446,7 +470,7 @@ export async function getWritableGitSpace(
   actorUserId: string,
   inputNamespaceSlug: string,
   inputSpaceSlug: string,
-): Promise<Pick<PublicSpace, 'id'>> {
+): Promise<Pick<PublicSpace, 'id' | 'namespaceId'>> {
   const spaceSlug = normalizeSpaceSlug(inputSpaceSlug)
 
   validateSlug(spaceSlug, 'space')
@@ -478,7 +502,7 @@ export async function getWritableGitSpace(
     }
 
     if (namespace.memberRole === 'owner') {
-      return { id: space.id }
+      return { id: space.id, namespaceId: namespace.id }
     }
 
     const membership = await db
@@ -490,7 +514,7 @@ export async function getWritableGitSpace(
 
     validateGitWriteRole(membership?.role)
 
-    return { id: space.id }
+    return { id: space.id, namespaceId: namespace.id }
   } catch (error) {
     if (error instanceof SpaceServiceError) {
       throw error
@@ -566,26 +590,36 @@ export async function updateSpace(
   )
 
   try {
-    const space = await db
-      .updateTable('spaces')
-      .set({
-        ...(normalizedInput.name !== undefined
-          ? { name: normalizedInput.name }
-          : {}),
-        ...(normalizedInput.visibility !== undefined
-          ? { visibility: normalizedInput.visibility }
-          : {}),
-        updated_at: new Date(),
+    return await db.transaction().execute(async (transaction) => {
+      const space = await transaction
+        .updateTable('spaces')
+        .set({
+          ...(normalizedInput.name !== undefined
+            ? { name: normalizedInput.name }
+            : {}),
+          ...(normalizedInput.visibility !== undefined
+            ? { visibility: normalizedInput.visibility }
+            : {}),
+          updated_at: new Date(),
+        })
+        .where('id', '=', spaceAccess.spaceId)
+        .returningAll()
+        .executeTakeFirst()
+
+      if (!space) {
+        throw new SpaceServiceError('NOT_FOUND', 404, 'space not found')
+      }
+
+      await createAuditEvent(transaction, {
+        actorUserId,
+        namespaceId: spaceAccess.namespaceId,
+        spaceId: spaceAccess.spaceId,
+        action: 'space.updated',
+        metadata: { changes: normalizedInput },
       })
-      .where('id', '=', spaceAccess.spaceId)
-      .returningAll()
-      .executeTakeFirst()
 
-    if (!space) {
-      throw new SpaceServiceError('NOT_FOUND', 404, 'space not found')
-    }
-
-    return toPublicSpace(space)
+      return toPublicSpace(space)
+    })
   } catch (error) {
     if (error instanceof SpaceServiceError) {
       throw error
@@ -634,15 +668,28 @@ export async function deleteSpace(
   }
 
   try {
-    const deletedSpace = await db
-      .deleteFrom('spaces')
-      .where('id', '=', spaceAccess.spaceId)
-      .returning('id')
-      .executeTakeFirst()
+    await db.transaction().execute(async (transaction) => {
+      await createAuditEvent(transaction, {
+        actorUserId,
+        namespaceId: spaceAccess.namespaceId,
+        spaceId: spaceAccess.spaceId,
+        action: 'space.deleted',
+        metadata: {
+          slug: spaceSlug,
+          type: spaceAccess.spaceType,
+        },
+      })
 
-    if (!deletedSpace) {
-      throw new SpaceServiceError('NOT_FOUND', 404, 'space not found')
-    }
+      const deletedSpace = await transaction
+        .deleteFrom('spaces')
+        .where('id', '=', spaceAccess.spaceId)
+        .returning('id')
+        .executeTakeFirst()
+
+      if (!deletedSpace) {
+        throw new SpaceServiceError('NOT_FOUND', 404, 'space not found')
+      }
+    })
   } catch (error) {
     if (error instanceof SpaceServiceError) {
       throw error
@@ -1100,7 +1147,7 @@ async function requireNamespaceOwner(
   return namespace
 }
 
-async function requireSpaceOwnerAccess(
+export async function requireSpaceOwnerAccess(
   db: Kysely<Database>,
   actorUserId: string,
   inputNamespaceSlug: string,

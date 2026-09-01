@@ -7,6 +7,7 @@ import type {
 } from 'fastify'
 
 import type { PublicSpace } from '../db/space.types.js'
+import { createAuditEvent } from '../services/audit/audit.js'
 import {
   getReadableGitSpace,
   getWritableGitSpace,
@@ -38,7 +39,7 @@ const GitInfoRefsQuerySchema = Type.Object({
 })
 
 interface GitAccess {
-  space: Pick<PublicSpace, 'id'>
+  space: Pick<PublicSpace, 'id' | 'namespaceId'>
   userId?: string
 }
 
@@ -173,6 +174,21 @@ async function handleGitRequest(
     }
 
     reply.raw.destroy(error instanceof Error ? error : undefined)
+    return
+  }
+
+  if (servicePath === 'git-receive-pack' && access.userId) {
+    try {
+      await createAuditEvent(app.db, {
+        actorUserId: access.userId,
+        namespaceId: access.space.namespaceId,
+        spaceId: access.space.id,
+        action: 'git.pushed',
+        metadata: { transport: 'smart-http' },
+      })
+    } catch (error) {
+      request.log.error({ err: error }, 'failed to create Git push audit event')
+    }
   }
 }
 

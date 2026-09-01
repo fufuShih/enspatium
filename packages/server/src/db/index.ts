@@ -3,6 +3,7 @@ import fastifyPlugin from 'fastify-plugin'
 import { Kysely, PostgresDialect } from 'kysely'
 import { Pool } from 'pg'
 
+import type { AuditEventTable } from './audit.types.js'
 import type {
   NamespaceMemberTable,
   NamespaceTable,
@@ -18,6 +19,7 @@ export interface Database {
   spaces: SpaceTable
   space_members: SpaceMemberTable
   personal_access_tokens: PersonalAccessTokenTable
+  audit_events: AuditEventTable
 }
 
 export function createDb(databaseUrl: string) {
