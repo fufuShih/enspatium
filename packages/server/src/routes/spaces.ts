@@ -18,7 +18,7 @@ import {
   removeSpaceMember,
   updateSpace,
   updateSpaceMember,
-} from '../services/space.js'
+} from '../services/space/space.js'
 import {
   getCurrentUserId,
   requireCurrentUserId,

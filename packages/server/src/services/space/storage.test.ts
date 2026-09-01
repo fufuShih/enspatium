@@ -30,7 +30,7 @@ afterEach(async () => {
   )
 })
 
-describe('local storage', () => {
+describe('Space storage', () => {
   it('initializes the storage directories', async () => {
     const root = await createTemporaryRoot()
 

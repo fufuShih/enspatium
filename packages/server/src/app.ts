@@ -10,7 +10,7 @@ import { gitRoutes } from './routes/git.js'
 import { healthRoutes } from './routes/health.js'
 import { namespaceRoutes } from './routes/namespaces.js'
 import { spaceRoutes } from './routes/spaces.js'
-import { initializeStorage } from './storage.js'
+import { initializeStorage } from './services/space/storage.js'
 import { tokenRoutes } from './routes/tokens.js'
 import { userRoutes } from './routes/users.js'
 

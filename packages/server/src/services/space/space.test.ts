@@ -10,7 +10,7 @@ import {
   validateSpaceUpdate,
 } from './space.js'
 
-describe('space service', () => {
+describe('Space service', () => {
   it('normalizes space slugs', () => {
     expect(normalizeSpaceSlug(' My-Repository ')).toBe('my-repository')
   })

@@ -7,7 +7,7 @@ import { promisify } from 'node:util'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { parseGitBasicToken } from '../../routes/git.js'
-import { createSpaceStorage, getSpaceStoragePath } from '../../storage.js'
+import { createSpaceStorage, getSpaceStoragePath } from '../space/storage.js'
 import {
   serveGitHttpBackend,
   type GitHttpService,

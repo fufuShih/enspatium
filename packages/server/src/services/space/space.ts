@@ -1,6 +1,6 @@
 import type { Kysely } from 'kysely'
 
-import type { Database } from '../db/index.js'
+import type { Database } from '../../db/index.js'
 import type {
   AddSpaceMemberInput,
   CreateSpaceInput,
@@ -11,7 +11,7 @@ import type {
   SpaceServiceErrorCode,
   UpdateSpaceMemberInput,
   UpdateSpaceInput,
-} from '../db/space.types.js'
+} from '../../db/space.types.js'
 import {
   getGitCommit,
   getGitDiff,
@@ -27,8 +27,8 @@ import {
   type GitRepositoryInfo,
   type GitTag,
   type GitTree,
-} from './git/repository.js'
-import { createSpaceStorage, deleteSpaceStorage } from '../storage.js'
+} from '../git/repository.js'
+import { createSpaceStorage, deleteSpaceStorage } from './storage.js'
 
 export class SpaceServiceError extends Error {
   constructor(

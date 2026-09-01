@@ -4,10 +4,10 @@ import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
-import type { SpaceType } from './db/space.types.js'
+import type { SpaceType } from '../../db/space.types.js'
 
 const execFileAsync = promisify(execFile)
-const repositoryRoot = fileURLToPath(new URL('../../../', import.meta.url))
+const repositoryRoot = fileURLToPath(new URL('../../../../../', import.meta.url))
 const spaceIdPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 

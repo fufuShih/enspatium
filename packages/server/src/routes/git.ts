@@ -11,7 +11,7 @@ import {
   getReadableGitSpace,
   getWritableGitSpace,
   SpaceServiceError,
-} from '../services/space.js'
+} from '../services/space/space.js'
 import {
   serveGitHttpBackend,
   type GitHttpService,
