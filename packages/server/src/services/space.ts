@@ -13,13 +13,19 @@ import type {
   UpdateSpaceInput,
 } from '../db/space.types.js'
 import {
+  getGitCommit,
+  getGitDiff,
   getGitFile,
   getGitReadme,
   getGitRepositoryInfo,
+  getGitTags,
   getGitTree,
   GitStorageError,
+  type GitCommitDetail,
+  type GitDiff,
   type GitFile,
   type GitRepositoryInfo,
+  type GitTag,
   type GitTree,
 } from './git/repository.js'
 import { createSpaceStorage, deleteSpaceStorage } from '../storage.js'
@@ -272,6 +278,77 @@ export async function getGitSpaceInfo(
   }
 }
 
+export async function getGitSpaceTags(
+  db: Kysely<Database>,
+  dataRoot: string,
+  actorUserId: string | undefined,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+): Promise<GitTag[]> {
+  const space = await getReadableGitSpace(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+    inputSpaceSlug,
+  )
+
+  try {
+    return await getGitTags(dataRoot, space.id)
+  } catch (error) {
+    throwGitStorageError(error, 'failed to read Git tags')
+  }
+}
+
+export async function getGitSpaceCommit(
+  db: Kysely<Database>,
+  dataRoot: string,
+  actorUserId: string | undefined,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+  inputRef?: string,
+): Promise<GitCommitDetail> {
+  const space = await getReadableGitSpace(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+    inputSpaceSlug,
+  )
+
+  try {
+    return await getGitCommit(dataRoot, space.id, inputRef)
+  } catch (error) {
+    throwGitStorageError(error, 'failed to read Git commit')
+  }
+}
+
+export async function getGitSpaceDiff(
+  db: Kysely<Database>,
+  dataRoot: string,
+  actorUserId: string | undefined,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+  inputFromRef: string,
+  inputToRef: string,
+): Promise<GitDiff> {
+  const space = await getReadableGitSpace(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+    inputSpaceSlug,
+  )
+
+  try {
+    return await getGitDiff(
+      dataRoot,
+      space.id,
+      inputFromRef,
+      inputToRef,
+    )
+  } catch (error) {
+    throwGitStorageError(error, 'failed to read Git diff')
+  }
+}
+
 export async function getGitSpaceTree(
   db: Kysely<Database>,
   dataRoot: string,
@@ -446,7 +523,10 @@ function throwGitStorageError(error: unknown, message: string): never {
       throw new SpaceServiceError('NOT_FOUND', 404, error.message, error)
     }
 
-    if (error.code === 'FILE_TOO_LARGE') {
+    if (
+      error.code === 'FILE_TOO_LARGE' ||
+      error.code === 'DIFF_TOO_LARGE'
+    ) {
       throw new SpaceServiceError('INVALID_INPUT', 413, error.message, error)
     }
 

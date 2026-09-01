@@ -7,6 +7,7 @@ const execFileAsync = promisify(execFile)
 const gitFieldSeparator = '\u001f'
 const gitRecordSeparator = '\u001e'
 const maxGitFileSize = 1024 * 1024
+const maxGitDiffSize = 1024 * 1024
 const readmeNames = [
   'README.md',
   'README.markdown',
@@ -23,6 +24,7 @@ export type GitStorageErrorCode =
   | 'NOT_A_DIRECTORY'
   | 'NOT_A_FILE'
   | 'FILE_TOO_LARGE'
+  | 'DIFF_TOO_LARGE'
 
 export class GitStorageError extends Error {
   constructor(
@@ -48,6 +50,36 @@ export interface GitRepositoryInfo {
   defaultBranch: string
   branches: string[]
   commits: GitCommit[]
+}
+
+export interface GitTag {
+  name: string
+  commitId: string
+}
+
+export interface GitCommitDetail {
+  ref: string
+  id: string
+  shortId: string
+  parentIds: string[]
+  authorName: string
+  authorEmail: string
+  authoredAt: string
+  committerName: string
+  committerEmail: string
+  committedAt: string
+  message: string
+}
+
+export interface GitDiffRevision {
+  ref: string
+  commitId: string
+}
+
+export interface GitDiff {
+  from: GitDiffRevision
+  to: GitDiffRevision
+  patch: string
 }
 
 export type GitTreeEntryType =
@@ -129,6 +161,149 @@ export async function getGitRepositoryInfo(
     defaultBranch: defaultBranchOutput.trim(),
     branches,
     commits: parseGitCommits(commitsOutput),
+  }
+}
+
+export async function getGitTags(
+  dataRoot: string,
+  spaceId: string,
+): Promise<GitTag[]> {
+  const repositoryPath = getSpaceStoragePath(dataRoot, spaceId, 'git')
+  const output = await runGit(repositoryPath, [
+    'for-each-ref',
+    '--sort=refname',
+    '--format=%(refname:short)%09%(objecttype)%09%(objectname)%09%(*objecttype)%09%(*objectname)',
+    'refs/tags/',
+  ])
+
+  return output
+    .split('\n')
+    .filter(Boolean)
+    .flatMap((record) => {
+      const [name, objectType, objectId, peeledType, peeledId] =
+        record.split('\t')
+      const commitId =
+        objectType === 'commit'
+          ? objectId
+          : peeledType === 'commit'
+            ? peeledId
+            : undefined
+
+      if (!name || !commitId) {
+        return []
+      }
+
+      return [{ name, commitId }]
+    })
+}
+
+export async function getGitCommit(
+  dataRoot: string,
+  spaceId: string,
+  inputRef?: string,
+): Promise<GitCommitDetail> {
+  const repositoryPath = getSpaceStoragePath(dataRoot, spaceId, 'git')
+  const { ref, commitId } = await resolveGitCommit(repositoryPath, inputRef)
+  const output = await runGit(repositoryPath, [
+    'show',
+    '--no-patch',
+    '--format=%H%x00%h%x00%P%x00%an%x00%ae%x00%aI%x00%cn%x00%ce%x00%cI%x00%B%x00',
+    commitId,
+  ])
+  const [
+    id,
+    shortId,
+    parentIds,
+    authorName,
+    authorEmail,
+    authoredAt,
+    committerName,
+    committerEmail,
+    committedAt,
+    message,
+  ] = output.split('\0')
+
+  if (
+    !id ||
+    !shortId ||
+    parentIds === undefined ||
+    authorName === undefined ||
+    authorEmail === undefined ||
+    !authoredAt ||
+    committerName === undefined ||
+    committerEmail === undefined ||
+    !committedAt ||
+    message === undefined
+  ) {
+    throw new Error('failed to parse Git commit detail')
+  }
+
+  return {
+    ref,
+    id,
+    shortId,
+    parentIds: parentIds.split(' ').filter(Boolean),
+    authorName,
+    authorEmail,
+    authoredAt,
+    committerName,
+    committerEmail,
+    committedAt,
+    message: message.trimEnd(),
+  }
+}
+
+export async function getGitDiff(
+  dataRoot: string,
+  spaceId: string,
+  inputFromRef: string,
+  inputToRef: string,
+): Promise<GitDiff> {
+  const repositoryPath = getSpaceStoragePath(dataRoot, spaceId, 'git')
+  const [from, to] = await Promise.all([
+    resolveGitCommit(repositoryPath, inputFromRef),
+    resolveGitCommit(repositoryPath, inputToRef),
+  ])
+  let patch: string
+
+  try {
+    patch = await runGit(
+      repositoryPath,
+      [
+        'diff',
+        '--no-color',
+        '--no-ext-diff',
+        '--no-textconv',
+        '--find-renames',
+        from.commitId,
+        to.commitId,
+        '--',
+      ],
+      maxGitDiffSize + 1,
+    )
+  } catch (error) {
+    if (isMaxBufferError(error)) {
+      throw new GitStorageError(
+        'DIFF_TOO_LARGE',
+        'Git diff exceeds the 1 MiB response limit',
+        error,
+      )
+    }
+
+    throw error
+  }
+
+  if (Buffer.byteLength(patch, 'utf8') > maxGitDiffSize) {
+    throw new GitStorageError(
+      'DIFF_TOO_LARGE',
+      'Git diff exceeds the 1 MiB response limit',
+    )
+  }
+
+  return {
+    from,
+    to,
+    patch,
   }
 }
 
@@ -253,19 +428,29 @@ export async function getGitReadme(
 async function runGit(
   repositoryPath: string,
   arguments_: string[],
+  maxBuffer = 1024 * 1024,
 ): Promise<string> {
   const { stdout } = await execFileAsync(
     'git',
     ['--git-dir=' + repositoryPath, ...arguments_],
     {
       encoding: 'utf8',
-      maxBuffer: 1024 * 1024,
+      maxBuffer,
       timeout: 10_000,
       windowsHide: true,
     },
   )
 
   return stdout
+}
+
+function isMaxBufferError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'
+  )
 }
 
 async function runGitBuffer(

@@ -5,9 +5,12 @@ import {
   addSpaceMember,
   createSpace,
   deleteSpace,
+  getGitSpaceCommit,
+  getGitSpaceDiff,
   getGitSpaceFile,
   getGitSpaceInfo,
   getGitSpaceReadme,
+  getGitSpaceTags,
   getGitSpaceTree,
   getSpaceBySlug,
   listSpaceMembers,
@@ -129,6 +132,41 @@ const GitTreeQuerySchema = Type.Object({
 const GitFileQuerySchema = Type.Object({
   ref: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
   path: Type.String({ minLength: 1, maxLength: 4096 }),
+})
+
+const GitDiffQuerySchema = Type.Object({
+  from: Type.String({ minLength: 1, maxLength: 255 }),
+  to: Type.String({ minLength: 1, maxLength: 255 }),
+})
+
+const GitTagResponseSchema = Type.Object({
+  name: Type.String(),
+  commitId: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
+})
+
+const GitCommitDetailResponseSchema = Type.Object({
+  ref: Type.String(),
+  id: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
+  shortId: Type.String({ pattern: '^[0-9a-f]+$' }),
+  parentIds: Type.Array(Type.String({ pattern: '^[0-9a-f]{40,64}$' })),
+  authorName: Type.String(),
+  authorEmail: Type.String(),
+  authoredAt: Type.String({ format: 'date-time' }),
+  committerName: Type.String(),
+  committerEmail: Type.String(),
+  committedAt: Type.String({ format: 'date-time' }),
+  message: Type.String(),
+})
+
+const GitDiffRevisionResponseSchema = Type.Object({
+  ref: Type.String(),
+  commitId: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
+})
+
+const GitDiffResponseSchema = Type.Object({
+  from: GitDiffRevisionResponseSchema,
+  to: GitDiffRevisionResponseSchema,
+  patch: Type.String(),
 })
 
 const GitTreeEntryResponseSchema = Type.Object({
@@ -265,6 +303,74 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
         request.params.spaceSlug,
         request.query.ref,
         request.query.path,
+      )
+    },
+  )
+
+  app.get(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/tags',
+    {
+      schema: {
+        params: SpaceParamsSchema,
+        response: {
+          200: Type.Array(GitTagResponseSchema),
+        },
+      },
+    },
+    async (request) => {
+      return getGitSpaceTags(
+        app.db,
+        app.config.DATA_ROOT,
+        getCurrentUserId(request),
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+      )
+    },
+  )
+
+  app.get(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/commit',
+    {
+      schema: {
+        params: SpaceParamsSchema,
+        querystring: GitRefQuerySchema,
+        response: {
+          200: GitCommitDetailResponseSchema,
+        },
+      },
+    },
+    async (request) => {
+      return getGitSpaceCommit(
+        app.db,
+        app.config.DATA_ROOT,
+        getCurrentUserId(request),
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+        request.query.ref,
+      )
+    },
+  )
+
+  app.get(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/diff',
+    {
+      schema: {
+        params: SpaceParamsSchema,
+        querystring: GitDiffQuerySchema,
+        response: {
+          200: GitDiffResponseSchema,
+        },
+      },
+    },
+    async (request) => {
+      return getGitSpaceDiff(
+        app.db,
+        app.config.DATA_ROOT,
+        getCurrentUserId(request),
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+        request.query.from,
+        request.query.to,
       )
     },
   )

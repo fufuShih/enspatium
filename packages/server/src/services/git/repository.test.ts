@@ -7,9 +7,12 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { createSpaceStorage, getSpaceStoragePath } from '../../storage.js'
 import {
+  getGitCommit,
+  getGitDiff,
   getGitFile,
   getGitReadme,
   getGitRepositoryInfo,
+  getGitTags,
   getGitTree,
 } from './repository.js'
 
@@ -36,6 +39,7 @@ describe('Git repository', () => {
     expect(info.defaultBranch).not.toBe('')
     expect(info.branches).toEqual([])
     expect(info.commits).toEqual([])
+    await expect(getGitTags(root, spaceId)).resolves.toEqual([])
   })
 
   it('reads branches, commits, trees and files', async () => {
@@ -66,9 +70,19 @@ describe('Git repository', () => {
     await execFileAsync('git', [
       '-C',
       worktreePath,
+      'tag',
+      '-a',
+      'v1.0.0',
+      '-m',
+      'Version 1.0.0',
+    ])
+    await execFileAsync('git', [
+      '-C',
+      worktreePath,
       'push',
       'origin',
       'HEAD:main',
+      '--tags',
     ])
     await execFileAsync('git', [
       '--git-dir=' + repositoryPath,
@@ -89,6 +103,30 @@ describe('Git repository', () => {
     })
     expect(info.commits[0]?.id).toMatch(/^[0-9a-f]{40}$/)
     expect(info.commits[0]?.authoredAt).not.toBe('')
+
+    const initialCommitId = info.commits[0]?.id
+
+    if (!initialCommitId) {
+      throw new Error('test repository has no initial commit')
+    }
+
+    await expect(getGitTags(root, spaceId)).resolves.toEqual([
+      {
+        name: 'v1.0.0',
+        commitId: initialCommitId,
+      },
+    ])
+
+    await expect(getGitCommit(root, spaceId, 'v1.0.0')).resolves.toMatchObject({
+      ref: 'v1.0.0',
+      id: initialCommitId,
+      parentIds: [],
+      authorName: 'Test User',
+      authorEmail: 'test@example.com',
+      committerName: 'Test User',
+      committerEmail: 'test@example.com',
+      message: 'Initial commit',
+    })
 
     const rootTree = await getGitTree(root, spaceId, 'main')
 
@@ -139,6 +177,78 @@ describe('Git repository', () => {
     await expect(
       getGitFile(root, spaceId, 'main', '../README.md'),
     ).rejects.toMatchObject({ code: 'INVALID_PATH' })
+
+    await writeFile(
+      join(worktreePath, 'src', 'index.ts'),
+      "export const value = 'updated'\n",
+      'utf8',
+    )
+    await execFileAsync('git', ['-C', worktreePath, 'add', '.'])
+    await execFileAsync('git', [
+      '-C',
+      worktreePath,
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '-m',
+      'Update value',
+    ])
+    await execFileAsync('git', [
+      '-C',
+      worktreePath,
+      'push',
+      'origin',
+      'HEAD:main',
+    ])
+
+    const updatedCommit = await getGitCommit(root, spaceId, 'main')
+
+    expect(updatedCommit).toMatchObject({
+      ref: 'main',
+      parentIds: [initialCommitId],
+      message: 'Update value',
+    })
+
+    const diff = await getGitDiff(root, spaceId, initialCommitId, 'main')
+
+    expect(diff.from).toEqual({
+      ref: initialCommitId,
+      commitId: initialCommitId,
+    })
+    expect(diff.to).toEqual({
+      ref: 'main',
+      commitId: updatedCommit.id,
+    })
+    expect(diff.patch).toContain('diff --git a/src/index.ts b/src/index.ts')
+    expect(diff.patch).toContain("-export const value = 'test'")
+    expect(diff.patch).toContain("+export const value = 'updated'")
+
+    await writeFile(
+      join(worktreePath, 'large.txt'),
+      'x'.repeat(1024 * 1024 + 1024) + '\n',
+      'utf8',
+    )
+    await execFileAsync('git', ['-C', worktreePath, 'add', '.'])
+    await execFileAsync('git', [
+      '-C',
+      worktreePath,
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '-m',
+      'Add large diff',
+    ])
+    await execFileAsync('git', [
+      '-C',
+      worktreePath,
+      'push',
+      'origin',
+      'HEAD:main',
+    ])
+
+    await expect(
+      getGitDiff(root, spaceId, updatedCommit.id, 'main'),
+    ).rejects.toMatchObject({ code: 'DIFF_TOO_LARGE' })
   })
 })
 
