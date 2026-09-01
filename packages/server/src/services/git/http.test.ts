@@ -6,9 +6,9 @@ import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { serveGitHttpBackend, type GitHttpServicePath } from './git-http.js'
-import { parseGitBasicToken } from './routes/git.js'
-import { createSpaceStorage, getSpaceStoragePath } from './storage.js'
+import { parseGitBasicToken } from '../../routes/git.js'
+import { createSpaceStorage, getSpaceStoragePath } from '../../storage.js'
+import { serveGitHttpBackend, type GitHttpServicePath } from './http.js'
 
 const execFileAsync = promisify(execFile)
 const spaceId = '00000000-0000-4000-8000-000000000001'

@@ -20,7 +20,7 @@ import {
   type GitFile,
   type GitRepositoryInfo,
   type GitTree,
-} from '../git.js'
+} from './git/repository.js'
 import { createSpaceStorage, deleteSpaceStorage } from '../storage.js'
 
 export class SpaceServiceError extends Error {

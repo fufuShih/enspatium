@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import { promisify, TextDecoder } from 'node:util'
 
-import { getSpaceStoragePath } from './storage.js'
+import { getSpaceStoragePath } from '../../storage.js'
 
 const execFileAsync = promisify(execFile)
 const gitFieldSeparator = '\u001f'

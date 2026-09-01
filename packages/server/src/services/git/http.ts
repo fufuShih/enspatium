@@ -11,7 +11,7 @@ import {
 } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
-import { resolveDataRoot } from './storage.js'
+import { resolveDataRoot } from '../../storage.js'
 
 const gitHttpTimeoutMilliseconds = 5 * 60 * 1000
 const maxCgiHeaderBytes = 32 * 1024

@@ -7,11 +7,14 @@ import type {
 } from 'fastify'
 
 import type { PublicSpace } from '../db/space.types.js'
-import { serveGitHttpBackend, type GitHttpServicePath } from '../git-http.js'
 import {
   getReadableGitSpace,
   SpaceServiceError,
 } from '../services/space.js'
+import {
+  serveGitHttpBackend,
+  type GitHttpServicePath,
+} from '../services/git/http.js'
 import {
   authenticatePersonalAccessToken,
   TokenServiceError,
