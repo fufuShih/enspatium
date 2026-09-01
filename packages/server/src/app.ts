@@ -6,6 +6,7 @@ import Fastify from 'fastify'
 import { configPlugin } from './config.js'
 import { dbPlugin } from './db/index.js'
 import { authRoutes } from './routes/auth.js'
+import { gitRoutes } from './routes/git.js'
 import { healthRoutes } from './routes/health.js'
 import { namespaceRoutes } from './routes/namespaces.js'
 import { spaceRoutes } from './routes/spaces.js'
@@ -38,6 +39,7 @@ export async function buildApp() {
   await app.register(userRoutes)
   await app.register(authRoutes)
   await app.register(tokenRoutes)
+  await app.register(gitRoutes)
   await app.register(namespaceRoutes)
   await app.register(spaceRoutes)
 

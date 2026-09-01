@@ -257,7 +257,7 @@ export async function getGitSpaceInfo(
   inputNamespaceSlug: string,
   inputSpaceSlug: string,
 ): Promise<GitRepositoryInfo> {
-  const space = await requireReadableGitSpace(
+  const space = await getReadableGitSpace(
     db,
     actorUserId,
     inputNamespaceSlug,
@@ -280,7 +280,7 @@ export async function getGitSpaceTree(
   inputRef?: string,
   inputPath = '',
 ): Promise<GitTree> {
-  const space = await requireReadableGitSpace(
+  const space = await getReadableGitSpace(
     db,
     actorUserId,
     inputNamespaceSlug,
@@ -303,7 +303,7 @@ export async function getGitSpaceFile(
   inputRef: string | undefined,
   inputPath: string,
 ): Promise<GitFile> {
-  const space = await requireReadableGitSpace(
+  const space = await getReadableGitSpace(
     db,
     actorUserId,
     inputNamespaceSlug,
@@ -325,7 +325,7 @@ export async function getGitSpaceReadme(
   inputSpaceSlug: string,
   inputRef?: string,
 ): Promise<GitFile | null> {
-  const space = await requireReadableGitSpace(
+  const space = await getReadableGitSpace(
     db,
     actorUserId,
     inputNamespaceSlug,
@@ -339,7 +339,7 @@ export async function getGitSpaceReadme(
   }
 }
 
-async function requireReadableGitSpace(
+export async function getReadableGitSpace(
   db: Kysely<Database>,
   actorUserId: string | undefined,
   inputNamespaceSlug: string,
