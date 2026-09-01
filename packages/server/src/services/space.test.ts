@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   SpaceServiceError,
   normalizeSpaceSlug,
+  validateGitWriteRole,
   validateAssignableSpaceMemberRole,
   validateSpace,
   validateSpaceMemberEmail,
@@ -61,6 +62,20 @@ describe('space service', () => {
     'accepts assignable space member role %s',
     (role) => {
       expect(() => validateAssignableSpaceMemberRole(role)).not.toThrow()
+    },
+  )
+
+  it.each(['owner', 'writer'] as const)(
+    'allows Git writes for the %s role',
+    (role) => {
+      expect(() => validateGitWriteRole(role)).not.toThrow()
+    },
+  )
+
+  it.each(['reader', undefined] as const)(
+    'rejects Git writes for the %s role',
+    (role) => {
+      expect(() => validateGitWriteRole(role)).toThrow(SpaceServiceError)
     },
   )
 

@@ -8,7 +8,11 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { parseGitBasicToken } from '../../routes/git.js'
 import { createSpaceStorage, getSpaceStoragePath } from '../../storage.js'
-import { serveGitHttpBackend, type GitHttpServicePath } from './http.js'
+import {
+  serveGitHttpBackend,
+  type GitHttpService,
+  type GitHttpServicePath,
+} from './http.js'
 
 const execFileAsync = promisify(execFile)
 const spaceId = '00000000-0000-4000-8000-000000000001'
@@ -42,7 +46,7 @@ afterEach(async () => {
 
 describe('Git Smart HTTP', () => {
   it(
-    'serves clone and fetch through git-upload-pack',
+    'serves clone, fetch and push through Smart HTTP',
     async () => {
       const root = await mkdtemp(join(tmpdir(), 'enspatium-git-http-'))
       const repositoryPath = getSpaceStoragePath(root, spaceId, 'git')
@@ -89,6 +93,24 @@ describe('Git Smart HTTP', () => {
       ])
 
       expect(stdout).toBe('Second commit\n')
+
+      await execFileAsync('git', [
+        '-C',
+        clonePath,
+        'reset',
+        '--hard',
+        'origin/main',
+      ])
+      await configureTestAuthor(clonePath)
+      await writeFile(join(clonePath, 'PUSHED.md'), 'HTTP push\n', 'utf8')
+      await commitAndPush(clonePath, 'HTTP push')
+      const pushedFile = await execFileAsync('git', [
+        '--git-dir=' + repositoryPath,
+        'show',
+        'refs/heads/main:PUSHED.md',
+      ])
+
+      expect(pushedFile.stdout).toBe('HTTP push\n')
     },
     30_000,
   )
@@ -107,22 +129,33 @@ describe('Git Smart HTTP', () => {
 function createGitTestServer(dataRoot: string): Server {
   return createServer((request, response) => {
     const url = new URL(request.url ?? '/', 'http://localhost')
+    let service: GitHttpService | undefined
     let servicePath: GitHttpServicePath | undefined
+    const requestedService = url.searchParams.get('service')
 
     if (
       request.method === 'GET' &&
       url.pathname.endsWith('/info/refs') &&
-      url.searchParams.get('service') === 'git-upload-pack'
+      (requestedService === 'git-upload-pack' ||
+        requestedService === 'git-receive-pack')
     ) {
+      service = requestedService
       servicePath = 'info/refs'
     } else if (
       request.method === 'POST' &&
       url.pathname.endsWith('/git-upload-pack')
     ) {
+      service = 'git-upload-pack'
       servicePath = 'git-upload-pack'
+    } else if (
+      request.method === 'POST' &&
+      url.pathname.endsWith('/git-receive-pack')
+    ) {
+      service = 'git-receive-pack'
+      servicePath = 'git-receive-pack'
     }
 
-    if (!servicePath) {
+    if (!service || !servicePath) {
       response.writeHead(404)
       response.end()
       return
@@ -133,7 +166,9 @@ function createGitTestServer(dataRoot: string): Server {
       response,
       dataRoot,
       spaceId,
+      service,
       servicePath,
+      remoteUser: 'test-user',
     }).catch((error: unknown) => {
       if (!response.headersSent) {
         response.writeHead(500)

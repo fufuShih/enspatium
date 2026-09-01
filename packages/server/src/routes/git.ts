@@ -9,10 +9,12 @@ import type {
 import type { PublicSpace } from '../db/space.types.js'
 import {
   getReadableGitSpace,
+  getWritableGitSpace,
   SpaceServiceError,
 } from '../services/space.js'
 import {
   serveGitHttpBackend,
+  type GitHttpService,
   type GitHttpServicePath,
 } from '../services/git/http.js'
 import {
@@ -29,17 +31,23 @@ const GitTransportParamsSchema = Type.Object({
 })
 
 const GitInfoRefsQuerySchema = Type.Object({
-  service: Type.Literal('git-upload-pack'),
+  service: Type.Union([
+    Type.Literal('git-upload-pack'),
+    Type.Literal('git-receive-pack'),
+  ]),
 })
 
-interface GitReadAccess {
-  space: PublicSpace
+interface GitAccess {
+  space: Pick<PublicSpace, 'id'>
   userId?: string
 }
 
 export const gitRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.addContentTypeParser(
-    'application/x-git-upload-pack-request',
+    [
+      'application/x-git-upload-pack-request',
+      'application/x-git-receive-pack-request',
+    ],
     (_request, _payload, done) => {
       done(null)
     },
@@ -54,12 +62,13 @@ export const gitRoutes: FastifyPluginAsyncTypebox = async (app) => {
       },
     },
     async (request, reply) => {
-      await handleGitReadRequest(
+      await handleGitRequest(
         app,
         request,
         reply,
         request.params.namespaceSlug,
         request.params.spaceSlug,
+        request.query.service,
         'info/refs',
       )
     },
@@ -73,35 +82,65 @@ export const gitRoutes: FastifyPluginAsyncTypebox = async (app) => {
       },
     },
     async (request, reply) => {
-      await handleGitReadRequest(
+      await handleGitRequest(
         app,
         request,
         reply,
         request.params.namespaceSlug,
         request.params.spaceSlug,
         'git-upload-pack',
+        'git-upload-pack',
+      )
+    },
+  )
+
+  app.post(
+    '/git/:namespaceSlug/:spaceSlug.git/git-receive-pack',
+    {
+      schema: {
+        params: GitTransportParamsSchema,
+      },
+    },
+    async (request, reply) => {
+      await handleGitRequest(
+        app,
+        request,
+        reply,
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+        'git-receive-pack',
+        'git-receive-pack',
       )
     },
   )
 }
 
-async function handleGitReadRequest(
+async function handleGitRequest(
   app: FastifyInstance,
   request: FastifyRequest,
   reply: FastifyReply,
   namespaceSlug: string,
   spaceSlug: string,
+  service: GitHttpService,
   servicePath: GitHttpServicePath,
 ): Promise<void> {
-  let access: GitReadAccess
+  let access: GitAccess
 
   try {
-    access = await getGitReadAccess(
-      app,
-      request.headers.authorization,
-      namespaceSlug,
-      spaceSlug,
-    )
+    access =
+      service === 'git-upload-pack'
+        ? await getGitReadAccess(
+            app,
+            request.headers.authorization,
+            namespaceSlug,
+            spaceSlug,
+          )
+        : await getGitWriteAccess(
+            app,
+            request.headers.authorization,
+            namespaceSlug,
+            spaceSlug,
+          )
   } catch (error) {
     if (isGitAuthenticationError(error)) {
       reply.header('www-authenticate', gitAuthenticationChallenge)
@@ -120,6 +159,7 @@ async function handleGitReadRequest(
       response: reply.raw,
       dataRoot: app.config.DATA_ROOT,
       spaceId: access.space.id,
+      service,
       servicePath,
       ...(access.userId ? { remoteUser: access.userId } : {}),
     })
@@ -141,7 +181,7 @@ async function getGitReadAccess(
   authorization: string | undefined,
   namespaceSlug: string,
   spaceSlug: string,
-): Promise<GitReadAccess> {
+): Promise<GitAccess> {
   try {
     const space = await getReadableGitSpace(
       app.db,
@@ -176,6 +216,40 @@ async function getGitReadAccess(
     'git:read',
   )
   const space = await getReadableGitSpace(
+    app.db,
+    authenticatedToken.userId,
+    namespaceSlug,
+    spaceSlug,
+  )
+
+  return {
+    space,
+    userId: authenticatedToken.userId,
+  }
+}
+
+async function getGitWriteAccess(
+  app: FastifyInstance,
+  authorization: string | undefined,
+  namespaceSlug: string,
+  spaceSlug: string,
+): Promise<GitAccess> {
+  const token = parseGitBasicToken(authorization)
+
+  if (!token) {
+    throw new TokenServiceError(
+      'INVALID_TOKEN',
+      401,
+      'invalid personal access token',
+    )
+  }
+
+  const authenticatedToken = await authenticatePersonalAccessToken(
+    app.db,
+    token,
+    'git:write',
+  )
+  const space = await getWritableGitSpace(
     app.db,
     authenticatedToken.userId,
     namespaceSlug,

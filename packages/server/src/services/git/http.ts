@@ -17,13 +17,15 @@ const gitHttpTimeoutMilliseconds = 5 * 60 * 1000
 const maxCgiHeaderBytes = 32 * 1024
 const maxGitErrorBytes = 64 * 1024
 
-export type GitHttpServicePath = 'info/refs' | 'git-upload-pack'
+export type GitHttpService = 'git-upload-pack' | 'git-receive-pack'
+export type GitHttpServicePath = 'info/refs' | GitHttpService
 
 export interface GitHttpBackendInput {
   request: IncomingMessage
   response: ServerResponse
   dataRoot: string
   spaceId: string
+  service: GitHttpService
   servicePath: GitHttpServicePath
   remoteUser?: string
 }
@@ -31,6 +33,10 @@ export interface GitHttpBackendInput {
 export async function serveGitHttpBackend(
   input: GitHttpBackendInput,
 ): Promise<void> {
+  if (input.servicePath !== 'info/refs' && input.servicePath !== input.service) {
+    throw new Error('Git HTTP service path does not match the service')
+  }
+
   const environment = createGitHttpEnvironment(input)
   const child = spawn('git', ['http-backend'], {
     env: environment,
@@ -96,7 +102,7 @@ function createGitHttpEnvironment(
     PATH_INFO: '/' + input.spaceId + '.git/' + input.servicePath,
     QUERY_STRING:
       input.servicePath === 'info/refs'
-        ? 'service=git-upload-pack'
+        ? 'service=' + input.service
         : '',
     REMOTE_ADDR: input.request.socket.remoteAddress ?? '',
     REQUEST_METHOD: input.request.method ?? 'GET',

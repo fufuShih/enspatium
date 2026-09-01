@@ -7,6 +7,7 @@ import type {
   PublicSpace,
   PublicSpaceMember,
   Space,
+  SpaceMemberRole,
   SpaceServiceErrorCode,
   UpdateSpaceMemberInput,
   UpdateSpaceInput,
@@ -361,6 +362,82 @@ export async function getReadableGitSpace(
   }
 
   return space
+}
+
+export async function getWritableGitSpace(
+  db: Kysely<Database>,
+  actorUserId: string,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+): Promise<Pick<PublicSpace, 'id'>> {
+  const spaceSlug = normalizeSpaceSlug(inputSpaceSlug)
+
+  validateSlug(spaceSlug, 'space')
+
+  const namespace = await requireNamespaceMembership(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+  )
+
+  try {
+    const space = await db
+      .selectFrom('spaces')
+      .select(['id', 'type'])
+      .where('namespace_id', '=', namespace.id)
+      .where('slug', '=', spaceSlug)
+      .executeTakeFirst()
+
+    if (!space) {
+      throw new SpaceServiceError('NOT_FOUND', 404, 'space not found')
+    }
+
+    if (space.type !== 'git') {
+      throw new SpaceServiceError(
+        'INVALID_INPUT',
+        400,
+        'space is not a Git space',
+      )
+    }
+
+    if (namespace.memberRole === 'owner') {
+      return { id: space.id }
+    }
+
+    const membership = await db
+      .selectFrom('space_members')
+      .select('role')
+      .where('space_id', '=', space.id)
+      .where('user_id', '=', actorUserId)
+      .executeTakeFirst()
+
+    validateGitWriteRole(membership?.role)
+
+    return { id: space.id }
+  } catch (error) {
+    if (error instanceof SpaceServiceError) {
+      throw error
+    }
+
+    throw new SpaceServiceError(
+      'INTERNAL',
+      500,
+      'failed to check Git write permission',
+      error,
+    )
+  }
+}
+
+export function validateGitWriteRole(
+  role: SpaceMemberRole | undefined,
+): void {
+  if (role !== 'owner' && role !== 'writer') {
+    throw new SpaceServiceError(
+      'FORBIDDEN',
+      403,
+      'Git write permission is required',
+    )
+  }
 }
 
 function throwGitStorageError(error: unknown, message: string): never {
