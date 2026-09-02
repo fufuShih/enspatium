@@ -1,5 +1,4 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
-import { Type } from '@sinclair/typebox'
 
 import {
   UserServiceError,
@@ -10,12 +9,8 @@ import {
   authenticationRequired,
   requireCurrentUserId,
 } from './current-user.js'
-import { UserResponseSchema } from './users.js'
-
-const LoginBodySchema = Type.Object({
-  email: Type.String({ minLength: 1, maxLength: 320 }),
-  password: Type.String({ minLength: 1, maxLength: 1024 }),
-})
+import { LoginBodySchema } from './types/auth.types.js'
+import { UserResponseSchema } from './types/users.types.js'
 
 export const authRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.post(

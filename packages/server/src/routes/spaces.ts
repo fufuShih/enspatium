@@ -1,5 +1,4 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
-import { Type } from '@sinclair/typebox'
 
 import {
   addSpaceMember,
@@ -23,181 +22,30 @@ import {
   getCurrentUserId,
   requireCurrentUserId,
 } from './current-user.js'
-
-const NamespaceParamsSchema = Type.Object({
-  namespaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
-})
-
-const SpaceParamsSchema = Type.Object({
-  namespaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
-  spaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
-})
-
-const SpaceMemberParamsSchema = Type.Object({
-  namespaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
-  spaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
-  userId: Type.String({ format: 'uuid' }),
-})
-
-const CreateSpaceBodySchema = Type.Object({
-  name: Type.String({ minLength: 1, maxLength: 100 }),
-  slug: Type.String({ minLength: 1, maxLength: 100 }),
-  type: Type.Union([Type.Literal('git'), Type.Literal('object')]),
-  visibility: Type.Optional(
-    Type.Union([Type.Literal('public'), Type.Literal('private')]),
-  ),
-})
-
-const UpdateSpaceBodySchema = Type.Object(
-  {
-    name: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
-    visibility: Type.Optional(
-      Type.Union([Type.Literal('public'), Type.Literal('private')]),
-    ),
-  },
-  {
-    additionalProperties: false,
-    minProperties: 1,
-  },
-)
-
-const AssignableSpaceMemberRoleSchema = Type.Union([
-  Type.Literal('writer'),
-  Type.Literal('reader'),
-])
-
-const AddSpaceMemberBodySchema = Type.Object({
-  email: Type.String({ minLength: 1, maxLength: 320 }),
-  role: AssignableSpaceMemberRoleSchema,
-})
-
-const UpdateSpaceMemberBodySchema = Type.Object({
-  role: AssignableSpaceMemberRoleSchema,
-})
-
-const SpaceResponseSchema = Type.Object({
-  id: Type.String({ format: 'uuid' }),
-  namespaceId: Type.String({ format: 'uuid' }),
-  createdByUserId: Type.Union([
-    Type.String({ format: 'uuid' }),
-    Type.Null(),
-  ]),
-  name: Type.String(),
-  slug: Type.String(),
-  type: Type.Union([Type.Literal('git'), Type.Literal('object')]),
-  visibility: Type.Union([
-    Type.Literal('public'),
-    Type.Literal('private'),
-  ]),
-  createdAt: Type.String(),
-  updatedAt: Type.String(),
-})
-
-const SpaceMemberResponseSchema = Type.Object({
-  userId: Type.String({ format: 'uuid' }),
-  email: Type.String(),
-  displayName: Type.String(),
-  role: Type.Union([
-    Type.Literal('owner'),
-    Type.Literal('writer'),
-    Type.Literal('reader'),
-  ]),
-  joinedAt: Type.String(),
-})
-
-const GitCommitResponseSchema = Type.Object({
-  id: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
-  shortId: Type.String({ pattern: '^[0-9a-f]+$' }),
-  authorName: Type.String(),
-  authorEmail: Type.String(),
-  authoredAt: Type.String({ format: 'date-time' }),
-  message: Type.String(),
-})
-
-const GitRepositoryInfoResponseSchema = Type.Object({
-  defaultBranch: Type.String(),
-  branches: Type.Array(Type.String()),
-  commits: Type.Array(GitCommitResponseSchema),
-})
-
-const GitRefQuerySchema = Type.Object({
-  ref: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
-})
-
-const GitTreeQuerySchema = Type.Object({
-  ref: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
-  path: Type.Optional(Type.String({ maxLength: 4096 })),
-})
-
-const GitFileQuerySchema = Type.Object({
-  ref: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
-  path: Type.String({ minLength: 1, maxLength: 4096 }),
-})
-
-const GitDiffQuerySchema = Type.Object({
-  from: Type.String({ minLength: 1, maxLength: 255 }),
-  to: Type.String({ minLength: 1, maxLength: 255 }),
-})
-
-const GitTagResponseSchema = Type.Object({
-  name: Type.String(),
-  commitId: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
-})
-
-const GitCommitDetailResponseSchema = Type.Object({
-  ref: Type.String(),
-  id: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
-  shortId: Type.String({ pattern: '^[0-9a-f]+$' }),
-  parentIds: Type.Array(Type.String({ pattern: '^[0-9a-f]{40,64}$' })),
-  authorName: Type.String(),
-  authorEmail: Type.String(),
-  authoredAt: Type.String({ format: 'date-time' }),
-  committerName: Type.String(),
-  committerEmail: Type.String(),
-  committedAt: Type.String({ format: 'date-time' }),
-  message: Type.String(),
-})
-
-const GitDiffRevisionResponseSchema = Type.Object({
-  ref: Type.String(),
-  commitId: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
-})
-
-const GitDiffResponseSchema = Type.Object({
-  from: GitDiffRevisionResponseSchema,
-  to: GitDiffRevisionResponseSchema,
-  patch: Type.String(),
-})
-
-const GitTreeEntryResponseSchema = Type.Object({
-  id: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
-  name: Type.String(),
-  path: Type.String(),
-  type: Type.Union([
-    Type.Literal('file'),
-    Type.Literal('directory'),
-    Type.Literal('symlink'),
-    Type.Literal('submodule'),
-  ]),
-  size: Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]),
-})
-
-const GitTreeResponseSchema = Type.Object({
-  ref: Type.String(),
-  commitId: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
-  path: Type.String(),
-  entries: Type.Array(GitTreeEntryResponseSchema),
-})
-
-const GitFileResponseSchema = Type.Object({
-  ref: Type.String(),
-  commitId: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
-  path: Type.String(),
-  name: Type.String(),
-  size: Type.Integer({ minimum: 0 }),
-  encoding: Type.Union([Type.Literal('utf-8'), Type.Literal('base64')]),
-  content: Type.String(),
-})
+import {
+  AddSpaceMemberBodySchema,
+  CreateSpaceBodySchema,
+  GitCommitDetailResponseSchema,
+  GitDiffQuerySchema,
+  GitDiffResponseSchema,
+  GitFileQuerySchema,
+  GitFileResponseSchema,
+  GitReadmeResponseSchema,
+  GitRefQuerySchema,
+  GitRepositoryInfoResponseSchema,
+  GitTagListResponseSchema,
+  GitTreeQuerySchema,
+  GitTreeResponseSchema,
+  NamespaceParamsSchema,
+  SpaceListResponseSchema,
+  SpaceMemberListResponseSchema,
+  SpaceMemberParamsSchema,
+  SpaceMemberResponseSchema,
+  SpaceParamsSchema,
+  SpaceResponseSchema,
+  UpdateSpaceBodySchema,
+  UpdateSpaceMemberBodySchema,
+} from './types/spaces.types.js'
 
 export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.post(
@@ -231,7 +79,7 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
       schema: {
         params: NamespaceParamsSchema,
         response: {
-          200: Type.Array(SpaceResponseSchema),
+          200: SpaceListResponseSchema,
         },
       },
     },
@@ -313,7 +161,7 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
       schema: {
         params: SpaceParamsSchema,
         response: {
-          200: Type.Array(GitTagResponseSchema),
+          200: GitTagListResponseSchema,
         },
       },
     },
@@ -406,7 +254,7 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
         params: SpaceParamsSchema,
         querystring: GitRefQuerySchema,
         response: {
-          200: Type.Union([GitFileResponseSchema, Type.Null()]),
+          200: GitReadmeResponseSchema,
         },
       },
     },
@@ -499,7 +347,7 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
       schema: {
         params: SpaceParamsSchema,
         response: {
-          200: Type.Array(SpaceMemberResponseSchema),
+          200: SpaceMemberListResponseSchema,
         },
       },
     },

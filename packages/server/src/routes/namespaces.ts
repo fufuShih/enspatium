@@ -1,5 +1,4 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
-import { Type } from '@sinclair/typebox'
 
 import {
   addNamespaceMember,
@@ -10,44 +9,16 @@ import {
   removeNamespaceMember,
 } from '../services/namespaces.js'
 import { requireCurrentUserId } from './current-user.js'
-
-const NamespaceResponseSchema = Type.Object({
-  id: Type.String({ format: 'uuid' }),
-  ownerUserId: Type.String({ format: 'uuid' }),
-  name: Type.String(),
-  slug: Type.String(),
-  kind: Type.Union([
-    Type.Literal('personal'),
-    Type.Literal('organization'),
-  ]),
-  createdAt: Type.String(),
-})
-
-const CreateOrganizationNamespaceBodySchema = Type.Object({
-  name: Type.String({ minLength: 1, maxLength: 100 }),
-  slug: Type.String({ minLength: 1, maxLength: 100 }),
-})
-
-const NamespaceParamsSchema = Type.Object({
-  slug: Type.String({ minLength: 1, maxLength: 100 }),
-})
-
-const NamespaceMemberParamsSchema = Type.Object({
-  slug: Type.String({ minLength: 1, maxLength: 100 }),
-  userId: Type.String({ format: 'uuid' }),
-})
-
-const AddNamespaceMemberBodySchema = Type.Object({
-  email: Type.String({ minLength: 1, maxLength: 320 }),
-})
-
-const NamespaceMemberResponseSchema = Type.Object({
-  userId: Type.String({ format: 'uuid' }),
-  email: Type.String(),
-  displayName: Type.String(),
-  role: Type.Union([Type.Literal('owner'), Type.Literal('member')]),
-  joinedAt: Type.String(),
-})
+import {
+  AddNamespaceMemberBodySchema,
+  CreateOrganizationNamespaceBodySchema,
+  NamespaceListResponseSchema,
+  NamespaceMemberListResponseSchema,
+  NamespaceMemberParamsSchema,
+  NamespaceMemberResponseSchema,
+  NamespaceParamsSchema,
+  NamespaceResponseSchema,
+} from './types/namespaces.types.js'
 
 export const namespaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.post(
@@ -77,7 +48,7 @@ export const namespaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     {
       schema: {
         response: {
-          200: Type.Array(NamespaceResponseSchema),
+          200: NamespaceListResponseSchema,
         },
       },
     },
@@ -133,7 +104,7 @@ export const namespaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
       schema: {
         params: NamespaceParamsSchema,
         response: {
-          200: Type.Array(NamespaceMemberResponseSchema),
+          200: NamespaceMemberListResponseSchema,
         },
       },
     },

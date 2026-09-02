@@ -1,12 +1,10 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
-import { Type } from '@sinclair/typebox'
 import type {
   FastifyInstance,
   FastifyReply,
   FastifyRequest,
 } from 'fastify'
 
-import type { PublicSpace } from '../db/space.types.js'
 import { createAuditEvent } from '../services/audit/audit.js'
 import {
   getReadableGitSpace,
@@ -22,26 +20,14 @@ import {
   authenticatePersonalAccessToken,
   TokenServiceError,
 } from '../services/tokens.js'
+import {
+  GitInfoRefsQuerySchema,
+  GitTransportParamsSchema,
+  type GitAccess,
+} from './types/git.types.js'
 
 const gitAuthenticationChallenge =
   'Basic realm="Enspatium Git", charset="UTF-8"'
-
-const GitTransportParamsSchema = Type.Object({
-  namespaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
-  spaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
-})
-
-const GitInfoRefsQuerySchema = Type.Object({
-  service: Type.Union([
-    Type.Literal('git-upload-pack'),
-    Type.Literal('git-receive-pack'),
-  ]),
-})
-
-interface GitAccess {
-  space: Pick<PublicSpace, 'id' | 'namespaceId'>
-  userId?: string
-}
 
 export const gitRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.addContentTypeParser(

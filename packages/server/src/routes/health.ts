@@ -1,10 +1,7 @@
-import { Type } from '@sinclair/typebox'
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
 import { sql } from 'kysely'
 
-const HealthResponse = Type.Object({
-  status: Type.Literal('ok'),
-})
+import { HealthResponseSchema } from './types/health.types.js'
 
 export const healthRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.get(
@@ -12,7 +9,7 @@ export const healthRoutes: FastifyPluginAsyncTypebox = async (app) => {
     {
       schema: {
         response: {
-          200: HealthResponse,
+          200: HealthResponseSchema,
         },
       },
     },
@@ -24,7 +21,7 @@ export const healthRoutes: FastifyPluginAsyncTypebox = async (app) => {
     {
       schema: {
         response: {
-          200: HealthResponse,
+          200: HealthResponseSchema,
         },
       },
     },

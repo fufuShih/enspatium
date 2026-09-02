@@ -1,5 +1,4 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
-import { Type } from '@sinclair/typebox'
 
 import {
   createPersonalAccessToken,
@@ -7,44 +6,12 @@ import {
   revokePersonalAccessToken,
 } from '../services/tokens.js'
 import { requireCurrentUserId } from './current-user.js'
-
-const PersonalAccessTokenScopeSchema = Type.Union([
-  Type.Literal('git:read'),
-  Type.Literal('git:write'),
-])
-
-const PersonalAccessTokenResponseProperties = {
-  id: Type.String({ format: 'uuid' }),
-  name: Type.String(),
-  scopes: Type.Array(PersonalAccessTokenScopeSchema),
-  expiresAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
-  lastUsedAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
-  revokedAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
-  createdAt: Type.String({ format: 'date-time' }),
-}
-
-const PersonalAccessTokenResponseSchema = Type.Object(
-  PersonalAccessTokenResponseProperties,
-)
-
-const CreatedPersonalAccessTokenResponseSchema = Type.Object({
-  ...PersonalAccessTokenResponseProperties,
-  token: Type.String(),
-})
-
-const CreatePersonalAccessTokenBodySchema = Type.Object({
-  name: Type.String({ minLength: 1, maxLength: 100 }),
-  scopes: Type.Array(PersonalAccessTokenScopeSchema, {
-    minItems: 1,
-    maxItems: 2,
-    uniqueItems: true,
-  }),
-  expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
-})
-
-const PersonalAccessTokenParamsSchema = Type.Object({
-  tokenId: Type.String({ format: 'uuid' }),
-})
+import {
+  CreatedPersonalAccessTokenResponseSchema,
+  CreatePersonalAccessTokenBodySchema,
+  PersonalAccessTokenListResponseSchema,
+  PersonalAccessTokenParamsSchema,
+} from './types/tokens.types.js'
 
 export const tokenRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.post(
@@ -73,7 +40,7 @@ export const tokenRoutes: FastifyPluginAsyncTypebox = async (app) => {
     {
       schema: {
         response: {
-          200: Type.Array(PersonalAccessTokenResponseSchema),
+          200: PersonalAccessTokenListResponseSchema,
         },
       },
     },

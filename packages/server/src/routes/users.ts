@@ -1,25 +1,11 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
-import { Type } from '@sinclair/typebox'
 
 import { createUser, getUser } from '../services/users.js'
-
-export const UserResponseSchema = Type.Object({
-  id: Type.String({ format: 'uuid' }),
-  email: Type.String(),
-  displayName: Type.String(),
-  createdAt: Type.String(),
-  updatedAt: Type.String(),
-})
-
-const CreateUserBodySchema = Type.Object({
-  email: Type.String({ minLength: 1, maxLength: 320 }),
-  password: Type.String({ minLength: 8, maxLength: 1024 }),
-  displayName: Type.String({ minLength: 1, maxLength: 100 }),
-})
-
-const UserParamsSchema = Type.Object({
-  id: Type.String({ format: 'uuid' }),
-})
+import {
+  CreateUserBodySchema,
+  UserParamsSchema,
+  UserResponseSchema,
+} from './types/users.types.js'
 
 export const userRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.post(
