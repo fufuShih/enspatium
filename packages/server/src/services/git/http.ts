@@ -4,7 +4,6 @@ import type {
   OutgoingHttpHeaders,
   ServerResponse,
 } from 'node:http'
-import { resolve } from 'node:path'
 import {
   Transform,
   type TransformCallback,
@@ -98,8 +97,8 @@ function createGitHttpEnvironment(
     GATEWAY_INTERFACE: 'CGI/1.1',
     GIT_HTTP_EXPORT_ALL: '1',
     GIT_HTTP_MAX_REQUEST_BUFFER: '10M',
-    GIT_PROJECT_ROOT: resolve(resolveDataRoot(input.dataRoot), 'git'),
-    PATH_INFO: '/' + input.spaceId + '.git/' + input.servicePath,
+    GIT_PROJECT_ROOT: resolveDataRoot(input.dataRoot),
+    PATH_INFO: '/' + input.spaceId + '/' + input.servicePath,
     QUERY_STRING:
       input.servicePath === 'info/refs'
         ? 'service=' + input.service

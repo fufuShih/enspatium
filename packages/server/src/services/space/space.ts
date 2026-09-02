@@ -653,11 +653,7 @@ export async function deleteSpace(
   )
 
   try {
-    await deleteSpaceStorage(
-      dataRoot,
-      spaceAccess.spaceId,
-      spaceAccess.spaceType,
-    )
+    await deleteSpaceStorage(dataRoot, spaceAccess.spaceId)
   } catch (error) {
     throw new SpaceServiceError(
       'INTERNAL',

@@ -49,7 +49,7 @@ describe('Git Smart HTTP', () => {
     'serves clone, fetch and push through Smart HTTP',
     async () => {
       const root = await mkdtemp(join(tmpdir(), 'enspatium-git-http-'))
-      const repositoryPath = getSpaceStoragePath(root, spaceId, 'git')
+      const repositoryPath = getSpaceStoragePath(root, spaceId)
       const sourcePath = join(root, 'source')
       const clonePath = join(root, 'clone')
 

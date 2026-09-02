@@ -44,7 +44,7 @@ describe('Git repository', () => {
 
   it('reads branches, commits, trees and files', async () => {
     const root = await createTemporaryRoot()
-    const repositoryPath = getSpaceStoragePath(root, spaceId, 'git')
+    const repositoryPath = getSpaceStoragePath(root, spaceId)
     const worktreePath = join(root, 'worktree')
 
     await createSpaceStorage(root, spaceId, 'git')

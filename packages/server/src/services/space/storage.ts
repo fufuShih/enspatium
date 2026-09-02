@@ -20,26 +20,19 @@ export function resolveDataRoot(configuredRoot: string): string {
 export async function initializeStorage(dataRoot: string): Promise<void> {
   const root = resolveDataRoot(dataRoot)
 
-  await Promise.all([
-    mkdir(resolve(root, 'git'), { recursive: true }),
-    mkdir(resolve(root, 'objects'), { recursive: true }),
-    mkdir(resolve(root, 'temp'), { recursive: true }),
-  ])
+  await mkdir(root, { recursive: true })
 }
 
 export function getSpaceStoragePath(
   dataRoot: string,
   spaceId: string,
-  spaceType: SpaceType,
 ): string {
   if (!spaceIdPattern.test(spaceId)) {
     throw new Error('invalid space id')
   }
 
   const root = resolveDataRoot(dataRoot)
-  const relativePath =
-    spaceType === 'git' ? 'git/' + spaceId + '.git' : 'objects/' + spaceId
-  const target = resolve(root, relativePath)
+  const target = resolve(root, spaceId)
   const pathFromRoot = relative(root, target)
 
   if (
@@ -61,7 +54,7 @@ export async function createSpaceStorage(
 ): Promise<void> {
   await initializeStorage(dataRoot)
 
-  const target = getSpaceStoragePath(dataRoot, spaceId, spaceType)
+  const target = getSpaceStoragePath(dataRoot, spaceId)
 
   if (spaceType === 'git') {
     await execFileAsync('git', ['init', '--bare', target], {
@@ -77,9 +70,8 @@ export async function createSpaceStorage(
 export async function deleteSpaceStorage(
   dataRoot: string,
   spaceId: string,
-  spaceType: SpaceType,
 ): Promise<void> {
-  const target = getSpaceStoragePath(dataRoot, spaceId, spaceType)
+  const target = getSpaceStoragePath(dataRoot, spaceId)
 
   await rm(target, {
     recursive: true,
