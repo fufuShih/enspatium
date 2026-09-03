@@ -8,6 +8,7 @@ import type {
   NamespaceMemberTable,
   NamespaceTable,
 } from './namespace.types.js'
+import type { SpaceObjectTable } from './object.types.js'
 import type { SpaceMemberTable, SpaceTable } from './space.types.js'
 import type { PersonalAccessTokenTable } from './token.types.js'
 import type { UserTable } from './user.types.js'
@@ -20,6 +21,7 @@ export interface Database {
   space_members: SpaceMemberTable
   personal_access_tokens: PersonalAccessTokenTable
   audit_events: AuditEventTable
+  space_objects: SpaceObjectTable
 }
 
 export function createDb(databaseUrl: string) {

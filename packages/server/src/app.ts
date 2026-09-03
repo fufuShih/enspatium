@@ -10,6 +10,7 @@ import { authRoutes } from './routes/auth.js'
 import { gitRoutes } from './routes/git.js'
 import { healthRoutes } from './routes/health.js'
 import { namespaceRoutes } from './routes/namespaces.js'
+import { objectRoutes } from './routes/objects.js'
 import { spaceRoutes } from './routes/spaces.js'
 import { initializeStorage } from './services/space/storage.js'
 import { tokenRoutes } from './routes/tokens.js'
@@ -44,6 +45,7 @@ export async function buildApp() {
   await app.register(namespaceRoutes)
   await app.register(spaceRoutes)
   await app.register(auditRoutes)
+  await app.register(objectRoutes)
 
   return app
 }

@@ -10,6 +10,8 @@ export const auditActions = [
   'space.updated',
   'space.deleted',
   'git.pushed',
+  'object.uploaded',
+  'object.deleted',
 ] as const
 
 export type AuditAction = (typeof auditActions)[number]

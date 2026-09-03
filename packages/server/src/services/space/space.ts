@@ -9,6 +9,7 @@ import type {
   Space,
   SpaceMemberRole,
   SpaceServiceErrorCode,
+  SpaceType,
   UpdateSpaceMemberInput,
   UpdateSpaceInput,
 } from '../../db/space.types.js'
@@ -471,6 +472,64 @@ export async function getWritableGitSpace(
   inputNamespaceSlug: string,
   inputSpaceSlug: string,
 ): Promise<Pick<PublicSpace, 'id' | 'namespaceId'>> {
+  return requireSpaceWriteAccess(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+    inputSpaceSlug,
+    'git',
+    'Git',
+  )
+}
+
+export async function getReadableObjectSpace(
+  db: Kysely<Database>,
+  actorUserId: string | undefined,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+): Promise<PublicSpace> {
+  const space = await getSpaceBySlug(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+    inputSpaceSlug,
+  )
+
+  if (space.type !== 'object') {
+    throw new SpaceServiceError(
+      'INVALID_INPUT',
+      400,
+      'space is not an Object space',
+    )
+  }
+
+  return space
+}
+
+export async function getWritableObjectSpace(
+  db: Kysely<Database>,
+  actorUserId: string,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+): Promise<Pick<PublicSpace, 'id' | 'namespaceId'>> {
+  return requireSpaceWriteAccess(
+    db,
+    actorUserId,
+    inputNamespaceSlug,
+    inputSpaceSlug,
+    'object',
+    'Object',
+  )
+}
+
+async function requireSpaceWriteAccess(
+  db: Kysely<Database>,
+  actorUserId: string,
+  inputNamespaceSlug: string,
+  inputSpaceSlug: string,
+  expectedType: SpaceType,
+  subject: string,
+): Promise<Pick<PublicSpace, 'id' | 'namespaceId'>> {
   const spaceSlug = normalizeSpaceSlug(inputSpaceSlug)
 
   validateSlug(spaceSlug, 'space')
@@ -493,11 +552,11 @@ export async function getWritableGitSpace(
       throw new SpaceServiceError('NOT_FOUND', 404, 'space not found')
     }
 
-    if (space.type !== 'git') {
+    if (space.type !== expectedType) {
       throw new SpaceServiceError(
         'INVALID_INPUT',
         400,
-        'space is not a Git space',
+        `space is not a ${subject} space`,
       )
     }
 
@@ -512,7 +571,7 @@ export async function getWritableGitSpace(
       .where('user_id', '=', actorUserId)
       .executeTakeFirst()
 
-    validateGitWriteRole(membership?.role)
+    validateSpaceWriteRole(membership?.role, subject)
 
     return { id: space.id, namespaceId: namespace.id }
   } catch (error) {
@@ -523,7 +582,7 @@ export async function getWritableGitSpace(
     throw new SpaceServiceError(
       'INTERNAL',
       500,
-      'failed to check Git write permission',
+      `failed to check ${subject} write permission`,
       error,
     )
   }
@@ -532,11 +591,18 @@ export async function getWritableGitSpace(
 export function validateGitWriteRole(
   role: SpaceMemberRole | undefined,
 ): void {
+  validateSpaceWriteRole(role, 'Git')
+}
+
+function validateSpaceWriteRole(
+  role: SpaceMemberRole | undefined,
+  subject: string,
+): void {
   if (role !== 'owner' && role !== 'writer') {
     throw new SpaceServiceError(
       'FORBIDDEN',
       403,
-      'Git write permission is required',
+      `${subject} write permission is required`,
     )
   }
 }
