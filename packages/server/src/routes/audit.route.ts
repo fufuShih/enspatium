@@ -7,7 +7,7 @@ import {
   AuditQuerySchema,
   AuditSpaceParamsSchema,
 } from './types/audit.types.js'
-import { requireCurrentUserId } from './current-user.js'
+import { requireCurrentUserId } from './current-user.route.js'
 
 export const auditRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.get(

@@ -8,7 +8,7 @@ import {
 import {
   authenticationRequired,
   requireCurrentUserId,
-} from './current-user.js'
+} from './current-user.route.js'
 import { LoginBodySchema } from './types/auth.types.js'
 import { UserResponseSchema } from './types/users.types.js'
 

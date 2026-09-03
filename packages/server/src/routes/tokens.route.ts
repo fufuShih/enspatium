@@ -5,7 +5,7 @@ import {
   listPersonalAccessTokens,
   revokePersonalAccessToken,
 } from '../services/tokens.js'
-import { requireCurrentUserId } from './current-user.js'
+import { requireCurrentUserId } from './current-user.route.js'
 import {
   CreatedPersonalAccessTokenResponseSchema,
   CreatePersonalAccessTokenBodySchema,

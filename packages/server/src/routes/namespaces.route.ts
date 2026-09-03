@@ -8,7 +8,7 @@ import {
   listNamespaces,
   removeNamespaceMember,
 } from '../services/namespaces.js'
-import { requireCurrentUserId } from './current-user.js'
+import { requireCurrentUserId } from './current-user.route.js'
 import {
   AddNamespaceMemberBodySchema,
   CreateOrganizationNamespaceBodySchema,

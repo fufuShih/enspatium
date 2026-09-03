@@ -13,7 +13,7 @@ import { maximumObjectSizeBytes } from '../services/object/storage.js'
 import {
   getCurrentUserId,
   requireCurrentUserId,
-} from './current-user.js'
+} from './current-user.route.js'
 import {
   ObjectKeyParamsSchema,
   ObjectListQuerySchema,
