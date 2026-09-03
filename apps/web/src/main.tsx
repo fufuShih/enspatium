@@ -1,18 +1,25 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.css'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { router } from './router'
 import { RouterProvider } from 'react-router/dom'
 import { queryClient } from './queryClient'
 
+import ChakraCustomProvider from './context/ChakraCustomProvider'
+import ThemeModeProvider from './context/ThemeModeProvider'
+
+import './index.css'
 
 const App = () => {
   return (
     <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
+      <ChakraCustomProvider>
+        <ThemeModeProvider>
+          <QueryClientProvider client={queryClient}>
+            <RouterProvider router={router} />
+          </QueryClientProvider>
+        </ThemeModeProvider>
+      </ChakraCustomProvider>
     </StrictMode>
   )
 }
