@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  calculateObjectStorageUsage,
   defaultObjectListLimit,
+  ensureObjectQuota,
   maximumObjectListLimit,
   normalizeObjectListLimit,
   ObjectServiceError,
@@ -23,6 +25,39 @@ describe('parseContentLength', () => {
       )
     },
   )
+})
+
+describe('Object storage quota', () => {
+  it('calculates used, quota, and remaining bytes from PostgreSQL values', () => {
+    expect(calculateObjectStorageUsage('256', '1024')).toEqual({
+      usedBytes: 256,
+      quotaBytes: 1024,
+      remainingBytes: 768,
+    })
+  })
+
+  it('accepts an object that exactly fills the remaining quota', () => {
+    expect(() =>
+      ensureObjectQuota(
+        { usedBytes: 768, quotaBytes: 1024, remainingBytes: 256 },
+        256,
+      ),
+    ).not.toThrow()
+  })
+
+  it('rejects an object larger than the remaining quota', () => {
+    expect(() =>
+      ensureObjectQuota(
+        { usedBytes: 768, quotaBytes: 1024, remainingBytes: 256 },
+        257,
+      ),
+    ).toThrowError(
+      expect.objectContaining({
+        code: 'QUOTA_EXCEEDED',
+        statusCode: 413,
+      }),
+    )
+  })
 })
 
 describe('normalizeObjectListLimit', () => {

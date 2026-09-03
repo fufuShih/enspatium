@@ -4,6 +4,7 @@ import { Readable } from 'node:stream'
 import {
   deleteObject,
   downloadObject,
+  getObjectStorageUsage,
   listObjects,
   ObjectServiceError,
   uploadObject,
@@ -17,6 +18,7 @@ import {
   ObjectKeyParamsSchema,
   ObjectListQuerySchema,
   ObjectSpaceParamsSchema,
+  ObjectStorageUsageResponseSchema,
   SpaceObjectListResponseSchema,
   SpaceObjectResponseSchema,
 } from './types/objects.types.js'
@@ -26,6 +28,26 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.addContentTypeParser('*', (_request, payload, done) => {
     done(null, payload)
   })
+
+  app.get(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/storage',
+    {
+      schema: {
+        params: ObjectSpaceParamsSchema,
+        response: {
+          200: ObjectStorageUsageResponseSchema,
+        },
+      },
+    },
+    async (request) => {
+      return getObjectStorageUsage(
+        app.db,
+        requireCurrentUserId(request),
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+      )
+    },
+  )
 
   app.get(
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/objects',

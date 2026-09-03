@@ -3,6 +3,7 @@ import type { Readable } from 'node:stream'
 
 import type { Database } from '../../db/index.js'
 import type {
+  ObjectStorageUsage,
   PublicSpaceObject,
   SpaceObject,
 } from '../../db/object.types.js'
@@ -30,6 +31,7 @@ export type ObjectServiceErrorCode =
   | 'INVALID_INPUT'
   | 'CONFLICT'
   | 'NOT_FOUND'
+  | 'QUOTA_EXCEEDED'
   | 'INTERNAL'
 
 export class ObjectServiceError extends Error {
@@ -118,6 +120,14 @@ export async function uploadObject(
 
   try {
     const object = await db.transaction().execute(async (transaction) => {
+      const usage = await readObjectStorageUsage(
+        transaction,
+        space.id,
+        true,
+      )
+
+      ensureObjectQuota(usage, storedFile.sizeBytes)
+
       const createdObject = await transaction
         .insertInto('space_objects')
         .values({
@@ -150,15 +160,25 @@ export async function uploadObject(
 
     return toPublicSpaceObject(object)
   } catch (error) {
-    let cause: unknown = error
+    let cleanupError: unknown
 
     try {
       await deleteObjectFile(dataRoot, space.id, key)
-    } catch (cleanupError) {
-      cause = new AggregateError(
-        [error, cleanupError],
+    } catch (errorDuringCleanup) {
+      cleanupError = errorDuringCleanup
+    }
+
+    if (cleanupError) {
+      throw new ObjectServiceError(
+        'INTERNAL',
+        500,
         'database write and object cleanup both failed',
+        new AggregateError([error, cleanupError]),
       )
+    }
+
+    if (error instanceof ObjectServiceError) {
+      throw error
     }
 
     if (isUniqueViolation(error)) {
@@ -166,7 +186,7 @@ export async function uploadObject(
         'CONFLICT',
         409,
         'object key already exists',
-        cause,
+        error,
       )
     }
 
@@ -174,7 +194,7 @@ export async function uploadObject(
       'INTERNAL',
       500,
       'failed to create object metadata',
-      cause,
+      error,
     )
   }
 }
@@ -214,6 +234,35 @@ export async function listObjects(
       'INTERNAL',
       500,
       'failed to list objects',
+      error,
+    )
+  }
+}
+
+export async function getObjectStorageUsage(
+  db: Kysely<Database>,
+  actorUserId: string,
+  namespaceSlug: string,
+  spaceSlug: string,
+): Promise<ObjectStorageUsage> {
+  const space = await getReadableObjectSpace(
+    db,
+    actorUserId,
+    namespaceSlug,
+    spaceSlug,
+  )
+
+  try {
+    return await readObjectStorageUsage(db, space.id, false)
+  } catch (error) {
+    if (error instanceof ObjectServiceError) {
+      throw error
+    }
+
+    throw new ObjectServiceError(
+      'INTERNAL',
+      500,
+      'failed to get object storage usage',
       error,
     )
   }
@@ -369,6 +418,33 @@ export function normalizeObjectListLimit(input?: number): number {
   return input
 }
 
+export function calculateObjectStorageUsage(
+  inputUsedBytes: string | number | bigint,
+  inputQuotaBytes: string | number | bigint,
+): ObjectStorageUsage {
+  const usedBytes = toSafeByteNumber(inputUsedBytes)
+  const quotaBytes = toSafeByteNumber(inputQuotaBytes)
+
+  return {
+    usedBytes,
+    quotaBytes,
+    remainingBytes: Math.max(quotaBytes - usedBytes, 0),
+  }
+}
+
+export function ensureObjectQuota(
+  usage: ObjectStorageUsage,
+  incomingBytes: number,
+): void {
+  if (incomingBytes > usage.remainingBytes) {
+    throw new ObjectServiceError(
+      'QUOTA_EXCEEDED',
+      413,
+      'object space quota exceeded',
+    )
+  }
+}
+
 function validateObjectKey(input: string): string {
   try {
     return normalizeObjectKey(input)
@@ -484,6 +560,63 @@ async function getObjectByKey(
       error,
     )
   }
+}
+
+async function readObjectStorageUsage(
+  db: Kysely<Database>,
+  spaceId: string,
+  lockSpace: boolean,
+): Promise<ObjectStorageUsage> {
+  let spaceQuery = db
+    .selectFrom('spaces')
+    .select('quota_bytes')
+    .where('id', '=', spaceId)
+
+  if (lockSpace) {
+    spaceQuery = spaceQuery.forUpdate()
+  }
+
+  const space = await spaceQuery.executeTakeFirst()
+
+  if (!space) {
+    throw new ObjectServiceError('NOT_FOUND', 404, 'space not found')
+  }
+
+  const total = await db
+    .selectFrom('space_objects')
+    .select(({ fn }) => fn.sum<string>('size_bytes').as('used_bytes'))
+    .where('space_id', '=', spaceId)
+    .executeTakeFirstOrThrow()
+
+  return calculateObjectStorageUsage(
+    total.used_bytes ?? 0,
+    space.quota_bytes,
+  )
+}
+
+function toSafeByteNumber(input: string | number | bigint): number {
+  let value: bigint
+
+  try {
+    value = BigInt(input)
+  } catch (error) {
+    throw new ObjectServiceError(
+      'INTERNAL',
+      500,
+      'invalid object storage usage value',
+      error,
+    )
+  }
+
+  if (value < 0n || value > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new ObjectServiceError(
+      'INTERNAL',
+      500,
+      'object storage usage exceeds the supported range',
+    )
+  }
+
+  return Number(value)
 }
 
 function escapeLikePrefix(input: string): string {

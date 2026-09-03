@@ -38,3 +38,9 @@ export const SpaceObjectResponseSchema = Type.Object({
 export const SpaceObjectListResponseSchema = Type.Array(
   SpaceObjectResponseSchema,
 )
+
+export const ObjectStorageUsageResponseSchema = Type.Object({
+  usedBytes: Type.Integer({ minimum: 0 }),
+  quotaBytes: Type.Integer({ minimum: 1 }),
+  remainingBytes: Type.Integer({ minimum: 0 }),
+})

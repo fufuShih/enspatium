@@ -26,3 +26,9 @@ export interface PublicSpaceObject {
   createdAt: string
   updatedAt: string
 }
+
+export interface ObjectStorageUsage {
+  usedBytes: number
+  quotaBytes: number
+  remainingBytes: number
+}

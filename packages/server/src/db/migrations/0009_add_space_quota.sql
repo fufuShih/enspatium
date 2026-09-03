@@ -1,0 +1,4 @@
+ALTER TABLE spaces
+ADD COLUMN quota_bytes bigint NOT NULL DEFAULT 1073741824,
+ADD CONSTRAINT spaces_quota_bytes_range
+  CHECK (quota_bytes BETWEEN 1 AND 9007199254740991);

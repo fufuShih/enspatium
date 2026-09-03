@@ -18,6 +18,7 @@ export interface SpaceTable {
   slug: string
   type: SpaceType
   visibility: Generated<SpaceVisibility>
+  quota_bytes: Generated<string>
   created_at: Generated<Date>
   updated_at: Generated<Date>
 }
