@@ -1,5 +1,5 @@
 {
-  "name": "web",
+  "name": "@enspatium/web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,8 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@chakra-ui/react": "^3.37.0",
+    "@emotion/react": "^11.14.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-router": "^8.3.1"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
