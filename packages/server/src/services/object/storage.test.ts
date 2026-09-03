@@ -6,10 +6,13 @@ import { Readable } from 'node:stream'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
+  deleteObjectFile,
   getObjectStoragePath,
   maximumObjectSizeBytes,
   normalizeObjectKey,
+  normalizeObjectPrefix,
   ObjectStorageError,
+  readObjectFile,
   writeObjectFile,
 } from './storage.js'
 
@@ -57,6 +60,19 @@ describe('Object storage', () => {
     expect(() => normalizeObjectKey(key)).toThrow(ObjectStorageError)
   })
 
+  it('accepts a safe partial prefix', () => {
+    expect(normalizeObjectPrefix()).toBe('')
+    expect(normalizeObjectPrefix('images/')).toBe('images/')
+    expect(normalizeObjectPrefix('images/ava')).toBe('images/ava')
+  })
+
+  it.each(['/outside', '../outside', 'folder//file', 'folder\\file'])(
+    'rejects an unsafe prefix: %s',
+    (prefix) => {
+      expect(() => normalizeObjectPrefix(prefix)).toThrow(ObjectStorageError)
+    },
+  )
+
   it('streams a file and calculates its checksum', async () => {
     const root = await createTemporaryRoot()
     const content = Buffer.from('hello object storage')
@@ -100,6 +116,31 @@ describe('Object storage', () => {
     await expect(
       readFile(getObjectStoragePath(root, spaceId, 'file.txt'), 'utf8'),
     ).resolves.toBe('first')
+  })
+
+  it('opens and deletes a stored object', async () => {
+    const root = await createTemporaryRoot()
+
+    await writeObjectFile(
+      root,
+      spaceId,
+      'file.txt',
+      Readable.from(['content']),
+    )
+
+    const stream = await readObjectFile(root, spaceId, 'file.txt')
+    const chunks: Buffer[] = []
+
+    for await (const chunk of stream) {
+      chunks.push(Buffer.from(chunk))
+    }
+
+    expect(Buffer.concat(chunks).toString('utf8')).toBe('content')
+
+    await deleteObjectFile(root, spaceId, 'file.txt')
+    await expect(
+      readObjectFile(root, spaceId, 'file.txt'),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 
   it('rejects a declared size above the upload limit', async () => {

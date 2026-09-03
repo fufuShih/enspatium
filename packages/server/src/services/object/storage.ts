@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { createWriteStream } from 'node:fs'
-import { link, mkdir, rm } from 'node:fs/promises'
+import { createReadStream, createWriteStream } from 'node:fs'
+import { link, mkdir, rm, stat } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { Transform, type Readable, type TransformCallback } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
@@ -13,6 +13,7 @@ export type ObjectStorageErrorCode =
   | 'INVALID_KEY'
   | 'TOO_LARGE'
   | 'ALREADY_EXISTS'
+  | 'NOT_FOUND'
   | 'INTERNAL'
 
 export class ObjectStorageError extends Error {
@@ -43,6 +44,36 @@ export function normalizeObjectKey(input: string): string {
   }
 
   return segments.join('/')
+}
+
+export function normalizeObjectPrefix(input?: string): string {
+  if (input === undefined || input === '') {
+    return ''
+  }
+
+  if (
+    input.length > 1024 ||
+    input.startsWith('/') ||
+    /[\u0000-\u001f<>:"\\|?*]/.test(input)
+  ) {
+    throw invalidObjectKey()
+  }
+
+  const segments = input.split('/')
+  const lastIndex = segments.length - 1
+
+  if (
+    segments.some(
+      (segment, index) =>
+        segment === '.' ||
+        segment === '..' ||
+        (!segment && index !== lastIndex),
+    )
+  ) {
+    throw invalidObjectKey()
+  }
+
+  return input
 }
 
 export function getObjectStoragePath(
@@ -169,6 +200,45 @@ export async function deleteObjectFile(
   await rm(target, { force: true })
 }
 
+export async function readObjectFile(
+  dataRoot: string,
+  spaceId: string,
+  key: string,
+): Promise<Readable> {
+  const target = getObjectStoragePath(dataRoot, spaceId, key)
+
+  try {
+    const fileStat = await stat(target)
+
+    if (!fileStat.isFile()) {
+      throw new ObjectStorageError(
+        'NOT_FOUND',
+        'object file was not found',
+      )
+    }
+
+    return createReadStream(target)
+  } catch (error) {
+    if (error instanceof ObjectStorageError) {
+      throw error
+    }
+
+    if (isFileNotFoundError(error)) {
+      throw new ObjectStorageError(
+        'NOT_FOUND',
+        'object file was not found',
+        error,
+      )
+    }
+
+    throw new ObjectStorageError(
+      'INTERNAL',
+      'failed to open object file',
+      error,
+    )
+  }
+}
+
 function isInvalidObjectKeySegment(segment: string): boolean {
   return (
     !segment ||
@@ -190,5 +260,14 @@ function isFileExistsError(error: unknown): boolean {
     error !== null &&
     'code' in error &&
     error.code === 'EEXIST'
+  )
+}
+
+function isFileNotFoundError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'ENOENT'
   )
 }

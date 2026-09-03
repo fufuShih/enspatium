@@ -2,13 +2,22 @@ import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
 import { Readable } from 'node:stream'
 
 import {
+  deleteObject,
+  downloadObject,
+  listObjects,
   ObjectServiceError,
   uploadObject,
 } from '../services/object/object.js'
 import { maximumObjectSizeBytes } from '../services/object/storage.js'
-import { requireCurrentUserId } from './current-user.js'
+import {
+  getCurrentUserId,
+  requireCurrentUserId,
+} from './current-user.js'
 import {
   ObjectKeyParamsSchema,
+  ObjectListQuerySchema,
+  ObjectSpaceParamsSchema,
+  SpaceObjectListResponseSchema,
   SpaceObjectResponseSchema,
 } from './types/objects.types.js'
 
@@ -17,6 +26,29 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.addContentTypeParser('*', (_request, payload, done) => {
     done(null, payload)
   })
+
+  app.get(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/objects',
+    {
+      schema: {
+        params: ObjectSpaceParamsSchema,
+        querystring: ObjectListQuerySchema,
+        response: {
+          200: SpaceObjectListResponseSchema,
+        },
+      },
+    },
+    async (request) => {
+      return listObjects(
+        app.db,
+        requireCurrentUserId(request),
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+        request.query.prefix,
+        request.query.limit,
+      )
+    },
+  )
 
   app.put(
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/objects/*',
@@ -57,6 +89,53 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
       )
 
       return reply.code(201).send(object)
+    },
+  )
+
+  app.get(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/objects/*',
+    {
+      schema: {
+        params: ObjectKeyParamsSchema,
+      },
+    },
+    async (request, reply) => {
+      const download = await downloadObject(
+        app.db,
+        app.config.DATA_ROOT,
+        getCurrentUserId(request),
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+        request.params['*'],
+      )
+
+      return reply
+        .header('content-type', download.object.contentType)
+        .header('content-length', download.object.sizeBytes)
+        .header('etag', `"${download.object.checksumSha256}"`)
+        .header('x-content-sha256', download.object.checksumSha256)
+        .send(download.stream)
+    },
+  )
+
+  app.delete(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/objects/*',
+    {
+      schema: {
+        params: ObjectKeyParamsSchema,
+      },
+    },
+    async (request, reply) => {
+      await deleteObject(
+        app.db,
+        app.config.DATA_ROOT,
+        requireCurrentUserId(request),
+        request.params.namespaceSlug,
+        request.params.spaceSlug,
+        request.params['*'],
+      )
+
+      return reply.code(204).send()
     },
   )
 }

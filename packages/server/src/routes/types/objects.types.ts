@@ -1,9 +1,23 @@
 import { Type } from '@sinclair/typebox'
 
+import { maximumObjectListLimit } from '../../services/object/object.js'
+
+export const ObjectSpaceParamsSchema = Type.Object({
+  namespaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
+  spaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
+})
+
 export const ObjectKeyParamsSchema = Type.Object({
   namespaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
   spaceSlug: Type.String({ minLength: 1, maxLength: 100 }),
   '*': Type.String({ minLength: 1, maxLength: 1024 }),
+})
+
+export const ObjectListQuerySchema = Type.Object({
+  prefix: Type.Optional(Type.String({ maxLength: 1024 })),
+  limit: Type.Optional(
+    Type.Integer({ minimum: 1, maximum: maximumObjectListLimit }),
+  ),
 })
 
 export const SpaceObjectResponseSchema = Type.Object({
@@ -20,3 +34,7 @@ export const SpaceObjectResponseSchema = Type.Object({
   createdAt: Type.String({ format: 'date-time' }),
   updatedAt: Type.String({ format: 'date-time' }),
 })
+
+export const SpaceObjectListResponseSchema = Type.Array(
+  SpaceObjectResponseSchema,
+)

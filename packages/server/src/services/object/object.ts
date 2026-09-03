@@ -7,20 +7,29 @@ import type {
   SpaceObject,
 } from '../../db/object.types.js'
 import { createAuditEvent } from '../audit/audit.js'
-import { getWritableObjectSpace } from '../space/space.js'
+import {
+  getReadableObjectSpace,
+  getWritableObjectSpace,
+} from '../space/space.js'
 import {
   deleteObjectFile,
   maximumObjectSizeBytes,
   normalizeObjectKey,
+  normalizeObjectPrefix,
   ObjectStorageError,
+  readObjectFile,
+  type StoredObjectFile,
   writeObjectFile,
 } from './storage.js'
 
 const defaultContentType = 'application/octet-stream'
+export const defaultObjectListLimit = 100
+export const maximumObjectListLimit = 100
 
 export type ObjectServiceErrorCode =
   | 'INVALID_INPUT'
   | 'CONFLICT'
+  | 'NOT_FOUND'
   | 'INTERNAL'
 
 export class ObjectServiceError extends Error {
@@ -40,6 +49,11 @@ export interface UploadObjectInput {
   contentType?: string
   contentLength?: string
   source: Readable
+}
+
+export interface DownloadedObject {
+  object: PublicSpaceObject
+  stream: Readable
 }
 
 export async function uploadObject(
@@ -88,7 +102,7 @@ export async function uploadObject(
     )
   }
 
-  let storedFile
+  let storedFile: StoredObjectFile
 
   try {
     storedFile = await writeObjectFile(
@@ -165,6 +179,142 @@ export async function uploadObject(
   }
 }
 
+export async function listObjects(
+  db: Kysely<Database>,
+  actorUserId: string,
+  namespaceSlug: string,
+  spaceSlug: string,
+  inputPrefix?: string,
+  inputLimit?: number,
+): Promise<PublicSpaceObject[]> {
+  const prefix = validateObjectPrefix(inputPrefix)
+  const limit = normalizeObjectListLimit(inputLimit)
+  const space = await getReadableObjectSpace(
+    db,
+    actorUserId,
+    namespaceSlug,
+    spaceSlug,
+  )
+
+  try {
+    let query = db
+      .selectFrom('space_objects')
+      .selectAll()
+      .where('space_id', '=', space.id)
+
+    if (prefix) {
+      query = query.where('key', 'like', escapeLikePrefix(prefix) + '%')
+    }
+
+    const objects = await query.orderBy('key', 'asc').limit(limit).execute()
+
+    return objects.map(toPublicSpaceObject)
+  } catch (error) {
+    throw new ObjectServiceError(
+      'INTERNAL',
+      500,
+      'failed to list objects',
+      error,
+    )
+  }
+}
+
+export async function downloadObject(
+  db: Kysely<Database>,
+  dataRoot: string,
+  actorUserId: string | undefined,
+  namespaceSlug: string,
+  spaceSlug: string,
+  inputKey: string,
+): Promise<DownloadedObject> {
+  const key = validateObjectKey(inputKey)
+  const space = await getReadableObjectSpace(
+    db,
+    actorUserId,
+    namespaceSlug,
+    spaceSlug,
+  )
+  const object = await getObjectByKey(db, space.id, key)
+
+  try {
+    return {
+      object: toPublicSpaceObject(object),
+      stream: await readObjectFile(dataRoot, space.id, key),
+    }
+  } catch (error) {
+    throwObjectStorageError(error)
+  }
+}
+
+export async function deleteObject(
+  db: Kysely<Database>,
+  dataRoot: string,
+  actorUserId: string,
+  namespaceSlug: string,
+  spaceSlug: string,
+  inputKey: string,
+): Promise<void> {
+  const key = validateObjectKey(inputKey)
+  const space = await getWritableObjectSpace(
+    db,
+    actorUserId,
+    namespaceSlug,
+    spaceSlug,
+  )
+
+  await getObjectByKey(db, space.id, key)
+
+  try {
+    await deleteObjectFile(dataRoot, space.id, key)
+  } catch (error) {
+    throwObjectStorageError(error)
+  }
+
+  try {
+    await db.transaction().execute(async (transaction) => {
+      const deletedObject = await transaction
+        .deleteFrom('space_objects')
+        .where('space_id', '=', space.id)
+        .where('key', '=', key)
+        .returningAll()
+        .executeTakeFirst()
+
+      if (!deletedObject) {
+        throw new ObjectServiceError(
+          'NOT_FOUND',
+          404,
+          'object was not found',
+        )
+      }
+
+      await createAuditEvent(transaction, {
+        actorUserId,
+        namespaceId: space.namespaceId,
+        spaceId: space.id,
+        action: 'object.deleted',
+        metadata: {
+          objectId: deletedObject.id,
+          key: deletedObject.key,
+          contentType: deletedObject.content_type,
+          sizeBytes: deletedObject.size_bytes,
+          checksumSha256: deletedObject.checksum_sha256,
+        },
+      })
+    })
+  } catch (error) {
+    if (error instanceof ObjectServiceError) {
+      throw error
+    }
+
+    throw new ObjectServiceError(
+      'INTERNAL',
+      500,
+      'failed to delete object metadata',
+      error,
+    )
+  }
+}
+
 export function parseContentLength(input?: string): number | undefined {
   if (input === undefined) {
     return undefined
@@ -199,9 +349,37 @@ export function parseContentLength(input?: string): number | undefined {
   return size
 }
 
+export function normalizeObjectListLimit(input?: number): number {
+  if (input === undefined) {
+    return defaultObjectListLimit
+  }
+
+  if (
+    !Number.isInteger(input) ||
+    input < 1 ||
+    input > maximumObjectListLimit
+  ) {
+    throw new ObjectServiceError(
+      'INVALID_INPUT',
+      400,
+      `limit must be an integer between 1 and ${maximumObjectListLimit}`,
+    )
+  }
+
+  return input
+}
+
 function validateObjectKey(input: string): string {
   try {
     return normalizeObjectKey(input)
+  } catch (error) {
+    throwObjectStorageError(error)
+  }
+}
+
+function validateObjectPrefix(input?: string): string {
+  try {
+    return normalizeObjectPrefix(input)
   } catch (error) {
     throwObjectStorageError(error)
   }
@@ -244,6 +422,10 @@ function throwObjectStorageError(error: unknown): never {
     if (error.code === 'ALREADY_EXISTS') {
       throw new ObjectServiceError('CONFLICT', 409, error.message, error)
     }
+
+    if (error.code === 'NOT_FOUND') {
+      throw new ObjectServiceError('NOT_FOUND', 404, error.message, error)
+    }
   }
 
   throw new ObjectServiceError(
@@ -266,6 +448,46 @@ function toPublicSpaceObject(object: SpaceObject): PublicSpaceObject {
     createdAt: object.created_at.toISOString(),
     updatedAt: object.updated_at.toISOString(),
   }
+}
+
+async function getObjectByKey(
+  db: Kysely<Database>,
+  spaceId: string,
+  key: string,
+): Promise<SpaceObject> {
+  try {
+    const object = await db
+      .selectFrom('space_objects')
+      .selectAll()
+      .where('space_id', '=', spaceId)
+      .where('key', '=', key)
+      .executeTakeFirst()
+
+    if (!object) {
+      throw new ObjectServiceError(
+        'NOT_FOUND',
+        404,
+        'object was not found',
+      )
+    }
+
+    return object
+  } catch (error) {
+    if (error instanceof ObjectServiceError) {
+      throw error
+    }
+
+    throw new ObjectServiceError(
+      'INTERNAL',
+      500,
+      'failed to get object metadata',
+      error,
+    )
+  }
+}
+
+function escapeLikePrefix(input: string): string {
+  return input.replace(/[\\%_]/g, '\\$&')
 }
 
 function isUniqueViolation(error: unknown): boolean {
