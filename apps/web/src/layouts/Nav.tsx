@@ -1,6 +1,14 @@
-import { Box, Container, Flex, HStack } from '@chakra-ui/react'
+import { Box, Button, Container, Flex, HStack } from '@chakra-ui/react'
+import { Link, useNavigate } from 'react-router'
+import { useMockAuth } from '../context/mockAuth'
+import UserMenu from './UserMenu'
+import CreateMenu from './CreateMenu'
+import { demoUser, namespacePath } from '../pages/UserPage/namespaces'
+import { PageLink } from '../components/ui/Primitives'
 
 const Nav = () => {
+  const { signedIn, user } = useMockAuth()
+  const navigate = useNavigate()
   return (
     <Box
       as="header"
@@ -14,34 +22,24 @@ const Nav = () => {
       <Container maxW="7xl" px={{ base: '5', md: '8' }}>
 
 
-        <Flex align="center" height="16" justify="space-between">
+        <Flex align="center" height="16" justify="space-between" gap="3">
           <Box
             alignItems="center"
             display="inline-flex"
             gap="2.5"
+            flexShrink="0"
             textDecoration="none"
             _hover={{ textDecoration: 'none' }}
           >
-            enspatium
+            <Link to="/">enspatium</Link>
           </Box>
-          <HStack gap={{ base: '4', md: '7' }}>
-            <Box
-              color="var(--muted)"
-              fontSize="sm"
-              fontWeight="medium"
-            >
-              Explore
-            </Box>
-            <Box
-              color="var(--muted)"
-              display={{ base: 'none', sm: 'inline-flex' }}
-              fontSize="sm"
-              fontWeight="medium"
-              textDecoration="none"
-            >
-              Concept
-            </Box>
-            <Box
+          <HStack gap={{ base: '1', md: '5' }}>
+            <PageLink to={namespacePath(user?.namespace ?? demoUser)} fontSize="14px" fontWeight="500">{user ? 'My profile' : 'Explore'}</PageLink>
+            {signedIn && <CreateMenu />}
+            {signedIn ? <UserMenu /> : <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/login')}
               border="1px solid"
               borderColor="var(--border)"
               borderRadius="md"
@@ -53,7 +51,7 @@ const Nav = () => {
               textDecoration="none"
             >
               Sign in
-            </Box>
+            </Button>}
           </HStack>
         </Flex>
       </Container>

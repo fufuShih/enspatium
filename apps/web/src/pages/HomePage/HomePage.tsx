@@ -10,6 +10,8 @@ import {
 } from '@chakra-ui/react'
 
 import heroImage from '../../assets/hero.png'
+import { Link } from 'react-router'
+import { demoUser, namespacePath } from '../UserPage/namespaces'
 
 const HomePage = () => {
   return (
@@ -83,10 +85,10 @@ const HomePage = () => {
             px="5"
             _hover={{ bg: 'var(--accent-ink)', transform: 'translateY(-1px)' }}
           >
-            <a href="#spaces">
+            <Link to={namespacePath(demoUser)}>
               Explore
               <Box as="span" aria-hidden="true" ml="1">→</Box>
-            </a>
+            </Link>
           </Button>
           <Button
             asChild
