@@ -1,13 +1,13 @@
 :root {
-  /* Cosmic Honey — space-led with a subtle beeswax warmth */
-  --color-cosmic-50: #f7f7f2;
-  --color-cosmic-100: #e7e7dc;
-  --color-cosmic-200: #d0ceb9;
-  --color-cosmic-300: #b8af82;
-  --color-cosmic-400: #9e8b52;
-  --color-cosmic-500: #746f62;
-  --color-cosmic-600: #59616d;
-  --color-cosmic-700: #404b5b;
+  /* Cosmic — space-led with a trace of beeswax in the lightest steps */
+  --color-cosmic-50: #f7f7f3;
+  --color-cosmic-100: #ebe9dd;
+  --color-cosmic-200: #d5d3c2;
+  --color-cosmic-300: #b6bcc0;
+  --color-cosmic-400: #919aa4;
+  --color-cosmic-500: #707a86;
+  --color-cosmic-600: #566270;
+  --color-cosmic-700: #3f4c5b;
   --color-cosmic-800: #2a3747;
   --color-cosmic-900: #192635;
   --color-cosmic-950: #0c1722;
@@ -19,7 +19,7 @@
   --surface-strong: var(--color-cosmic-200);
   --muted: var(--color-cosmic-600);
   --border: var(--color-cosmic-300);
-  --accent: var(--color-cosmic-400);
+  --accent: var(--color-cosmic-200);
   --accent-ink: var(--color-cosmic-600);
   --accent-contrast: var(--color-cosmic-950);
 
@@ -33,8 +33,8 @@
   --surface-strong: var(--color-cosmic-800);
   --muted: var(--color-cosmic-300);
   --border: var(--color-cosmic-700);
-  --accent: var(--color-cosmic-400);
-  --accent-ink: var(--color-cosmic-300);
+  --accent: var(--color-cosmic-200);
+  --accent-ink: var(--color-cosmic-200);
   --accent-contrast: var(--color-cosmic-950);
 
   color-scheme: dark;
@@ -48,8 +48,8 @@
     --surface-strong: var(--color-cosmic-800);
     --muted: var(--color-cosmic-300);
     --border: var(--color-cosmic-700);
-    --accent: var(--color-cosmic-400);
-    --accent-ink: var(--color-cosmic-300);
+    --accent: var(--color-cosmic-200);
+    --accent-ink: var(--color-cosmic-200);
     --accent-contrast: var(--color-cosmic-950);
 
     color-scheme: dark;
