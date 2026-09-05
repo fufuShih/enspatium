@@ -1,3 +1,4 @@
+import { Type } from '@sinclair/typebox'
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
 
 import {
@@ -25,6 +26,8 @@ export const namespaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces',
     {
       schema: {
+        operationId: 'createOrganizationNamespace',
+        tags: ['namespaces'],
         body: CreateOrganizationNamespaceBodySchema,
         response: {
           201: NamespaceResponseSchema,
@@ -47,6 +50,8 @@ export const namespaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces',
     {
       schema: {
+        operationId: 'listNamespaces',
+        tags: ['namespaces'],
         response: {
           200: NamespaceListResponseSchema,
         },
@@ -63,6 +68,9 @@ export const namespaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:slug',
     {
       schema: {
+        operationId: 'getNamespace',
+        tags: ['namespaces'],
+        security: [],
         params: NamespaceParamsSchema,
         response: {
           200: NamespaceResponseSchema,
@@ -78,6 +86,8 @@ export const namespaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:slug/members',
     {
       schema: {
+        operationId: 'addNamespaceMember',
+        tags: ['namespaces'],
         params: NamespaceParamsSchema,
         body: AddNamespaceMemberBodySchema,
         response: {
@@ -102,6 +112,8 @@ export const namespaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:slug/members',
     {
       schema: {
+        operationId: 'listNamespaceMembers',
+        tags: ['namespaces'],
         params: NamespaceParamsSchema,
         response: {
           200: NamespaceMemberListResponseSchema,
@@ -119,6 +131,9 @@ export const namespaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:slug/members/:userId',
     {
       schema: {
+        operationId: 'removeNamespaceMember',
+        tags: ['namespaces'],
+        response: { 204: Type.Null() },
         params: NamespaceMemberParamsSchema,
       },
     },
@@ -132,7 +147,7 @@ export const namespaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
         request.params.userId,
       )
 
-      return reply.code(204).send()
+      return reply.code(204).send(null)
     },
   )
 }

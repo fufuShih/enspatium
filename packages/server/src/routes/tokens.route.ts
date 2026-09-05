@@ -1,3 +1,4 @@
+import { Type } from '@sinclair/typebox'
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
 
 import {
@@ -18,6 +19,8 @@ export const tokenRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/auth/tokens',
     {
       schema: {
+        operationId: 'createPersonalAccessToken',
+        tags: ['tokens'],
         body: CreatePersonalAccessTokenBodySchema,
         response: {
           201: CreatedPersonalAccessTokenResponseSchema,
@@ -39,6 +42,8 @@ export const tokenRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/auth/tokens',
     {
       schema: {
+        operationId: 'listPersonalAccessTokens',
+        tags: ['tokens'],
         response: {
           200: PersonalAccessTokenListResponseSchema,
         },
@@ -52,6 +57,9 @@ export const tokenRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/auth/tokens/:tokenId',
     {
       schema: {
+        operationId: 'revokePersonalAccessToken',
+        tags: ['tokens'],
+        response: { 204: Type.Null() },
         params: PersonalAccessTokenParamsSchema,
       },
     },
@@ -62,7 +70,7 @@ export const tokenRoutes: FastifyPluginAsyncTypebox = async (app) => {
         request.params.tokenId,
       )
 
-      return reply.code(204).send()
+      return reply.code(204).send(null)
     },
   )
 }

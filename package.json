@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "pnpm --filter @enspatium/server dev",
+    "generate:api": "pnpm --filter @enspatium/server generate:openapi && pnpm --filter @enspatium/web generate:api",
     "build": "pnpm --recursive build",
     "start": "pnpm --filter @enspatium/server start",
     "test": "pnpm --recursive test",

@@ -12,12 +12,14 @@
     "start": "node dist/main.js",
     "test": "vitest run",
     "typecheck": "tsc --project tsconfig.json --noEmit",
+    "generate:openapi": "tsx src/scripts/generate-openapi.ts",
     "db:migrate": "node --env-file=../../.env --import=tsx src/db/migrate.ts"
   },
   "dependencies": {
     "@fastify/env": "^7.0.0",
     "@fastify/helmet": "^13.1.1",
     "@fastify/secure-session": "^8.3.0",
+    "@fastify/swagger": "^9.8.1",
     "@fastify/type-provider-typebox": "^6.1.0",
     "@sinclair/typebox": "^0.34.52",
     "argon2": "^0.45.1",

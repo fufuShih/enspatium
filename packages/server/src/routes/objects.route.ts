@@ -1,3 +1,4 @@
+import { Type } from '@sinclair/typebox'
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
 import { Readable } from 'node:stream'
 
@@ -33,6 +34,8 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/storage',
     {
       schema: {
+        operationId: 'getObjectStorageUsage',
+        tags: ['objects'],
         params: ObjectSpaceParamsSchema,
         response: {
           200: ObjectStorageUsageResponseSchema,
@@ -53,6 +56,8 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/objects',
     {
       schema: {
+        operationId: 'listObjects',
+        tags: ['objects'],
         params: ObjectSpaceParamsSchema,
         querystring: ObjectListQuerySchema,
         response: {
@@ -77,6 +82,8 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
     {
       bodyLimit: maximumObjectSizeBytes,
       schema: {
+        operationId: 'uploadObject',
+        tags: ['objects'],
         params: ObjectKeyParamsSchema,
         response: {
           201: SpaceObjectResponseSchema,
@@ -118,6 +125,9 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/objects/*',
     {
       schema: {
+        operationId: 'downloadObject',
+        tags: ['objects'],
+        security: [{}, { session: [] }],
         params: ObjectKeyParamsSchema,
       },
     },
@@ -144,6 +154,9 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/objects/*',
     {
       schema: {
+        operationId: 'deleteObject',
+        tags: ['objects'],
+        response: { 204: Type.Null() },
         params: ObjectKeyParamsSchema,
       },
     },
@@ -157,7 +170,7 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
         request.params['*'],
       )
 
-      return reply.code(204).send()
+      return reply.code(204).send(null)
     },
   )
 }

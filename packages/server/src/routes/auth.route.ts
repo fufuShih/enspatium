@@ -1,3 +1,4 @@
+import { Type } from '@sinclair/typebox'
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
 
 import {
@@ -17,6 +18,9 @@ export const authRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/auth/login',
     {
       schema: {
+        operationId: 'login',
+        tags: ['auth'],
+        security: [],
         body: LoginBodySchema,
         response: {
           200: UserResponseSchema,
@@ -41,6 +45,8 @@ export const authRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/auth/me',
     {
       schema: {
+        operationId: 'getCurrentUser',
+        tags: ['auth'],
         response: {
           200: UserResponseSchema,
         },
@@ -62,9 +68,20 @@ export const authRoutes: FastifyPluginAsyncTypebox = async (app) => {
     },
   )
 
-  app.post('/auth/logout', async (request, reply) => {
-    request.session.delete()
+  app.post(
+    '/auth/logout',
+    {
+      schema: {
+        operationId: 'logout',
+        tags: ['auth'],
+        security: [],
+        response: { 204: Type.Null() },
+      },
+    },
+    async (request, reply) => {
+      request.session.delete()
 
-    return reply.code(204).send()
-  })
+      return reply.code(204).send(null)
+    },
+  )
 }

@@ -44,6 +44,7 @@ export const gitRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/git/:namespaceSlug/:spaceSlug.git/info/refs',
     {
       schema: {
+        hide: true,
         params: GitTransportParamsSchema,
         querystring: GitInfoRefsQuerySchema,
       },
@@ -65,6 +66,7 @@ export const gitRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/git/:namespaceSlug/:spaceSlug.git/git-upload-pack',
     {
       schema: {
+        hide: true,
         params: GitTransportParamsSchema,
       },
     },
@@ -85,6 +87,7 @@ export const gitRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/git/:namespaceSlug/:spaceSlug.git/git-receive-pack',
     {
       schema: {
+        hide: true,
         params: GitTransportParamsSchema,
       },
     },

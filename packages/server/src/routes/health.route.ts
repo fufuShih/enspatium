@@ -8,6 +8,9 @@ export const healthRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/health',
     {
       schema: {
+        operationId: 'getHealth',
+        tags: ['health'],
+        security: [],
         response: {
           200: HealthResponseSchema,
         },
@@ -20,6 +23,9 @@ export const healthRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/health/db',
     {
       schema: {
+        operationId: 'getDatabaseHealth',
+        tags: ['health'],
+        security: [],
         response: {
           200: HealthResponseSchema,
         },

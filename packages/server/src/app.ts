@@ -5,16 +5,9 @@ import Fastify from 'fastify'
 
 import { configPlugin } from './config.js'
 import { dbPlugin } from './db/index.js'
-import { auditRoutes } from './routes/audit.route.js'
-import { authRoutes } from './routes/auth.route.js'
-import { gitRoutes } from './routes/git.route.js'
-import { healthRoutes } from './routes/health.route.js'
-import { namespaceRoutes } from './routes/namespaces.route.js'
-import { objectRoutes } from './routes/objects.route.js'
-import { spaceRoutes } from './routes/spaces.route.js'
+import { registerOpenApi } from './openapi.js'
+import { registerRoutes } from './routes/index.js'
 import { initializeStorage } from './services/space/storage.js'
-import { tokenRoutes } from './routes/tokens.route.js'
-import { userRoutes } from './routes/users.route.js'
 
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7
 
@@ -37,15 +30,8 @@ export async function buildApp() {
     },
   })
   await app.register(helmet)
-  await app.register(healthRoutes)
-  await app.register(userRoutes)
-  await app.register(authRoutes)
-  await app.register(tokenRoutes)
-  await app.register(gitRoutes)
-  await app.register(namespaceRoutes)
-  await app.register(spaceRoutes)
-  await app.register(auditRoutes)
-  await app.register(objectRoutes)
+  await registerOpenApi(app)
+  await registerRoutes(app)
 
   return app
 }

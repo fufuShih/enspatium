@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
@@ -27,6 +27,16 @@ describe('server', () => {
 
       expect(response.statusCode).toBe(200)
       expect(response.json()).toEqual({ status: 'ok' })
+
+      const specification = await app.inject('/openapi.json')
+      expect(specification.statusCode).toBe(200)
+      expect(specification.json()).toEqual(
+        JSON.parse(await readFile(new URL('../openapi.json', import.meta.url), 'utf8')),
+      )
+
+      const logout = await app.inject({ method: 'POST', url: '/auth/logout' })
+      expect(logout.statusCode).toBe(204)
+      expect(logout.body).toBe('')
     } finally {
       await app.close()
       await rm(dataRoot, { recursive: true, force: true })

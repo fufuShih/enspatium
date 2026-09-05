@@ -1,3 +1,4 @@
+import { Type } from '@sinclair/typebox'
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
 
 import {
@@ -52,6 +53,8 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces',
     {
       schema: {
+        operationId: 'createSpace',
+        tags: ['spaces'],
         params: NamespaceParamsSchema,
         body: CreateSpaceBodySchema,
         response: {
@@ -77,6 +80,8 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces',
     {
       schema: {
+        operationId: 'listSpaces',
+        tags: ['spaces'],
         params: NamespaceParamsSchema,
         response: {
           200: SpaceListResponseSchema,
@@ -94,6 +99,9 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug',
     {
       schema: {
+        operationId: 'getSpace',
+        tags: ['spaces'],
+        security: [{}, { session: [] }],
         params: SpaceParamsSchema,
         response: {
           200: SpaceResponseSchema,
@@ -114,6 +122,9 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/git',
     {
       schema: {
+        operationId: 'getGitSpaceInfo',
+        tags: ['spaces'],
+        security: [{}, { session: [] }],
         params: SpaceParamsSchema,
         response: {
           200: GitRepositoryInfoResponseSchema,
@@ -135,6 +146,9 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/tree',
     {
       schema: {
+        operationId: 'getGitSpaceTree',
+        tags: ['spaces'],
+        security: [{}, { session: [] }],
         params: SpaceParamsSchema,
         querystring: GitTreeQuerySchema,
         response: {
@@ -159,6 +173,9 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/tags',
     {
       schema: {
+        operationId: 'getGitSpaceTags',
+        tags: ['spaces'],
+        security: [{}, { session: [] }],
         params: SpaceParamsSchema,
         response: {
           200: GitTagListResponseSchema,
@@ -180,6 +197,9 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/commit',
     {
       schema: {
+        operationId: 'getGitSpaceCommit',
+        tags: ['spaces'],
+        security: [{}, { session: [] }],
         params: SpaceParamsSchema,
         querystring: GitRefQuerySchema,
         response: {
@@ -203,6 +223,9 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/diff',
     {
       schema: {
+        operationId: 'getGitSpaceDiff',
+        tags: ['spaces'],
+        security: [{}, { session: [] }],
         params: SpaceParamsSchema,
         querystring: GitDiffQuerySchema,
         response: {
@@ -227,6 +250,9 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/file',
     {
       schema: {
+        operationId: 'getGitSpaceFile',
+        tags: ['spaces'],
+        security: [{}, { session: [] }],
         params: SpaceParamsSchema,
         querystring: GitFileQuerySchema,
         response: {
@@ -251,6 +277,9 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/readme',
     {
       schema: {
+        operationId: 'getGitSpaceReadme',
+        tags: ['spaces'],
+        security: [{}, { session: [] }],
         params: SpaceParamsSchema,
         querystring: GitRefQuerySchema,
         response: {
@@ -274,6 +303,8 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug',
     {
       schema: {
+        operationId: 'updateSpace',
+        tags: ['spaces'],
         params: SpaceParamsSchema,
         body: UpdateSpaceBodySchema,
         response: {
@@ -298,6 +329,9 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug',
     {
       schema: {
+        operationId: 'deleteSpace',
+        tags: ['spaces'],
+        response: { 204: Type.Null() },
         params: SpaceParamsSchema,
       },
     },
@@ -312,7 +346,7 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
         request.params.spaceSlug,
       )
 
-      return reply.code(204).send()
+      return reply.code(204).send(null)
     },
   )
 
@@ -320,6 +354,8 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/members',
     {
       schema: {
+        operationId: 'addSpaceMember',
+        tags: ['spaces'],
         params: SpaceParamsSchema,
         body: AddSpaceMemberBodySchema,
         response: {
@@ -345,6 +381,8 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/members',
     {
       schema: {
+        operationId: 'listSpaceMembers',
+        tags: ['spaces'],
         params: SpaceParamsSchema,
         response: {
           200: SpaceMemberListResponseSchema,
@@ -367,6 +405,8 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/members/:userId',
     {
       schema: {
+        operationId: 'updateSpaceMember',
+        tags: ['spaces'],
         params: SpaceMemberParamsSchema,
         body: UpdateSpaceMemberBodySchema,
         response: {
@@ -392,6 +432,9 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/members/:userId',
     {
       schema: {
+        operationId: 'removeSpaceMember',
+        tags: ['spaces'],
+        response: { 204: Type.Null() },
         params: SpaceMemberParamsSchema,
       },
     },
@@ -406,7 +449,7 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
         request.params.userId,
       )
 
-      return reply.code(204).send()
+      return reply.code(204).send(null)
     },
   )
 }

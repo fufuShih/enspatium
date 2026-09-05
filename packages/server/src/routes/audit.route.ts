@@ -14,6 +14,8 @@ export const auditRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/audit-events',
     {
       schema: {
+        operationId: 'listSpaceAuditEvents',
+        tags: ['audit'],
         params: AuditSpaceParamsSchema,
         querystring: AuditQuerySchema,
         response: {

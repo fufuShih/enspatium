@@ -12,6 +12,9 @@ export const userRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/users',
     {
       schema: {
+        operationId: 'createUser',
+        tags: ['users'],
+        security: [],
         body: CreateUserBodySchema,
         response: {
           201: UserResponseSchema,
@@ -29,6 +32,9 @@ export const userRoutes: FastifyPluginAsyncTypebox = async (app) => {
     '/users/:id',
     {
       schema: {
+        operationId: 'getUser',
+        tags: ['users'],
+        security: [],
         params: UserParamsSchema,
         response: {
           200: UserResponseSchema,
