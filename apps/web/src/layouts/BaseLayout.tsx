@@ -7,7 +7,17 @@ const BaseLayout = () => {
   return (
     <Box display="flex" flexDirection="column" minH="100vh">
       <Nav />
-      <Outlet />
+
+      <Box
+        as="main"
+        bg="var(--background)"
+        color="var(--foreground)"
+        flex="1"
+        overflow="hidden"
+        position="relative"
+      >
+        <Outlet />
+      </Box>
     </Box>
   )
 }
