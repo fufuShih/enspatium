@@ -8,7 +8,8 @@ import { queryClient } from './queryClient'
 import ChakraCustomProvider from './context/ChakraCustomProvider'
 import ThemeModeProvider from './context/ThemeModeProvider'
 
-import './index.css'
+import './styles/theme.css'
+import './styles/index.css'
 
 const App = () => {
   return (

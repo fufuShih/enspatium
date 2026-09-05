@@ -5,7 +5,7 @@ import Nav from "./Nav";
 
 const BaseLayout = () => {
   return (
-    <Box display="flex" flexDirection="column" h="100vh">
+    <Box display="flex" flexDirection="column" minH="100vh">
       <Nav />
       <Outlet />
     </Box>
