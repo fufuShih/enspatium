@@ -1,8 +1,9 @@
 import { createBrowserRouter } from "react-router";
 import HomePage from "./pages/HomePage";
 import BaseLayout from "./layouts/BaseLayout";
-import UserLayout from "./layouts/UserLayout";
 import { AccountPage, LoginPage } from "./pages/UserPage";
+import SpacePage from "./pages/SpacesPage/SpacePage";
+import CreateSpacePage from "./pages/SpacesPage/CreateSpacePage";
 
 export const router = createBrowserRouter([
   {
@@ -10,14 +11,10 @@ export const router = createBrowserRouter([
     Component: BaseLayout,
     children: [
       { index: true, Component: HomePage },
-      {
-        path: "user",
-        Component: UserLayout,
-        children: [
-          { path: "login", Component: LoginPage },
-          { path: ":account", Component: AccountPage },
-        ]
-      }
+      { path: "login", Component: LoginPage },
+      { path: "space/create", Component: CreateSpacePage },
+      { path: ":account", Component: AccountPage },
+      { path: ":account/:spaceSlug", Component: SpacePage },
     ]
   },
 ]);
