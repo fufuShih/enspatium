@@ -1,20 +1,38 @@
 import { Box, Button, Menu, Portal, Text } from '@chakra-ui/react'
 import { useNavigate } from 'react-router'
-import { useMockAuth } from '../context/mockAuth'
+import { useState } from 'react'
+import { useAuth } from '../context/auth'
+import { authErrorMessage } from '../context/session'
 
 export default function UserMenu() {
-  const { user, signOut } = useMockAuth()
+  const { user, signOut } = useAuth()
   const navigate = useNavigate()
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
 
   if (!user) return null
 
+  async function handleSignOut() {
+    if (pending) return
+    setPending(true)
+    setError('')
+    try {
+      await signOut()
+      navigate('/', { replace: true, flushSync: true })
+    } catch (failure) {
+      setError(authErrorMessage(failure, 'logout'))
+    } finally {
+      setPending(false)
+    }
+  }
+
   return (
     <Menu.Root
+      closeOnSelect={false}
       positioning={{ placement: 'bottom-end', gutter: 10 }}
       onSelect={({ value }) => {
         if (value === 'sign-out') {
-          signOut()
-          navigate('/')
+          void handleSignOut()
         }
       }}
     >
@@ -70,13 +88,15 @@ export default function UserMenu() {
             <Menu.Separator borderColor="var(--border)" />
             <Menu.Item
               value="sign-out"
+              disabled={pending}
               px="3"
               py="2.5"
               borderRadius="md"
               _highlighted={{ bg: 'var(--surface)' }}
             >
-              Sign out
+              {pending ? 'Signing out...' : 'Sign out'}
             </Menu.Item>
+            {error && <Text role="alert" px="3" py="2" maxW="240px" color="#bd4940" fontSize="xs">{error}</Text>}
           </Menu.Content>
         </Menu.Positioner>
       </Portal>

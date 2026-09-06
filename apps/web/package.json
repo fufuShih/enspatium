@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "generate:api": "orval",
     "test:api": "node --test scripts/api.test.ts",
+    "test": "node --test scripts/*.test.ts",
     "lint": "oxlint",
     "preview": "vite preview"
   },

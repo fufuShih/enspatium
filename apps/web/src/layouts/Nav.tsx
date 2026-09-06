@@ -1,13 +1,13 @@
-import { Box, Button, Container, Flex, HStack } from '@chakra-ui/react'
+import { Box, Button, Container, Flex, HStack, Text } from '@chakra-ui/react'
 import { Link, useNavigate } from 'react-router'
-import { useMockAuth } from '../context/mockAuth'
+import { useAuth } from '../context/auth'
 import UserMenu from './UserMenu'
 import CreateMenu from './CreateMenu'
 import { demoUser, namespacePath } from '../pages/UserPage/namespaces'
 import { PageLink } from '../components/ui/Primitives'
 
 const Nav = () => {
-  const { signedIn, user } = useMockAuth()
+  const { signedIn, user, isLoading, error, retry } = useAuth()
   const navigate = useNavigate()
   return (
     <Box
@@ -38,6 +38,7 @@ const Nav = () => {
             {signedIn && <CreateMenu />}
             {signedIn ? <UserMenu /> : <Button
               variant="outline"
+              disabled={isLoading}
               size="sm"
               onClick={() => navigate('/login')}
               border="1px solid"
@@ -50,10 +51,14 @@ const Nav = () => {
               py="1.5"
               textDecoration="none"
             >
-              Sign in
+              {isLoading ? 'Loading...' : 'Sign in'}
             </Button>}
           </HStack>
         </Flex>
+        {error && <Flex align="center" justify="flex-end" gap="2" pb="3">
+          <Text role="status" fontSize="xs" color="var(--muted)">Unable to check your session.</Text>
+          <Button size="xs" variant="ghost" onClick={retry}>Retry</Button>
+        </Flex>}
       </Container>
     </Box>
   )

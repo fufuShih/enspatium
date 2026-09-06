@@ -3,19 +3,21 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router'
 import { ActionButton, PageContainer, PageHeading, PageLink, SelectInput, TextArea, TextInput } from '../../components/ui/Primitives'
-import { useMockAuth } from '../../context/mockAuth'
+import { useAuth } from '../../context/auth'
+import AuthStatus from '../../components/AuthStatus'
 import { useSpaces } from '../../context/spaces'
 import type { Space } from './spaceData'
 import { spacePath } from './spaceData'
 import { demoOrganization, namespacePath, sameNamespace } from '../UserPage/namespaces'
 
 export default function CreateSpacePage() {
-  const { user } = useMockAuth()
+  const { user, isLoading, error: sessionError } = useAuth()
   const { spaces, setSpaces } = useSpaces()
   const navigate = useNavigate()
   const [error, setError] = useState('')
   const [ownerKey, setOwnerKey] = useState('')
 
+  if (isLoading || (sessionError && !user)) return <AuthStatus />
   if (!user) return <Navigate to="/login" replace state={{ from: '/space/create' }} />
   const owner = ownerKey === namespacePath(demoOrganization) ? demoOrganization : user.namespace
 

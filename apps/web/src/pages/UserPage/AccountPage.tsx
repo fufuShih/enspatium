@@ -1,17 +1,20 @@
 import { Box, Heading, Portal, Text, Tooltip } from '@chakra-ui/react'
 import { useParams } from 'react-router'
 import { ActionButton, PageContainer, PageHeading, PageLink } from '../../components/ui/Primitives'
-import { useMockAuth } from '../../context/mockAuth'
+import { useAuth } from '../../context/auth'
+import AuthStatus from '../../components/AuthStatus'
 import { useSpaces } from '../../context/spaces'
 import SpacesPage from '../SpacesPage/SpacesPage'
 import { demoOrganization, demoUser, initialNamespaces, namespacePath, sameNamespace } from './namespaces'
 
 export default function AccountPage() {
   const { account } = useParams()
-  const { user } = useMockAuth()
+  const { user, isLoading, error } = useAuth()
   const { spaces } = useSpaces()
   const profiles = [...(user ? [user.namespace] : []), ...initialNamespaces, ...spaces.map(space => space.owner)]
   const owner = profiles.find(profile => profile.account === account)
+
+  if (!owner && (isLoading || error)) return <AuthStatus />
 
   if (!owner) return <PageContainer textAlign="center"><PageHeading>Account not found</PageHeading><ActionButton asChild mt="20px"><PageLink to={namespacePath(user?.namespace ?? demoUser)}>Back to profile</PageLink></ActionButton></PageContainer>
 
