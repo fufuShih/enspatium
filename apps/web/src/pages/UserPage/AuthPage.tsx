@@ -1,4 +1,5 @@
 import { Box, Button, Text, chakra } from '@chakra-ui/react'
+import type { InputProps } from '@chakra-ui/react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router'
@@ -9,11 +10,16 @@ import { useAuth } from '../../context/auth'
 import { authErrorMessage } from '../../context/session'
 import { namespacePath } from './namespaces'
 
+function AuthInput(props: InputProps) {
+  return <TextInput h="46px" fontSize="14px" borderRadius="8px" borderColor="color-mix(in srgb, var(--border) 75%, transparent)" _placeholder={{ color: 'var(--muted)', opacity: 0.7 }} _hover={{ borderColor: 'var(--muted)' }} _focusVisible={{ outline: 'none', borderColor: 'var(--foreground)', boxShadow: '0 0 0 3px color-mix(in srgb, var(--foreground) 8%, transparent)' }} {...props} />
+}
+
 export default function AuthPage({ register = false }: { register?: boolean }) {
   const { user, isLoading, signIn } = useAuth()
   const createUser = useCreateUser({ mutation: { gcTime: 0, retry: false } })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   const creatingSpace = location.state?.from === '/space/create'
@@ -52,30 +58,45 @@ export default function AuthPage({ register = false }: { register?: boolean }) {
   }
 
   return (
-    <PageContainer as="section" maxW="440px" my={{ base: '32px', md: '64px' }}>
-      <PageHeading fontSize="32px">{title}</PageHeading>
-      {!register && location.state?.registered && (
-        <Text role="status" mt="16px" fontSize="14px" color="var(--muted)">Account created. Sign in to continue.</Text>
-      )}
-      <Box asChild mt="28px">
-        <form onSubmit={handleSubmit} aria-busy={submitting}>
-          <chakra.fieldset display="flex" flexDirection="column" disabled={submitting} border="0" p="0" m="0" minW="0" gap="8px">
-            {register && <>
-              <chakra.label htmlFor="auth-name" fontSize="13px" fontWeight="500">Name</chakra.label>
-              <TextInput id="auth-name" name="displayName" autoComplete="name" placeholder="Your name" required maxLength={100} mb="12px" />
-            </>}
-            <chakra.label htmlFor="auth-email" fontSize="13px" fontWeight="500">Email</chakra.label>
-            <TextInput id="auth-email" name="email" type="email" autoComplete="username" placeholder="you@example.com" required maxLength={320} mb="12px" defaultValue={register ? '' : location.state?.email ?? ''} />
-            <chakra.label htmlFor="auth-password" fontSize="13px" fontWeight="500">Password</chakra.label>
-            <TextInput id="auth-password" name="password" type="password" autoComplete={register ? 'new-password' : 'current-password'} placeholder={register ? 'At least 8 characters' : 'Enter your password'} required minLength={register ? 8 : 1} maxLength={1024} aria-describedby={error ? 'auth-error' : undefined} />
-            {error && <Text id="auth-error" role="alert" color="#bd4940" fontSize="13px" mt="8px">{error}</Text>}
-            <Button type="submit" loading={submitting} loadingText={register ? 'Creating account...' : 'Signing in...'} mt="16px" height="auto" p="12px" borderRadius="7px" bg="var(--foreground)" color="var(--background)" fontSize="14px" fontWeight="500" _hover={{ opacity: 0.85 }}>{title}</Button>
+    <PageContainer as="section" maxW="480px" px={{ base: '20px', md: '24px' }} pt={{ base: '48px', md: '80px' }} pb="64px" css={{ '& :is(a, button):focus-visible': { outline: '2px solid var(--muted)', outlineOffset: '3px' } }}>
+      <Box textAlign="center" mb="28px">
+        <PageHeading fontSize={{ base: '28px', md: '32px' }}>{title}</PageHeading>
+        <Text mt="10px" fontSize="14px" lineHeight="1.6" color="var(--muted)">
+          {register ? 'A place for your projects, all your own.' : 'Welcome back to your space.'}
+        </Text>
+      </Box>
+      <Box asChild p={{ base: '24px', md: '32px' }} bg="var(--background)" border="1px solid" borderColor="color-mix(in srgb, var(--border) 60%, transparent)" borderRadius="14px" boxShadow="0 4px 24px rgb(0 0 0 / 3%)">
+        <form onSubmit={handleSubmit} onChange={() => { if (error) setError('') }} aria-busy={submitting}>
+          {!register && location.state?.registered && (
+            <Text role="status" mb="24px" p="12px 14px" borderRadius="8px" bg="bg.success" color="fg.success" fontSize="13px" lineHeight="1.7">Account created. Sign in to continue.</Text>
+          )}
+          <chakra.fieldset display="flex" flexDirection="column" disabled={submitting} border="0" p="0" m="0" minW="0" gap="20px">
+            {register && <Box>
+              <chakra.label display="block" mb="8px" htmlFor="auth-name" fontSize="13px" fontWeight="500">Name</chakra.label>
+              <AuthInput id="auth-name" name="displayName" autoComplete="name" placeholder="Your name" required maxLength={100} />
+            </Box>}
+            <Box>
+              <chakra.label display="block" mb="8px" htmlFor="auth-email" fontSize="13px" fontWeight="500">Email</chakra.label>
+              <AuthInput id="auth-email" name="email" type="email" autoComplete="username" placeholder="you@example.com" required maxLength={320} defaultValue={register ? '' : location.state?.email ?? ''} />
+            </Box>
+            <Box>
+              <chakra.label display="block" mb="8px" htmlFor="auth-password" fontSize="13px" fontWeight="500">Password</chakra.label>
+              <Box position="relative">
+                <AuthInput id="auth-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete={register ? 'new-password' : 'current-password'} placeholder={register ? 'Create a password' : 'Enter your password'} required minLength={register ? 8 : 1} maxLength={1024} pr="64px" aria-describedby={[register && 'password-hint', error && 'auth-error'].filter(Boolean).join(' ') || undefined} />
+                <Button type="button" variant="plain" position="absolute" right="4px" top="4px" h="38px" minW="52px" px="8px" fontSize="12px" fontWeight="500" color="var(--muted)" borderRadius="6px" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-controls="auth-password" onClick={() => setShowPassword(value => !value)} _hover={{ bg: 'var(--surface)', color: 'var(--foreground)' }}>
+                  {showPassword ? 'Hide' : 'Show'}
+                </Button>
+              </Box>
+              {register && <Text id="password-hint" mt="8px" fontSize="12px" color="var(--muted)">Use at least 8 characters.</Text>}
+            </Box>
+            {error && <Text id="auth-error" role="alert" bg="bg.error" color="fg.error" p="12px 14px" borderRadius="8px" fontSize="13px" lineHeight="1.7">{error}</Text>}
+            <Button type="submit" loading={submitting} loadingText={register ? 'Creating account...' : 'Signing in...'} mt="4px" h="46px" borderRadius="8px" bg="var(--foreground)" color="var(--background)" fontSize="14px" fontWeight="500" _hover={{ opacity: 0.9 }} _active={{ opacity: 0.8 }}>{title}</Button>
           </chakra.fieldset>
         </form>
       </Box>
-      <Text mt="24px" fontSize="13px" color="var(--muted)" textAlign="center">
+      <Text mt="24px" fontSize="13px" lineHeight="1.8" color="var(--muted)" textAlign="center">
         {register ? 'Already have an account? ' : "Don't have an account? "}
-        <PageLink to={register ? '/login' : '/register'} state={{ from: creatingSpace ? '/space/create' : undefined }} color="var(--foreground)" fontWeight="500">{register ? 'Sign in' : 'Create account'}</PageLink>
+        <PageLink to={register ? '/login' : '/register'} state={{ from: creatingSpace ? '/space/create' : undefined }} color="var(--foreground)" fontWeight="500" textDecoration="underline" textUnderlineOffset="3px" textDecorationColor="var(--border)">{register ? 'Sign in' : 'Create account'}</PageLink>
       </Text>
     </PageContainer>
   )

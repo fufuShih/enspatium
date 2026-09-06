@@ -42,7 +42,9 @@ export default function UserMenu() {
           variant="ghost"
           size="sm"
           gap="2"
-          px="2"
+          px="2.5"
+          h="10"
+          borderRadius="full"
           color="var(--foreground)"
           _hover={{ bg: 'var(--surface)' }}
           _open={{ bg: 'var(--surface)' }}
@@ -71,14 +73,14 @@ export default function UserMenu() {
         <Menu.Positioner>
           <Menu.Content
             aria-label="User account"
-            minW="200px"
+            minW="240px"
             maxW="calc(100vw - 32px)"
             bg="var(--background)"
             color="var(--foreground)"
             border="1px solid"
-            borderColor="var(--border)"
-            borderRadius="lg"
-            boxShadow="sm"
+            borderColor="color-mix(in srgb, var(--border) 65%, transparent)"
+            borderRadius="12px"
+            boxShadow="0 8px 32px rgb(0 0 0 / 8%)"
             p="1.5"
           >
             <Box px="3" py="3" maxW="280px">
@@ -96,7 +98,7 @@ export default function UserMenu() {
             >
               {pending ? 'Signing out...' : 'Sign out'}
             </Menu.Item>
-            {error && <Text role="alert" px="3" py="2" maxW="240px" color="#bd4940" fontSize="xs">{error}</Text>}
+            {error && <Text role="alert" m="1" px="3" py="2.5" maxW="240px" bg="bg.error" color="fg.error" borderRadius="7px" lineHeight="1.7" fontSize="xs">{error}</Text>}
           </Menu.Content>
         </Menu.Positioner>
       </Portal>

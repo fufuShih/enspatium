@@ -33,12 +33,14 @@ const Nav = () => {
           >
             <Link to="/">enspatium</Link>
           </Box>
-          <HStack gap={{ base: '1', md: '5' }}>
+          <HStack gap={{ base: '3', md: '5' }}>
             <PageLink to={namespacePath(user?.namespace ?? demoUser)} fontSize="14px" fontWeight="500">{user ? 'My profile' : 'Explore'}</PageLink>
             {signedIn && <CreateMenu />}
             {signedIn ? <UserMenu /> : <Button
               variant="outline"
               disabled={isLoading}
+              loading={isLoading}
+              loadingText="Sign in"
               size="sm"
               onClick={() => navigate('/login')}
               border="1px solid"
@@ -51,7 +53,7 @@ const Nav = () => {
               py="1.5"
               textDecoration="none"
             >
-              {isLoading ? 'Loading...' : 'Sign in'}
+              Sign in
             </Button>}
           </HStack>
         </Flex>
