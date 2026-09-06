@@ -4,7 +4,8 @@ export default defineConfig({
   enspatium: {
     input: '../../packages/server/openapi.json',
     output: {
-      target: './src/api/generated.ts',
+      target: './src/api/generated/api.ts',
+      mode: 'tags',
       client: 'react-query',
       httpClient: 'fetch',
       baseUrl: '/api',

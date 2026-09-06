@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { createSpace, downloadObject, listSpaces, logout, uploadObject } from '../src/api/generated.ts'
+import { logout } from '../src/api/generated/auth.ts'
+import { downloadObject, uploadObject } from '../src/api/generated/objects.ts'
+import { createSpace, listSpaces } from '../src/api/generated/spaces.ts'
 
 test('generated client sends JSON, session credentials, and encoded paths', async (t) => {
   const calls: { url: string; options?: RequestInit }[] = []
