@@ -1,5 +1,6 @@
 import { Box, Flex, Text } from '@chakra-ui/react'
-import { useParams } from 'react-router'
+import { useLocation, useParams } from 'react-router'
+import { lazy, Suspense } from 'react'
 import { getGetSpaceQueryKey, useGetSpace } from '../../api/generated/spaces'
 import { ActionButton, PageContainer, PageHeading, PageLink } from '../../components/ui/Primitives'
 import AuthStatus from '../../components/AuthStatus'
@@ -7,11 +8,14 @@ import RequestState from '../../components/RequestState'
 import { useAuth } from '../../context/auth'
 import { apiStatus } from '../../context/session'
 import { namespacePath } from '../UserPage/namespaces'
-import { spaceErrorMessage, spacePath } from './spaceApi'
+import { spaceErrorMessage } from './spaceApi'
 import ObjectFileList from './ObjectFileList'
+
+const GitBrowser = lazy(() => import('./GitBrowser'))
 
 export default function SpacePage() {
   const { account = '', spaceSlug = '' } = useParams()
+  const location = useLocation()
   const { user, isLoading, error: sessionError } = useAuth()
   const query = useGetSpace(account, spaceSlug, { query: {
     enabled: Boolean(account && spaceSlug) && !isLoading,
@@ -23,7 +27,7 @@ export default function SpacePage() {
   if (query.isError) {
     const status = apiStatus(query.error)
     return <PageContainer><RequestState title={status === 404 ? 'Space not found' : status === 401 ? 'Sign in to view this Space' : status === 403 ? 'Access denied' : 'Unable to load Space'} message={spaceErrorMessage(query.error)} onRetry={status === 401 ? undefined : () => { void query.refetch() }}>
-      {status === 401 && <ActionButton asChild mt="20px"><PageLink to="/login" state={{ from: spacePath(account, spaceSlug) }}>Sign in</PageLink></ActionButton>}
+      {status === 401 && <ActionButton asChild mt="20px"><PageLink to="/login" state={{ from: location.pathname + location.search }}>Sign in</PageLink></ActionButton>}
       <PageLink to={namespacePath({ account })} display="block" mt="20px" fontSize="13px">Back to profile</PageLink>
     </RequestState></PageContainer>
   }
@@ -45,7 +49,8 @@ export default function SpacePage() {
         <Text fontSize="12px" color="var(--muted)" border="1px solid var(--border)" borderRadius="full" px="10px" py="3px">{space.visibility === 'public' ? 'Public' : 'Private'}</Text>
       </Flex>
       {space.type === 'object' && <ObjectFileList key={`${space.id}:${user?.id ?? 'anonymous'}`} account={account} slug={space.slug} />}
-      <Box as="section" aria-label="Space details" mt={space.type === 'object' ? '32px' : '0'} border="1px solid color-mix(in srgb, var(--border) 60%, transparent)" borderRadius="8px" p={{ base: '20px', md: '28px' }}>
+      {space.type === 'git' && <Suspense fallback={<RequestState loading title="Loading repository..." />}><GitBrowser key={`${space.id}:${user?.id ?? 'anonymous'}`} account={account} slug={space.slug} /></Suspense>}
+      <Box as="section" aria-label="Space details" mt="32px" border="1px solid color-mix(in srgb, var(--border) 60%, transparent)" borderRadius="8px" p={{ base: '20px', md: '28px' }}>
         <Box as="dl" display="grid" gridTemplateColumns={{ base: '1fr', sm: '120px minmax(0, 1fr)' }} columnGap="24px" rowGap="12px" fontSize="13px" m="0">
           {details.map(([label, value]) => <Box key={label} display="contents"><Box as="dt" color="var(--muted)">{label}</Box><Box as="dd" m="0" overflowWrap="anywhere" mb={{ base: '8px', sm: '0' }}>{value}</Box></Box>)}
         </Box>

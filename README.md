@@ -27,7 +27,9 @@ After signing in, use the navigation's Create menu to open `/space/create`. Owne
 
 Creation updates the account list and opens `/:account/:spaceSlug`. Account profiles, organization icons, Space lists, and Space details use real API data and survive reloads. Lists require namespace membership; public Space details can be opened without signing in. Run frontend tests with `pnpm --filter @enspatium/web test`.
 
-Object Spaces display a flat file list. Choose **Upload file** to upload one file (up to 100 MiB), then click a filename to download it. Uploads preserve file bytes and MIME types; duplicate filenames are rejected. The backend enforces read/write permissions and storage quotas. File lists require sign-in and show up to 100 results; use the filename-prefix filter to narrow longer lists. Leaving the page cancels active transfers. Folder navigation, previews, drag-and-drop uploads, and Git operations are not included yet.
+Object Spaces display a flat file list. Choose **Upload file** to upload one file (up to 100 MiB), then click a filename to download it. Uploads preserve file bytes and MIME types; duplicate filenames are rejected. The backend enforces read/write permissions and storage quotas. File lists require sign-in and show up to 100 results; use the filename-prefix filter to narrow longer lists. Leaving the page cancels active transfers. Object folder navigation, previews, and drag-and-drop uploads are not included yet.
+
+Git Spaces support read-only branch selection, folder navigation, text previews (up to 1 MiB), and a root README preview. Branch and path are stored in `ref`, `path`, and `view` query parameters, so browser history and reloads preserve the view. Switching branches returns to the root. Binary files and submodules are identified without attempting to display them as text. README Markdown uses safe React rendering with raw HTML omitted; images are shown as alt text and relative links as text. Git editing, commits, and branch management remain outside the UI.
 
 ## API generation
 
