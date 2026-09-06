@@ -8,7 +8,6 @@ import { queryClient } from './queryClient'
 import ChakraCustomProvider from './context/ChakraCustomProvider'
 import ThemeModeProvider from './context/ThemeModeProvider'
 import AuthProvider from './context/AuthProvider'
-import SpacesProvider from './context/SpacesProvider'
 
 import './styles/theme.css'
 import './styles/index.css'
@@ -20,9 +19,7 @@ const App = () => {
         <ThemeModeProvider>
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
-              <SpacesProvider>
-                <RouterProvider router={router} />
-              </SpacesProvider>
+              <RouterProvider router={router} />
             </AuthProvider>
           </QueryClientProvider>
         </ThemeModeProvider>

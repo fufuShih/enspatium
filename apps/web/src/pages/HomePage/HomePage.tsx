@@ -11,9 +11,11 @@ import {
 
 import heroImage from '../../assets/hero.png'
 import { Link } from 'react-router'
-import { demoUser, namespacePath } from '../UserPage/namespaces'
+import { namespacePath } from '../UserPage/namespaces'
+import { useAuth } from '../../context/auth'
 
 const HomePage = () => {
+  const { user } = useAuth()
   return (
     <Container maxW="7xl" px={{ base: '5', md: '8' }}>
       <Stack
@@ -85,8 +87,8 @@ const HomePage = () => {
             px="5"
             _hover={{ bg: 'var(--accent-ink)', transform: 'translateY(-1px)' }}
           >
-            <Link to={namespacePath(demoUser)}>
-              Explore
+            <Link to={user ? namespacePath(user.namespace) : '/register'}>
+              {user ? 'My Spaces' : 'Get started'}
               <Box as="span" aria-hidden="true" ml="1">→</Box>
             </Link>
           </Button>

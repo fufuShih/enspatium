@@ -5,6 +5,10 @@ import type { Namespace } from '../pages/UserPage/namespaces.ts'
 
 export type AuthUser = GetCurrentUser200 & { name: string; namespace: Namespace }
 
+export function authReturnPath(from: unknown): string | undefined {
+  return typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') && !/[\\\r\n]/.test(from) && !/^\/(login|register)([/?#]|$)/.test(from) ? from : undefined
+}
+
 export function apiStatus(error: unknown): number | undefined {
   if (typeof error === 'object' && error !== null && 'status' in error && typeof error.status === 'number') return error.status
 }

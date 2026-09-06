@@ -7,7 +7,7 @@ import { useCreateUser } from '../../api/generated/users'
 import AuthStatus from '../../components/AuthStatus'
 import { PageContainer, PageHeading, PageLink, TextInput } from '../../components/ui/Primitives'
 import { useAuth } from '../../context/auth'
-import { authErrorMessage } from '../../context/session'
+import { authErrorMessage, authReturnPath } from '../../context/session'
 import { namespacePath } from './namespaces'
 
 function AuthInput(props: InputProps) {
@@ -22,11 +22,11 @@ export default function AuthPage({ register = false }: { register?: boolean }) {
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
-  const creatingSpace = location.state?.from === '/space/create'
+  const returnTo = authReturnPath(location.state?.from)
   const title = register ? 'Create account' : 'Sign in'
 
   if (isLoading) return <AuthStatus />
-  if (user) return <Navigate to={creatingSpace ? '/space/create' : namespacePath(user.namespace)} replace />
+  if (user) return <Navigate to={returnTo ?? namespacePath(user.namespace)} replace />
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -44,7 +44,7 @@ export default function AuthPage({ register = false }: { register?: boolean }) {
     try {
       if (register) {
         await createUser.mutateAsync({ data: { email, password, displayName } })
-        navigate('/login', { replace: true, state: { registered: true, email, from: creatingSpace ? '/space/create' : undefined } })
+        navigate('/login', { replace: true, state: { registered: true, email, from: returnTo } })
       } else {
         await signIn({ email, password })
         // The authenticated render redirects using the backend's namespace slug.
@@ -96,7 +96,7 @@ export default function AuthPage({ register = false }: { register?: boolean }) {
       </Box>
       <Text mt="24px" fontSize="13px" lineHeight="1.8" color="var(--muted)" textAlign="center">
         {register ? 'Already have an account? ' : "Don't have an account? "}
-        <PageLink to={register ? '/login' : '/register'} state={{ from: creatingSpace ? '/space/create' : undefined }} color="var(--foreground)" fontWeight="500" textDecoration="underline" textUnderlineOffset="3px" textDecorationColor="var(--border)">{register ? 'Sign in' : 'Create account'}</PageLink>
+        <PageLink to={register ? '/login' : '/register'} state={{ from: returnTo }} color="var(--foreground)" fontWeight="500" textDecoration="underline" textUnderlineOffset="3px" textDecorationColor="var(--border)">{register ? 'Sign in' : 'Create account'}</PageLink>
       </Text>
     </PageContainer>
   )
