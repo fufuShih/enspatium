@@ -8,6 +8,7 @@ import { useAuth } from '../../context/auth'
 import { apiStatus } from '../../context/session'
 import { namespacePath } from '../UserPage/namespaces'
 import { spaceErrorMessage, spacePath } from './spaceApi'
+import ObjectFileList from './ObjectFileList'
 
 export default function SpacePage() {
   const { account = '', spaceSlug = '' } = useParams()
@@ -43,7 +44,8 @@ export default function SpacePage() {
         <PageHeading>{space.name}</PageHeading>
         <Text fontSize="12px" color="var(--muted)" border="1px solid var(--border)" borderRadius="full" px="10px" py="3px">{space.visibility === 'public' ? 'Public' : 'Private'}</Text>
       </Flex>
-      <Box as="section" aria-label="Space details" border="1px solid color-mix(in srgb, var(--border) 60%, transparent)" borderRadius="8px" p={{ base: '20px', md: '28px' }}>
+      {space.type === 'object' && <ObjectFileList key={`${space.id}:${user?.id ?? 'anonymous'}`} account={account} slug={space.slug} />}
+      <Box as="section" aria-label="Space details" mt={space.type === 'object' ? '32px' : '0'} border="1px solid color-mix(in srgb, var(--border) 60%, transparent)" borderRadius="8px" p={{ base: '20px', md: '28px' }}>
         <Box as="dl" display="grid" gridTemplateColumns={{ base: '1fr', sm: '120px minmax(0, 1fr)' }} columnGap="24px" rowGap="12px" fontSize="13px" m="0">
           {details.map(([label, value]) => <Box key={label} display="contents"><Box as="dt" color="var(--muted)">{label}</Box><Box as="dd" m="0" overflowWrap="anywhere" mb={{ base: '8px', sm: '0' }}>{value}</Box></Box>)}
         </Box>

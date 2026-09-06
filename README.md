@@ -25,7 +25,9 @@ Open `/register` to create an account, then sign in at `/login`. Authentication 
 
 After signing in, use the navigation's Create menu to open `/space/create`. Owner choices come from the backend and include only namespaces you own. Creation supports Git repositories and object storage, with private visibility by default. The URL name is editable and must contain 3–40 lowercase letters, numbers, or single hyphens.
 
-Creation updates the account list and opens `/:account/:spaceSlug`. Account profiles, organization icons, Space lists, and Space details use real API data and survive reloads. Lists require namespace membership; public Space details can be opened without signing in. File browsing, uploads, and Git operations are outside this UI flow. Run frontend tests with `pnpm --filter @enspatium/web test`.
+Creation updates the account list and opens `/:account/:spaceSlug`. Account profiles, organization icons, Space lists, and Space details use real API data and survive reloads. Lists require namespace membership; public Space details can be opened without signing in. Run frontend tests with `pnpm --filter @enspatium/web test`.
+
+Object Spaces display a flat file list. Choose **Upload file** to upload one file (up to 100 MiB), then click a filename to download it. Uploads preserve file bytes and MIME types; duplicate filenames are rejected. The backend enforces read/write permissions and storage quotas. File lists require sign-in and show up to 100 results; use the filename-prefix filter to narrow longer lists. Leaving the page cancels active transfers. Folder navigation, previews, drag-and-drop uploads, and Git operations are not included yet.
 
 ## API generation
 
