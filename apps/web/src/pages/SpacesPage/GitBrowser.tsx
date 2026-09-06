@@ -12,6 +12,7 @@ import { apiStatus } from '../../context/session'
 import { defaultGitBranch, gitErrorMessage, gitLocation, sortGitEntries } from './gitBrowserApi'
 import { formatFileSize } from './objectFileApi'
 import GitReadme from './GitReadme'
+import { EmptyGitRepository, GitCloneMenu } from './GitRepositoryActions'
 
 export default function GitBrowser({ account, slug }: { account: string; slug: string }) {
   const { user } = useAuth()
@@ -34,10 +35,15 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
   const root = gitLocation(account, slug, branch)
   const segments = path.split('/').filter(Boolean)
   const parent = gitLocation(account, slug, branch, segments.slice(0, -1).join('/'))
+  // Use the same origin and API proxy as the generated client.
+  const cloneUrl = new URL(`/api/git/${encodeURIComponent(account)}/${encodeURIComponent(slug)}.git`, window.location.origin).href
 
   if (info.isPending) return <RequestState loading title="Loading repository..." />
   if (info.isError) return <RequestState title="Unable to load repository" message={gitErrorMessage(info.error)} onRetry={() => { void info.refetch() }} />
-  if (!info.data.branches.length) return <RequestState title="This repository is empty" message="Push your first commit to start browsing files." onRetry={() => { void info.refetch() }} />
+  if (!info.data.branches.length) return <Box minW="0">
+    <Flex align="center" justify="space-between" gap="16px" mb="20px"><Text fontSize="13px" color="var(--muted)">Repository</Text><GitCloneMenu url={cloneUrl} /></Flex>
+    <EmptyGitRepository url={cloneUrl} refreshing={info.isFetching} onRefresh={() => { void info.refetch() }} />
+  </Box>
   if (!ready) return <RequestState title="Branch not found" message="Choose an existing branch to continue."><ActionButton asChild mt="20px"><PageLink to={gitLocation(account, slug, defaultGitBranch(info.data))}>Back to repository</PageLink></ActionButton></RequestState>
 
   const content = isFile ? file : tree
@@ -47,10 +53,11 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
         <SelectInput aria-label="Branch" w={{ base: '100%', sm: '200px' }} value={branch} onChange={event => navigate(gitLocation(account, slug, event.target.value))}>
           {info.data.branches.map(name => <option key={name} value={name}>{name}</option>)}
         </SelectInput>
-        <Box as="nav" aria-label="Repository path" fontSize="13px" color="var(--muted)" minW="0" overflowWrap="anywhere">
+        <Box as="nav" aria-label="Repository path" fontSize="13px" color="var(--muted)" minW="0" flex="1" overflowWrap="anywhere">
           <PageLink to={root} aria-current={!path ? 'page' : undefined}>{slug}</PageLink>
           {segments.map((part, index) => <Fragment key={index}><Text as="span" mx="8px" aria-hidden="true">/</Text>{index === segments.length - 1 ? <Text as="span" aria-current="page" color="var(--foreground)">{part}</Text> : <PageLink to={gitLocation(account, slug, branch, segments.slice(0, index + 1).join('/'))}>{part}</PageLink>}</Fragment>)}
         </Box>
+        <GitCloneMenu url={cloneUrl} />
       </Flex>
       {path && <PageLink to={parent} display="inline-block" mb="16px" fontSize="13px" color="var(--muted)">Back to parent folder</PageLink>}
       {content.isPending ? <RequestState loading title={isFile ? 'Loading file...' : 'Loading files...'} /> : content.isError ? <RequestState title={apiStatus(content.error) === 413 ? 'Preview unavailable' : 'Unable to open path'} message={gitErrorMessage(content.error)} onRetry={() => { void content.refetch() }}>
