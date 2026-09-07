@@ -10,7 +10,7 @@ export function formatFileSize(bytes: number) {
   return `${(bytes / unit).toLocaleString('en-US', { maximumFractionDigits: 1 })} ${unit === 1024 ? 'KiB' : 'MiB'}`
 }
 
-export function fileErrorMessage(error: unknown, action: 'upload' | 'download' | 'list') {
+export function fileErrorMessage(error: unknown, action: 'upload' | 'download' | 'list' | 'preview') {
   switch (apiStatus(error)) {
     case 400: return action === 'list' ? 'This filename filter is not supported. Try another prefix.' : 'This filename is not supported. Rename the file and try again.'
     case 401: return 'Your session has expired. Please sign in again.'

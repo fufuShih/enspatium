@@ -8,6 +8,10 @@ import { useAuth } from '../../context/auth'
 import { apiStatus } from '../../context/session'
 import { fileErrorMessage, fileListLimit, fileSizeLimit, formatFileSize, uploadFile } from './objectFileApi'
 import { spacePath } from './spaceApi'
+import type { ListObjects200Item } from '../../api/generated/api.schemas'
+import ObjectFileViewer from './ObjectFileViewer'
+import ObjectFileIcon from './ObjectFileIcon'
+import { objectFileKind } from './objectPreview'
 
 export default function ObjectFileList({ account, slug }: { account: string; slug: string }) {
   const { user } = useAuth()
@@ -20,6 +24,9 @@ export default function ObjectFileList({ account, slug }: { account: string; slu
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [downloading, setDownloading] = useState<string | null>(null)
+  const [downloadError, setDownloadError] = useState('')
+  const [selected, setSelected] = useState<ListObjects200Item | null>(null)
+  const previewTrigger = useRef<HTMLElement | null>(null)
   const params = { limit: fileListLimit, ...(prefix ? { prefix } : {}) }
   const files = useListObjects(account, slug, params, { query: {
     enabled: Boolean(user), retry: false,
@@ -70,7 +77,7 @@ export default function ObjectFileList({ account, slug }: { account: string; slu
     const controller = new AbortController()
     downloadController.current = controller
     setDownloading(key)
-    setError('')
+    setDownloadError('')
     try {
       const blob = await downloadObject(account, slug, key, { signal: controller.signal })
       if (controller.signal.aborted) return
@@ -84,7 +91,7 @@ export default function ObjectFileList({ account, slug }: { account: string; slu
       window.setTimeout(() => URL.revokeObjectURL(url), 1000)
     } catch (failure) {
       if (!controller.signal.aborted) {
-        setError(fileErrorMessage(failure, 'download'))
+        setDownloadError(fileErrorMessage(failure, 'download'))
         await refreshSession(failure)
       }
     } finally {
@@ -109,6 +116,7 @@ export default function ObjectFileList({ account, slug }: { account: string; slu
       {upload.isPending && <Text role="status" mb="16px" fontSize="13px" color="var(--muted)" overflowWrap="anywhere">Uploading {upload.variables?.file.name}...</Text>}
       {notice && <Text role="status" mb="16px" fontSize="13px" bg="bg.success" color="fg.success" p="12px 14px" borderRadius="8px" overflowWrap="anywhere">{notice}</Text>}
       {error && <Text role="alert" mb="16px" fontSize="13px" bg="bg.error" color="fg.error" p="12px 14px" borderRadius="8px">{error}</Text>}
+      {downloadError && !selected && <Text role="alert" mb="16px" fontSize="13px" color="fg.error">{downloadError}</Text>}
       {!user ? <RequestState title="Sign in to view files"><ActionButton asChild mt="20px"><PageLink to="/login" state={{ from: spacePath(account, slug) }}>Sign in</PageLink></ActionButton></RequestState> : <>
         <Flex asChild gap="10px" mb="20px">
           <form onSubmit={event => { event.preventDefault(); setPrefix(filter); setNotice('') }}>
@@ -120,15 +128,17 @@ export default function ObjectFileList({ account, slug }: { account: string; slu
         {files.isPending ? <RequestState loading title="Loading files..." /> : files.isError ? <RequestState title="Unable to load files" message={fileErrorMessage(files.error, 'list')} onRetry={() => { void files.refetch() }} /> : !files.data.length ? <RequestState title={prefix ? 'No matching files' : 'No files yet'} message={prefix ? 'Try another filename prefix.' : 'Upload a file to get started.'} /> : <>
           <Box as="ul" listStyleType="none" m="0" p="0" border="1px solid color-mix(in srgb, var(--border) 60%, transparent)" borderRadius="8px" overflow="hidden">
             {files.data.map(file => <Box as="li" key={file.id} _notFirst={{ borderTop: '1px solid color-mix(in srgb, var(--border) 50%, transparent)' }}>
-              <Flex align="center" gap="16px" p="14px 16px">
-                <Button variant="plain" minW="0" h="auto" p="0" flex="1" justifyContent="flex-start" fontWeight="500" fontSize="13px" color="var(--foreground)" textAlign="left" whiteSpace="normal" overflowWrap="anywhere" aria-label={`Download ${file.key}`} loading={downloading === file.key} loadingText="Downloading..." disabled={downloading !== null} onClick={() => { void handleDownload(file.key) }} _hover={{ textDecoration: 'underline' }}>{file.key}</Button>
+              <Flex align="center" gap="12px" p="12px 16px" _hover={{ bg: 'var(--surface)' }}>
+                <Button variant="plain" minW="0" h="auto" p="0" flex="1" gap="12px" justifyContent="flex-start" fontWeight="500" fontSize="13px" color="var(--foreground)" textAlign="left" whiteSpace="normal" aria-label={`Open ${file.key}`} onClick={event => { previewTrigger.current = event.currentTarget; setDownloadError(''); setSelected(file) }} _hover={{ textDecoration: 'underline' }}><ObjectFileIcon kind={objectFileKind(file)} /><Text minW="0" overflowWrap="anywhere">{file.key}</Text></Button>
                 <Text fontSize="12px" color="var(--muted)" whiteSpace="nowrap">{formatFileSize(file.sizeBytes)}</Text>
+                <ActionButton aria-label={`Download ${file.key}`} title="Download" p="7px" borderColor="transparent" loading={downloading === file.key} disabled={downloading !== null} onClick={() => { void handleDownload(file.key) }}><ObjectFileIcon kind="download" /></ActionButton>
               </Flex>
             </Box>)}
           </Box>
           {files.data.length === fileListLimit && <Text mt="12px" fontSize="12px" color="var(--muted)">Showing the first 100 files. Filter by filename to narrow the list.</Text>}
         </>}
       </>}
+      {selected && <ObjectFileViewer key={selected.id} account={account} slug={slug} file={selected} downloading={downloading !== null} downloadError={downloadError} onDownload={() => { void handleDownload(selected.key) }} onClose={() => setSelected(null)} returnFocus={() => previewTrigger.current} />}
     </Box>
   )
 }
