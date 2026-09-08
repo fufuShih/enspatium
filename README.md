@@ -35,6 +35,10 @@ Use **Clone** to copy the repository's HTTP(S) URL. Empty Git Spaces show a copy
 
 Open **Access tokens** in the user menu or **Manage access tokens** in the Clone popup to visit `/settings/access-tokens`. Create a named token with read-only or read/write Git permissions and a 30-day (default), 90-day, or unlimited lifetime. Copy the full token when it is created; it is cleared when you select **Done**, leave the page, or sign out, and is never stored in application query caches or browser storage. The list shows permissions, status, expiration, and last use. Revocation requires an inline confirmation and immediately disables that token. Token scopes do not grant access beyond your existing Space permissions.
 
+Missing Space storage returns `503 SPACE_STORAGE_UNAVAILABLE` instead of an empty listing; missing content for an existing Object record returns `404 OBJECT_CONTENT_MISSING`. Records are preserved, uploads do not recreate missing Space directories, and the UI supports retry after storage is restored. Space owners can use **Delete Space**, confirm its URL name, and remove the Space even if its directory is already missing, provided the storage root is accessible and unchanged. Deletion removes related Object/member records and preserves audit history.
+
+Storage-root identity checks cover disappearance or replacement during the running server process. Deployment must ensure the correct `DATA_ROOT` volume is mounted before startup; these checks are not persistent volume identification or a backup/recovery system.
+
 ## API generation
 
 After changing backend route schemas, run from the repository root:

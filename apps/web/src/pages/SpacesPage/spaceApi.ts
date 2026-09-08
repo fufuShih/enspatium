@@ -35,3 +35,11 @@ export async function cacheCreatedSpace(client: QueryClient, account: string, us
   await client.invalidateQueries({ queryKey: listKey, refetchType: 'none' })
   client.setQueryData([...getGetSpaceQueryKey(account, space.slug), userId], space)
 }
+
+export async function clearDeletedSpace(client: QueryClient, account: string, slug: string) {
+  const endpoint = getGetSpaceQueryKey(account, slug)[0]
+  const filters = { predicate: (query: { queryKey: readonly unknown[] }) => typeof query.queryKey[0] === 'string' && (query.queryKey[0] === endpoint || query.queryKey[0].startsWith(endpoint + '/')) }
+  await client.cancelQueries(filters)
+  client.removeQueries(filters)
+  await client.invalidateQueries({ queryKey: getListSpacesQueryKey(account), refetchType: 'none' })
+}

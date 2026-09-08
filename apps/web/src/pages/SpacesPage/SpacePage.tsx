@@ -10,6 +10,7 @@ import { apiStatus } from '../../context/session'
 import { namespacePath } from '../UserPage/namespaces'
 import { spaceErrorMessage } from './spaceApi'
 import ObjectFileList from './ObjectFileList'
+import DeleteSpaceButton from './DeleteSpaceButton'
 
 const GitBrowser = lazy(() => import('./GitBrowser'))
 
@@ -47,6 +48,7 @@ export default function SpacePage() {
       <Flex align="center" gap="14px" wrap="wrap" mt="24px" mb="32px">
         <PageHeading>{space.name}</PageHeading>
         <Text fontSize="12px" color="var(--muted)" border="1px solid var(--border)" borderRadius="full" px="10px" py="3px">{space.visibility === 'public' ? 'Public' : 'Private'}</Text>
+        {space.canDelete && <Box ml="auto"><DeleteSpaceButton account={account} slug={space.slug} /></Box>}
       </Flex>
       {space.type === 'object' && <ObjectFileList key={`${space.id}:${user?.id ?? 'anonymous'}`} account={account} slug={space.slug} />}
       {space.type === 'git' && <Suspense fallback={<RequestState loading title="Loading repository..." />}><GitBrowser key={`${space.id}:${user?.id ?? 'anonymous'}`} account={account} slug={space.slug} /></Suspense>}
