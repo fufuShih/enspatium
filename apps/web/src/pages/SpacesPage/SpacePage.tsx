@@ -8,13 +8,13 @@ import RequestState from '../../components/RequestState'
 import { useAuth } from '../../context/auth'
 import { apiStatus } from '../../context/session'
 import { namespacePath } from '../UserPage/namespaces'
-import { spaceErrorMessage } from './spaceApi'
+import { spaceErrorMessage, spacePath } from './spaceApi'
 import ObjectFileList from './ObjectFileList'
-import DeleteSpaceButton from './DeleteSpaceButton'
+import SpaceSettings from './SpaceSettings'
 
 const GitBrowser = lazy(() => import('./GitBrowser'))
 
-export default function SpacePage() {
+export default function SpacePage({ settings = false }: { settings?: boolean }) {
   const { account = '', spaceSlug = '' } = useParams()
   const location = useLocation()
   const { user, isLoading, error: sessionError } = useAuth()
@@ -33,6 +33,7 @@ export default function SpacePage() {
     </RequestState></PageContainer>
   }
   const space = query.data
+  if (settings && !space.canManage) return <PageContainer><RequestState title="Access denied" message="Only a Space owner can manage settings."><PageLink to={spacePath(account, spaceSlug)} display="block" mt="20px">Back to Space</PageLink></RequestState></PageContainer>
   const details = [
     ['Owner', account],
     ['Type', space.type === 'git' ? 'Git repository' : 'Object storage'],
@@ -43,13 +44,14 @@ export default function SpacePage() {
   return (
     <PageContainer>
       <Box as="nav" aria-label="Breadcrumb" fontSize="13px" color="var(--muted)" overflowWrap="anywhere">
-        <PageLink to={namespacePath({ account })}>{account}</PageLink><Text as="span" mx="10px">/</Text><Text as="span" aria-current="page">{space.slug}</Text>
+        <PageLink to={namespacePath({ account })}>{account}</PageLink><Text as="span" mx="10px">/</Text>{settings ? <><PageLink to={spacePath(account, space.slug)}>{space.slug}</PageLink><Text as="span" mx="10px">/</Text><Text as="span" aria-current="page">Settings</Text></> : <Text as="span" aria-current="page">{space.slug}</Text>}
       </Box>
       <Flex align="center" gap="14px" wrap="wrap" mt="24px" mb="32px">
-        <PageHeading>{space.name}</PageHeading>
+        <PageHeading>{settings ? 'Space settings' : space.name}</PageHeading>
         <Text fontSize="12px" color="var(--muted)" border="1px solid var(--border)" borderRadius="full" px="10px" py="3px">{space.visibility === 'public' ? 'Public' : 'Private'}</Text>
-        {space.canDelete && <Box ml="auto"><DeleteSpaceButton account={account} slug={space.slug} /></Box>}
+        {space.canManage && <ActionButton asChild ml="auto"><PageLink to={spacePath(account, space.slug) + (settings ? '' : '/settings')}>{settings ? 'Back to Space' : 'Settings'}</PageLink></ActionButton>}
       </Flex>
+      {settings ? <SpaceSettings key={`${space.id}:${user?.id}`} account={account} space={space} /> : <>
       {space.type === 'object' && <ObjectFileList key={`${space.id}:${user?.id ?? 'anonymous'}`} account={account} slug={space.slug} />}
       {space.type === 'git' && <Suspense fallback={<RequestState loading title="Loading repository..." />}><GitBrowser key={`${space.id}:${user?.id ?? 'anonymous'}`} account={account} slug={space.slug} /></Suspense>}
       <Box as="section" aria-label="Space details" mt="32px" border="1px solid color-mix(in srgb, var(--border) 60%, transparent)" borderRadius="8px" p={{ base: '20px', md: '28px' }}>
@@ -57,6 +59,7 @@ export default function SpacePage() {
           {details.map(([label, value]) => <Box key={label} display="contents"><Box as="dt" color="var(--muted)">{label}</Box><Box as="dd" m="0" overflowWrap="anywhere" mb={{ base: '8px', sm: '0' }}>{value}</Box></Box>)}
         </Box>
       </Box>
+      </>}
     </PageContainer>
   )
 }

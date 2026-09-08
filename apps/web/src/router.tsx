@@ -18,6 +18,7 @@ export const router = createBrowserRouter([
       { path: "settings/access-tokens", Component: AccessTokensPage },
       { path: ":account", Component: AccountPage },
       { path: ":account/:spaceSlug", Component: SpacePage },
+      { path: ":account/:spaceSlug/settings", element: <SpacePage settings /> },
     ]
   },
 ]);
