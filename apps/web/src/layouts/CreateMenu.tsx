@@ -9,6 +9,7 @@ export default function CreateMenu() {
       positioning={{ placement: 'bottom-end', gutter: 10 }}
       onSelect={({ value }) => {
         if (value === 'space') navigate('/space/create')
+        if (value === 'organization') navigate('/organization/create')
       }}
     >
       <Menu.Trigger asChild>
@@ -41,6 +42,9 @@ export default function CreateMenu() {
           >
             <Menu.Item value="space" px="3" py="2.5" borderRadius="md" _highlighted={{ bg: 'var(--surface)' }}>
               Create Space
+            </Menu.Item>
+            <Menu.Item value="organization" px="3" py="2.5" borderRadius="md" _highlighted={{ bg: 'var(--surface)' }}>
+              Create organization
             </Menu.Item>
           </Menu.Content>
         </Menu.Positioner>

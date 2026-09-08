@@ -1,5 +1,5 @@
 import { Box, Flex, Heading, Portal, Text, Tooltip } from '@chakra-ui/react'
-import { useParams } from 'react-router'
+import { useParams, useSearchParams } from 'react-router'
 import { getListNamespacesQueryKey, useGetNamespace, useListNamespaces } from '../../api/generated/namespaces'
 import { getListSpacesQueryKey, useListSpaces } from '../../api/generated/spaces'
 import { ActionButton, PageContainer, PageLink } from '../../components/ui/Primitives'
@@ -10,9 +10,11 @@ import { apiStatus } from '../../context/session'
 import SpacesPage from '../SpacesPage/SpacesPage'
 import { spaceErrorMessage } from '../SpacesPage/spaceApi'
 import { namespacePath } from './namespaces'
+import MemberManager from '../../components/MemberManager'
 
 export default function AccountPage() {
   const { account = '' } = useParams()
+  const [params, setParams] = useSearchParams()
   const { user, isLoading, error: sessionError } = useAuth()
   const profile = useGetNamespace(account, { query: { enabled: Boolean(account), retry: false } })
   const spaces = useListSpaces(account, { query: { enabled: Boolean(user) && profile.isSuccess, retry: false, queryKey: [...getListSpacesQueryKey(account), user?.id ?? null] } })
@@ -25,6 +27,8 @@ export default function AccountPage() {
 
   const owner = profile.data
   const personal = owner.kind === 'personal'
+  const canManageMembers = !personal && owner.ownerUserId === user?.id
+  const showMembers = params.get('tab') === 'members'
   return (
     <PageContainer maxW="1120px" display="grid" gridTemplateColumns={{ base: 'minmax(0, 1fr)', md: '220px minmax(0, 1fr)' }} gap={{ base: '28px', md: '48px' }} alignItems="start">
       <Box as="aside" p={{ base: '20px', md: '24px' }} border="1px solid color-mix(in srgb, var(--border) 55%, transparent)" borderRadius="8px" aria-label={personal ? 'User information' : 'Organization information'}>
@@ -44,7 +48,12 @@ export default function AccountPage() {
           </Flex>}
         </Box>}
       </Box>
-      <SpacesPage key={owner.slug} owner={owner} spaces={spaces.data} isLoading={spaces.isPending} error={spaces.error} onRetry={() => { void spaces.refetch() }} signedIn={Boolean(user)} canCreate={owner.ownerUserId === user?.id} />
+      <Box minW="0">
+        {canManageMembers && <Flex as="nav" aria-label="Organization navigation" gap="20px" mb="28px" borderBottom="1px solid var(--border)">
+          {['spaces', 'members'].map(tab => <PageLink key={tab} to={namespacePath({ account }) + (tab === 'members' ? '?tab=members' : '')} aria-current={(showMembers ? 'members' : 'spaces') === tab ? 'page' : undefined} fontSize="13px" pb="12px" borderBottom={(showMembers ? 'members' : 'spaces') === tab ? '2px solid var(--foreground)' : '2px solid transparent'}>{tab === 'spaces' ? 'Spaces' : 'Members'}</PageLink>)}
+        </Flex>}
+        {showMembers ? canManageMembers ? <MemberManager key={`${owner.id}:${user?.id}`} scope={{ kind: 'organization', account: owner.slug }} /> : <RequestState title="Access denied" message="Only the organization owner can manage members."><ActionButton mt="16px" onClick={() => setParams({})}>Back to Spaces</ActionButton></RequestState> : <SpacesPage key={owner.slug} owner={owner} spaces={spaces.data} isLoading={spaces.isPending} error={spaces.error} onRetry={() => { void spaces.refetch() }} signedIn={Boolean(user)} canCreate={owner.ownerUserId === user?.id} />}
+      </Box>
     </PageContainer>
   )
 }
