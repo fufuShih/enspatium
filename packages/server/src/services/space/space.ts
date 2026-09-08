@@ -30,7 +30,7 @@ import {
   type GitTag,
   type GitTree,
 } from '../git/repository.js'
-import { createSpaceStorage, deleteSpaceStorage } from './storage.js'
+import { createSpaceStorage, deleteSpaceStorage, SpaceStorageUnavailable } from './storage.js'
 
 export class SpaceServiceError extends Error {
   constructor(
@@ -145,12 +145,8 @@ export async function createSpace(
       )
     }
 
-    throw new SpaceServiceError(
-      'INTERNAL',
-      500,
-      'failed to create space storage',
-      cause,
-    )
+    if (cause instanceof SpaceStorageUnavailable) throw cause
+    throw new SpaceServiceError('INTERNAL', 500, 'failed to create space storage', cause)
   }
 
   return toPublicSpace(space)
@@ -280,6 +276,20 @@ export async function getSpaceBySlug(
       error,
     )
   }
+}
+
+export async function getSpaceDetails(db: Kysely<Database>, actorUserId: string | undefined, namespaceSlug: string, spaceSlug: string) {
+  const space = await getSpaceBySlug(db, actorUserId, namespaceSlug, spaceSlug)
+  let canDelete = false
+  if (actorUserId) {
+    try {
+      await requireSpaceOwnerAccess(db, actorUserId, namespaceSlug, spaceSlug)
+      canDelete = true
+    } catch (error) {
+      if (!(error instanceof SpaceServiceError) || error.statusCode !== 403) throw error
+    }
+  }
+  return { ...space, canDelete }
 }
 
 export async function getGitSpaceInfo(
@@ -608,6 +618,7 @@ function validateSpaceWriteRole(
 }
 
 function throwGitStorageError(error: unknown, message: string): never {
+  if (error instanceof SpaceStorageUnavailable) throw error
   if (error instanceof GitStorageError) {
     if (error.code === 'REF_NOT_FOUND' || error.code === 'PATH_NOT_FOUND') {
       throw new SpaceServiceError('NOT_FOUND', 404, error.message, error)
@@ -623,7 +634,7 @@ function throwGitStorageError(error: unknown, message: string): never {
     throw new SpaceServiceError('INVALID_INPUT', 400, error.message, error)
   }
 
-  throw new SpaceServiceError('INTERNAL', 500, message, error)
+  throw new SpaceStorageUnavailable(new Error(message, { cause: error }))
 }
 
 export async function updateSpace(
@@ -721,6 +732,7 @@ export async function deleteSpace(
   try {
     await deleteSpaceStorage(dataRoot, spaceAccess.spaceId)
   } catch (error) {
+    if (error instanceof SpaceStorageUnavailable) throw error
     throw new SpaceServiceError(
       'INTERNAL',
       500,

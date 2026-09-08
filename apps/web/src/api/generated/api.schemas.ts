@@ -285,6 +285,7 @@ export type GetSpace200 = {
   visibility: typeof GetSpace200Visibility[keyof typeof GetSpace200Visibility];
   createdAt: string;
   updatedAt: string;
+  canDelete: boolean;
 };
 
 export const UpdateSpaceBodyVisibility = {  public: 'public',

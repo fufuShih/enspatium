@@ -8,6 +8,7 @@ import type {
   SpaceObject,
 } from '../../db/object.types.js'
 import { createAuditEvent } from '../audit/audit.js'
+import { requireSpaceStorage, SpaceStorageUnavailable } from '../space/storage.js'
 import {
   getReadableObjectSpace,
   getWritableObjectSpace,
@@ -31,6 +32,7 @@ export type ObjectServiceErrorCode =
   | 'INVALID_INPUT'
   | 'CONFLICT'
   | 'NOT_FOUND'
+  | 'OBJECT_CONTENT_MISSING'
   | 'QUOTA_EXCEEDED'
   | 'INTERNAL'
 
@@ -76,6 +78,7 @@ export async function uploadObject(
     spaceSlug,
   )
 
+  await requireSpaceStorage(dataRoot, space.id, 'object', true)
   try {
     const existingObject = await db
       .selectFrom('space_objects')
@@ -201,6 +204,7 @@ export async function uploadObject(
 
 export async function listObjects(
   db: Kysely<Database>,
+  dataRoot: string,
   actorUserId: string,
   namespaceSlug: string,
   spaceSlug: string,
@@ -216,6 +220,7 @@ export async function listObjects(
     spaceSlug,
   )
 
+  await requireSpaceStorage(dataRoot, space.id, 'object')
   try {
     let query = db
       .selectFrom('space_objects')
@@ -291,6 +296,9 @@ export async function downloadObject(
       stream: await readObjectFile(dataRoot, space.id, key),
     }
   } catch (error) {
+    if (error instanceof ObjectStorageError && error.code === 'NOT_FOUND') {
+      throw new ObjectServiceError('OBJECT_CONTENT_MISSING', 404, 'Object metadata exists, but its stored content is missing.', error)
+    }
     throwObjectStorageError(error)
   }
 }
@@ -476,6 +484,7 @@ function normalizeContentType(input?: string): string {
 }
 
 function throwObjectStorageError(error: unknown): never {
+  if (error instanceof SpaceStorageUnavailable) throw error
   if (error instanceof ObjectStorageError) {
     if (error.code === 'INVALID_KEY') {
       throw new ObjectServiceError(

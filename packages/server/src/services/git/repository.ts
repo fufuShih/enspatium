@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import { promisify, TextDecoder } from 'node:util'
 
-import { getSpaceStoragePath } from '../space/storage.js'
+import { requireSpaceStorage } from '../space/storage.js'
 
 const execFileAsync = promisify(execFile)
 const gitFieldSeparator = '\u001f'
@@ -125,7 +125,7 @@ export async function getGitRepositoryInfo(
   dataRoot: string,
   spaceId: string,
 ): Promise<GitRepositoryInfo> {
-  const repositoryPath = getSpaceStoragePath(dataRoot, spaceId)
+  const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git')
 
   const [defaultBranchOutput, branchesOutput] = await Promise.all([
     runGit(repositoryPath, ['symbolic-ref', '--short', 'HEAD']),
@@ -168,7 +168,7 @@ export async function getGitTags(
   dataRoot: string,
   spaceId: string,
 ): Promise<GitTag[]> {
-  const repositoryPath = getSpaceStoragePath(dataRoot, spaceId)
+  const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git')
   const output = await runGit(repositoryPath, [
     'for-each-ref',
     '--sort=refname',
@@ -202,7 +202,7 @@ export async function getGitCommit(
   spaceId: string,
   inputRef?: string,
 ): Promise<GitCommitDetail> {
-  const repositoryPath = getSpaceStoragePath(dataRoot, spaceId)
+  const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git')
   const { ref, commitId } = await resolveGitCommit(repositoryPath, inputRef)
   const output = await runGit(repositoryPath, [
     'show',
@@ -259,7 +259,7 @@ export async function getGitDiff(
   inputFromRef: string,
   inputToRef: string,
 ): Promise<GitDiff> {
-  const repositoryPath = getSpaceStoragePath(dataRoot, spaceId)
+  const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git')
   const [from, to] = await Promise.all([
     resolveGitCommit(repositoryPath, inputFromRef),
     resolveGitCommit(repositoryPath, inputToRef),
@@ -313,7 +313,7 @@ export async function getGitTree(
   inputRef?: string,
   inputPath = '',
 ): Promise<GitTree> {
-  const repositoryPath = getSpaceStoragePath(dataRoot, spaceId)
+  const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git')
   const path = normalizeGitPath(inputPath, true)
   const { ref, commitId } = await resolveGitCommit(repositoryPath, inputRef)
 
@@ -366,7 +366,7 @@ export async function getGitFile(
   inputRef: string | undefined,
   inputPath: string,
 ): Promise<GitFile> {
-  const repositoryPath = getSpaceStoragePath(dataRoot, spaceId)
+  const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git')
   const path = normalizeGitPath(inputPath, false)
   const { ref, commitId } = await resolveGitCommit(repositoryPath, inputRef)
   const entry = await findGitTreeEntry(repositoryPath, commitId, path)

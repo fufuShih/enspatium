@@ -29,6 +29,14 @@ afterEach(async () => {
 })
 
 describe('Git repository', () => {
+  it('distinguishes missing or invalid repository storage from a valid empty repository', async () => {
+    const root = await createTemporaryRoot()
+    await createSpaceStorage(root, spaceId, 'git')
+    const target = getSpaceStoragePath(root, spaceId)
+    await rm(join(target, 'HEAD'))
+    await expect(getGitRepositoryInfo(root, spaceId)).rejects.toMatchObject({ code: 'SPACE_STORAGE_UNAVAILABLE' })
+    await expect(getGitTree(root, spaceId)).rejects.toMatchObject({ code: 'SPACE_STORAGE_UNAVAILABLE' })
+  })
   it('reads an empty repository', async () => {
     const root = await createTemporaryRoot()
 

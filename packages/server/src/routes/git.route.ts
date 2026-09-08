@@ -6,6 +6,7 @@ import type {
 } from 'fastify'
 
 import { createAuditEvent } from '../services/audit/audit.js'
+import { requireSpaceStorage } from '../services/space/storage.js'
 import {
   getReadableGitSpace,
   getWritableGitSpace,
@@ -141,6 +142,7 @@ async function handleGitRequest(
     throw error
   }
 
+  await requireSpaceStorage(app.config.DATA_ROOT, access.space.id, 'git', service === 'git-receive-pack')
   reply.hijack()
 
   try {

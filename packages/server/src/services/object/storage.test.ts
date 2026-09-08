@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, rename, stat, symlink, mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { afterEach, describe, expect, it } from 'vitest'
+import { createSpaceStorage } from '../space/storage.js'
 
 import {
   deleteObjectFile,
@@ -22,6 +23,7 @@ const temporaryRoots: string[] = []
 async function createTemporaryRoot(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'enspatium-object-'))
   temporaryRoots.push(root)
+  await createSpaceStorage(root, spaceId, 'object')
   return root
 }
 
@@ -37,6 +39,26 @@ afterEach(async () => {
 })
 
 describe('Object storage', () => {
+  it('does not recreate a missing Space on upload and works after restoration', async () => {
+    const root = await createTemporaryRoot()
+    const target = join(root, spaceId)
+    const backup = join(root, 'backup')
+    await rename(target, backup)
+    await expect(writeObjectFile(root, spaceId, 'nested/file.txt', Readable.from(['content']))).rejects.toMatchObject({ code: 'SPACE_STORAGE_UNAVAILABLE', statusCode: 503 })
+    await expect(stat(target)).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(readObjectFile(root, spaceId, 'file.txt')).rejects.toMatchObject({ code: 'SPACE_STORAGE_UNAVAILABLE' })
+    await rename(backup, target)
+    await expect(writeObjectFile(root, spaceId, 'nested/file.txt', Readable.from(['content']))).resolves.toMatchObject({ sizeBytes: 7 })
+  })
+
+  it('rejects nested directory links rather than writing outside the Space', async () => {
+    const root = await createTemporaryRoot()
+    const outside = join(root, 'outside')
+    await mkdir(outside)
+    await symlink(outside, join(root, spaceId, 'linked'), 'junction')
+    await expect(writeObjectFile(root, spaceId, 'linked/file.txt', Readable.from(['content']))).rejects.toMatchObject({ code: 'SPACE_STORAGE_UNAVAILABLE' })
+    await expect(stat(join(outside, 'file.txt'))).rejects.toMatchObject({ code: 'ENOENT' })
+  })
   it('resolves a nested key inside its Space directory', async () => {
     const root = await createTemporaryRoot()
 

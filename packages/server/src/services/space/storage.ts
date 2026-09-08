@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process'
-import { mkdir, rm } from 'node:fs/promises'
+import { access, lstat, mkdir, opendir, realpath, rm } from 'node:fs/promises'
+import { constants } from 'node:fs'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
@@ -11,6 +12,54 @@ const repositoryRoot = fileURLToPath(new URL('../../../../../', import.meta.url)
 const spaceIdPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+export class SpaceStorageUnavailable extends Error {
+  readonly code = 'SPACE_STORAGE_UNAVAILABLE'
+  readonly statusCode = 503
+  constructor(cause?: unknown) {
+    super('Space storage is unavailable. Restore storage access and try again.', { cause })
+  }
+}
+
+// Detect a missing/replaced mount during this process without recreating it.
+const storageRoots = new Map<string, string>()
+
+export async function requireStorageRoot(dataRoot: string, writable = false): Promise<string> {
+  const root = resolveDataRoot(dataRoot)
+  try {
+    const info = await lstat(root)
+    if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('invalid storage root')
+    const identity = `${await realpath(root)}:${info.dev}:${info.ino}`
+    const previous = storageRoots.get(root)
+    if (previous && previous !== identity) throw new Error('storage root changed')
+    await access(root, constants.R_OK | constants.X_OK | (writable ? constants.W_OK : 0))
+    const directory = await opendir(root)
+    await directory.close()
+    storageRoots.set(root, identity)
+    return root
+  } catch (error) { throw new SpaceStorageUnavailable(error) }
+}
+
+export async function requireSpaceStorage(dataRoot: string, spaceId: string, type: SpaceType, writable = false): Promise<string> {
+  const target = getSpaceStoragePath(dataRoot, spaceId)
+  await requireStorageRoot(dataRoot, writable)
+  try {
+    const info = await lstat(target)
+    if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('invalid Space directory')
+    await access(target, constants.R_OK | constants.X_OK | (writable ? constants.W_OK : 0))
+    const directory = await opendir(target)
+    await directory.close()
+    if (type === 'git') {
+      for (const name of ['HEAD', 'objects', 'refs']) {
+        const entry = await lstat(resolve(target, name))
+        if (entry.isSymbolicLink() || (name === 'HEAD' ? !entry.isFile() : !entry.isDirectory())) throw new Error('invalid Git storage')
+      }
+      const result = await execFileAsync('git', ['--git-dir', target, 'rev-parse', '--is-bare-repository'], { timeout: 10_000, windowsHide: true })
+      if (result.stdout.trim() !== 'true') throw new Error('invalid bare repository')
+    }
+    return target
+  } catch (error) { throw new SpaceStorageUnavailable(error) }
+}
+
 export function resolveDataRoot(configuredRoot: string): string {
   return isAbsolute(configuredRoot)
     ? resolve(configuredRoot)
@@ -20,7 +69,8 @@ export function resolveDataRoot(configuredRoot: string): string {
 export async function initializeStorage(dataRoot: string): Promise<void> {
   const root = resolveDataRoot(dataRoot)
 
-  await mkdir(root, { recursive: true })
+  if (!storageRoots.has(root)) await mkdir(root, { recursive: true })
+  await requireStorageRoot(root, true)
 }
 
 export function getSpaceStoragePath(
@@ -73,8 +123,14 @@ export async function deleteSpaceStorage(
 ): Promise<void> {
   const target = getSpaceStoragePath(dataRoot, spaceId)
 
-  await rm(target, {
-    recursive: true,
-    force: true,
-  })
+  await requireStorageRoot(dataRoot, true)
+  try {
+    const info = await lstat(target).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') return null
+      throw error
+    })
+    if (!info) return
+    if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('invalid Space directory')
+    await rm(target, { recursive: true, force: true })
+  } catch (error) { throw new SpaceStorageUnavailable(error) }
 }

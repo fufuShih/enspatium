@@ -68,6 +68,7 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
     async (request) => {
       return listObjects(
         app.db,
+        app.config.DATA_ROOT,
         requireCurrentUserId(request),
         request.params.namespaceSlug,
         request.params.spaceSlug,

@@ -12,7 +12,7 @@ import {
   getGitSpaceReadme,
   getGitSpaceTags,
   getGitSpaceTree,
-  getSpaceBySlug,
+  getSpaceDetails,
   listSpaceMembers,
   listSpaces,
   removeSpaceMember,
@@ -104,12 +104,12 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
         security: [{}, { session: [] }],
         params: SpaceParamsSchema,
         response: {
-          200: SpaceResponseSchema,
+          200: Type.Object({ ...SpaceResponseSchema.properties, canDelete: Type.Boolean() }),
         },
       },
     },
     async (request) => {
-      return getSpaceBySlug(
+      return getSpaceDetails(
         app.db,
         getCurrentUserId(request),
         request.params.namespaceSlug,

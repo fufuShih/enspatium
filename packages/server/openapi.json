@@ -1359,7 +1359,8 @@
                     "type",
                     "visibility",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "canDelete"
                   ],
                   "properties": {
                     "id": {
@@ -1424,6 +1425,9 @@
                     },
                     "updatedAt": {
                       "type": "string"
+                    },
+                    "canDelete": {
+                      "type": "boolean"
                     }
                   }
                 }
