@@ -1,29 +1,7 @@
 import { Box, Flex, Heading, Popover, Portal, Text } from '@chakra-ui/react'
-import { useEffect, useState } from 'react'
-import { ActionButton, TextInput } from '../../components/ui/Primitives'
-
-function CopyButton({ value, label }: { value: string; label: string }) {
-  const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
-  useEffect(() => {
-    if (status === 'idle') return
-    const timer = window.setTimeout(() => setStatus('idle'), 3000)
-    return () => window.clearTimeout(timer)
-  }, [status])
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(value)
-      setStatus('copied')
-    } catch {
-      setStatus('failed')
-    }
-  }
-
-  return <Box flexShrink="0">
-    <ActionButton aria-label={label} onClick={() => { void copy() }} fontSize="12px" px="12px">{status === 'copied' ? 'Copied!' : 'Copy'}</ActionButton>
-    <Text role="status" srOnly={status !== 'failed'} fontSize="12px" color="var(--muted)" mt={status === 'failed' ? '8px' : '0'} maxW="160px">{status === 'failed' ? 'Select and copy the text manually.' : status === 'copied' ? 'Copied to clipboard.' : ''}</Text>
-  </Box>
-}
+import CopyButton from '../../components/ui/CopyButton'
+import { ActionButton, PageLink, TextInput } from '../../components/ui/Primitives'
+import { accessTokensPath } from '../UserPage/tokenApi'
 
 export function GitCloneMenu({ url }: { url: string }) {
   return (
@@ -40,6 +18,7 @@ export function GitCloneMenu({ url }: { url: string }) {
               <CopyButton value={url} label="Copy clone URL" />
             </Flex>
             <Popover.Description mt="12px" fontSize="12px" lineHeight="1.7" color="var(--muted)">Use an access token as your password when Git asks you to sign in.</Popover.Description>
+            <PageLink to={accessTokensPath} mt="12px" fontSize="12px" textDecoration="underline" textUnderlineOffset="3px">Manage access tokens</PageLink>
           </Popover.Content>
         </Popover.Positioner>
       </Portal>

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router'
 import { useState } from 'react'
 import { useAuth } from '../context/auth'
 import { authErrorMessage } from '../context/session'
+import { accessTokensPath } from '../pages/UserPage/tokenApi'
+import { namespacePath } from '../pages/UserPage/namespaces'
 
 export default function UserMenu() {
   const { user, signOut } = useAuth()
@@ -31,6 +33,8 @@ export default function UserMenu() {
       closeOnSelect={false}
       positioning={{ placement: 'bottom-end', gutter: 10 }}
       onSelect={({ value }) => {
+        if (value === 'profile') navigate(namespacePath(user.namespace))
+        if (value === 'access-tokens') navigate(accessTokensPath)
         if (value === 'sign-out') {
           void handleSignOut()
         }
@@ -88,6 +92,8 @@ export default function UserMenu() {
               <Text color="var(--muted)" fontSize="xs" mt="1" overflowWrap="anywhere">{user.email}</Text>
             </Box>
             <Menu.Separator borderColor="var(--border)" />
+            <Menu.Item value="profile" closeOnSelect disabled={pending} px="3" py="2.5" borderRadius="md" _highlighted={{ bg: 'var(--surface)' }}>Profile</Menu.Item>
+            <Menu.Item value="access-tokens" closeOnSelect disabled={pending} px="3" py="2.5" borderRadius="md" _highlighted={{ bg: 'var(--surface)' }}>Access tokens</Menu.Item>
             <Menu.Item
               value="sign-out"
               disabled={pending}

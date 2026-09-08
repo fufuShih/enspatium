@@ -33,6 +33,8 @@ Git Spaces support read-only branch selection, folder navigation, text previews 
 
 Use **Clone** to copy the repository's HTTP(S) URL. Empty Git Spaces show a copyable push command for an existing local repository and **Refresh files** to load the first push. Git URLs use the same `/api` proxy as the frontend; Git authentication uses an access token as the password.
 
+Open **Access tokens** in the user menu or **Manage access tokens** in the Clone popup to visit `/settings/access-tokens`. Create a named token with read-only or read/write Git permissions and a 30-day (default), 90-day, or unlimited lifetime. Copy the full token when it is created; it is cleared when you select **Done**, leave the page, or sign out, and is never stored in application query caches or browser storage. The list shows permissions, status, expiration, and last use. Revocation requires an inline confirmation and immediately disables that token. Token scopes do not grant access beyond your existing Space permissions.
+
 ## API generation
 
 After changing backend route schemas, run from the repository root:

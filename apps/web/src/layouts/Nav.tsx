@@ -3,11 +3,9 @@ import { Link, useNavigate } from 'react-router'
 import { useAuth } from '../context/auth'
 import UserMenu from './UserMenu'
 import CreateMenu from './CreateMenu'
-import { namespacePath } from '../pages/UserPage/namespaces'
-import { PageLink } from '../components/ui/Primitives'
 
 const Nav = () => {
-  const { signedIn, user, isLoading, error, retry } = useAuth()
+  const { signedIn, isLoading, error, retry } = useAuth()
   const navigate = useNavigate()
   return (
     <Box
@@ -34,7 +32,6 @@ const Nav = () => {
             <Link to="/">enspatium</Link>
           </Box>
           <HStack gap={{ base: '3', md: '5' }}>
-            {user && <PageLink to={namespacePath(user.namespace)} fontSize="14px" fontWeight="500">My profile</PageLink>}
             {signedIn && <CreateMenu />}
             {signedIn ? <UserMenu /> : <Button
               variant="outline"

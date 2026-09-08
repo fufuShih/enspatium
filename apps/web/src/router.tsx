@@ -4,6 +4,7 @@ import BaseLayout from "./layouts/BaseLayout";
 import { AccountPage, AuthPage } from "./pages/UserPage";
 import SpacePage from "./pages/SpacesPage/SpacePage";
 import CreateSpacePage from "./pages/SpacesPage/CreateSpacePage";
+import AccessTokensPage from "./pages/UserPage/AccessTokensPage";
 
 export const router = createBrowserRouter([
   {
@@ -14,6 +15,7 @@ export const router = createBrowserRouter([
       { path: "login", element: <AuthPage key="login" /> },
       { path: "register", element: <AuthPage key="register" register /> },
       { path: "space/create", Component: CreateSpacePage },
+      { path: "settings/access-tokens", Component: AccessTokensPage },
       { path: ":account", Component: AccountPage },
       { path: ":account/:spaceSlug", Component: SpacePage },
     ]

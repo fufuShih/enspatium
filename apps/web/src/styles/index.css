@@ -72,8 +72,22 @@ svg {
 }
 
 button,
-[role='button'] {
+[role='button'],
+a[href],
+select,
+input[type='checkbox'],
+input[type='radio'],
+[role='menuitem'],
+[role='menuitemcheckbox'],
+[role='menuitemradio'] {
   cursor: pointer;
+}
+
+:is(button, input, select, textarea):disabled,
+[role='button'][aria-disabled='true'],
+[role^='menuitem'][data-disabled],
+[role^='menuitem'][aria-disabled='true'] {
+  cursor: not-allowed;
 }
 
 ::selection {

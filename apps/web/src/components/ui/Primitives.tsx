@@ -1,6 +1,6 @@
 import { Box, Button, Heading, Input, Textarea, chakra } from '@chakra-ui/react'
 import type { BoxProps, ButtonProps, HeadingProps, HTMLChakraProps, InputProps, TextareaProps } from '@chakra-ui/react'
-import type { ComponentProps } from 'react'
+import type { ComponentProps, Ref } from 'react'
 import { Link } from 'react-router'
 
 export function PageContainer(props: BoxProps) {
@@ -15,7 +15,7 @@ export function ActionButton(props: ButtonProps) {
   return <Button variant="outline" height="auto" border="1px solid var(--border)" borderRadius="6px" p="9px 14px" fontSize="13px" fontWeight="500" bg="transparent" color="var(--foreground)" _hover={{ opacity: 0.8 }} {...props} />
 }
 
-export function TextInput(props: InputProps) {
+export function TextInput(props: InputProps & { ref?: Ref<HTMLInputElement> }) {
   return <Input height="auto" border="1px solid var(--border)" borderRadius="6px" p="9px 12px" bg="var(--background)" fontSize="13px" {...props} />
 }
 
