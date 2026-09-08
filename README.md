@@ -31,6 +31,32 @@ No running frontend/backend or manual migration is needed. Each run creates a un
 
 To use a separate test database, set `INTEGRATION_DATABASE_URL` before running the same command; it overrides `DATABASE_URL`. No additional packages or browser downloads are required. If setup fails, the command reports the missing prerequisite and exits unsuccessfully. Forced process termination cannot guarantee cleanup; cleanup failures report the exact temporary schema and directory for inspection.
 
+## Browser end-to-end tests
+
+Install the Chromium browser once after `pnpm install`:
+
+```powershell
+pnpm --filter @enspatium/web exec playwright install chromium
+```
+
+Then, with PostgreSQL running and the same database configuration as the integration suite:
+
+```powershell
+pnpm test:e2e
+```
+
+Playwright type-checks and runs three Chromium scenarios: UI registration/login and Space creation, settings persistence after reload (name, visibility and Git default branch), and organization/Space membership across owner and member accounts. The tests use actual pages and HTTP requests, with no mocked API responses. Git branches for the settings scenario are seeded in the isolated test repository; `pnpm test:integration` continues to verify actual clone/push permissions.
+
+The worker automatically starts its own Vite and backend servers on available local ports. It shares the integration suite's temporary schema, migration and storage setup; each worker gets a fresh environment and each test gets a fresh browser context. Existing dev servers are not reused or stopped. Servers, schema and temporary files are cleaned up even when an assertion fails. Tests run with one worker and no retries by default.
+
+Failed tests keep screenshots and traces under `apps/web/test-results/`. The HTML report is under `apps/web/playwright-report/`; both directories are ignored by Git. Open the latest report with:
+
+```powershell
+pnpm --filter @enspatium/web exec playwright show-report
+```
+
+For a visible browser, run `pnpm --filter @enspatium/web exec playwright test --headed`. No browser login or saved authentication state from your development session is used. As with integration tests, force-killing the process may interrupt cleanup.
+
 ## Authentication
 
 Start PostgreSQL and configure the root `.env` using `.env.example` (including `DATABASE_URL` and a random 32-byte hex `SESSION_KEY`). Apply migrations with `pnpm --filter @enspatium/server db:migrate`, then run `pnpm dev` and `pnpm --filter @enspatium/web dev` in separate terminals.

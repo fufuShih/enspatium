@@ -4,7 +4,6 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import type { TestContext } from 'node:test'
 import { promisify } from 'node:util'
 import { sql } from 'kysely'
 import { Client } from 'pg'
@@ -34,7 +33,12 @@ export class ApiSession {
   }
 }
 
-export async function createFixture(t: TestContext) {
+export interface FixtureLifecycle {
+  after(cleanup: () => Promise<void>): void
+  diagnostic(message: string): void
+}
+
+export async function createFixture(t: FixtureLifecycle) {
   try { process.loadEnvFile(new URL('../../../.env', import.meta.url)) } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
   }

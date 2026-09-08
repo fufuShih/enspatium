@@ -13,6 +13,7 @@
     "start": "pnpm --filter @enspatium/server start",
     "test": "pnpm --recursive test",
     "test:integration": "pnpm --filter @enspatium/server test:integration",
+    "test:e2e": "pnpm --filter @enspatium/web test:e2e",
     "typecheck": "pnpm --recursive typecheck"
   }
 }
