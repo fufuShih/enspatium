@@ -5,13 +5,14 @@ import { downloadObject, getListObjectsQueryKey, useListObjects } from '../../ap
 import { ActionButton, PageLink, TextInput } from '../../components/ui/Primitives'
 import RequestState from '../../components/RequestState'
 import { useAuth } from '../../context/auth'
-import { apiStatus } from '../../context/session'
+import { apiCode, apiStatus } from '../../context/session'
 import { fileErrorMessage, fileListLimit, fileSizeLimit, formatFileSize, uploadFile } from './objectFileApi'
 import { spacePath } from './spaceApi'
 import type { ListObjects200Item } from '../../api/generated/api.schemas'
 import ObjectFileViewer from './ObjectFileViewer'
 import ObjectFileIcon from './ObjectFileIcon'
 import { objectFileKind } from './objectPreview'
+import { storageErrorTitle } from './storageErrors'
 
 export default function ObjectFileList({ account, slug }: { account: string; slug: string }) {
   const { user } = useAuth()
@@ -43,6 +44,7 @@ export default function ObjectFileList({ account, slug }: { account: string; slu
   }, [])
 
   async function refreshSession(failure: unknown) {
+    if (apiCode(failure) === 'SPACE_STORAGE_UNAVAILABLE') await client.invalidateQueries({ queryKey: getListObjectsQueryKey(account, slug) })
     if (apiStatus(failure) === 401) await client.invalidateQueries({ queryKey: ['session'] })
   }
 
@@ -125,7 +127,7 @@ export default function ObjectFileList({ account, slug }: { account: string; slu
             {prefix && <ActionButton type="button" onClick={() => { setFilter(''); setPrefix('') }}>Clear</ActionButton>}
           </form>
         </Flex>
-        {files.isPending ? <RequestState loading title="Loading files..." /> : files.isError ? <RequestState title="Unable to load files" message={fileErrorMessage(files.error, 'list')} onRetry={() => { void files.refetch() }} /> : !files.data.length ? <RequestState title={prefix ? 'No matching files' : 'No files yet'} message={prefix ? 'Try another filename prefix.' : 'Upload a file to get started.'} /> : <>
+        {files.isPending ? <RequestState loading title="Loading files..." /> : files.isError ? <RequestState title={storageErrorTitle(files.error, 'Unable to load files')} message={fileErrorMessage(files.error, 'list')} onRetry={() => { void files.refetch() }} /> : !files.data.length ? <RequestState title={prefix ? 'No matching files' : 'No files yet'} message={prefix ? 'Try another filename prefix.' : 'Upload a file to get started.'} /> : <>
           <Box as="ul" listStyleType="none" m="0" p="0" border="1px solid color-mix(in srgb, var(--border) 60%, transparent)" borderRadius="8px" overflow="hidden">
             {files.data.map(file => <Box as="li" key={file.id} _notFirst={{ borderTop: '1px solid color-mix(in srgb, var(--border) 50%, transparent)' }}>
               <Flex align="center" gap="12px" p="12px 16px" _hover={{ bg: 'var(--surface)' }}>

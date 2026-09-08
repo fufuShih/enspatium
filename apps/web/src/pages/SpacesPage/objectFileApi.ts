@@ -1,5 +1,6 @@
 import { apiStatus } from '../../context/session.ts'
 import { uploadObject } from '../../api/generated/objects.ts'
+import { storageErrorMessage } from './storageErrors.ts'
 
 export const fileSizeLimit = 100 * 1024 * 1024
 export const fileListLimit = 100
@@ -11,6 +12,8 @@ export function formatFileSize(bytes: number) {
 }
 
 export function fileErrorMessage(error: unknown, action: 'upload' | 'download' | 'list' | 'preview') {
+  const storageMessage = storageErrorMessage(error)
+  if (storageMessage) return storageMessage
   switch (apiStatus(error)) {
     case 400: return action === 'list' ? 'This filename filter is not supported. Try another prefix.' : 'This filename is not supported. Rename the file and try again.'
     case 401: return 'Your session has expired. Please sign in again.'

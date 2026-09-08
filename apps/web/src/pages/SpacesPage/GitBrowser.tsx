@@ -12,6 +12,7 @@ import { apiStatus } from '../../context/session'
 import { defaultGitBranch, gitErrorMessage, gitLocation, sortGitEntries } from './gitBrowserApi'
 import { formatFileSize } from './objectFileApi'
 import GitReadme from './GitReadme'
+import { storageErrorTitle } from './storageErrors'
 import { EmptyGitRepository, GitCloneMenu } from './GitRepositoryActions'
 
 export default function GitBrowser({ account, slug }: { account: string; slug: string }) {
@@ -39,7 +40,7 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
   const cloneUrl = new URL(`/api/git/${encodeURIComponent(account)}/${encodeURIComponent(slug)}.git`, window.location.origin).href
 
   if (info.isPending) return <RequestState loading title="Loading repository..." />
-  if (info.isError) return <RequestState title="Unable to load repository" message={gitErrorMessage(info.error)} onRetry={() => { void info.refetch() }} />
+  if (info.isError) return <RequestState title={storageErrorTitle(info.error, 'Unable to load repository')} message={gitErrorMessage(info.error)} onRetry={() => { void info.refetch() }} />
   if (!info.data.branches.length) return <Box minW="0">
     <Flex align="center" justify="space-between" gap="16px" mb="20px"><Text fontSize="13px" color="var(--muted)">Repository</Text><GitCloneMenu url={cloneUrl} /></Flex>
     <EmptyGitRepository url={cloneUrl} refreshing={info.isFetching} onRefresh={() => { void info.refetch() }} />
@@ -60,7 +61,7 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
         <GitCloneMenu url={cloneUrl} />
       </Flex>
       {path && <PageLink to={parent} display="inline-block" mb="16px" fontSize="13px" color="var(--muted)">Back to parent folder</PageLink>}
-      {content.isPending ? <RequestState loading title={isFile ? 'Loading file...' : 'Loading files...'} /> : content.isError ? <RequestState title={apiStatus(content.error) === 413 ? 'Preview unavailable' : 'Unable to open path'} message={gitErrorMessage(content.error)} onRetry={() => { void content.refetch() }}>
+      {content.isPending ? <RequestState loading title={isFile ? 'Loading file...' : 'Loading files...'} /> : content.isError ? <RequestState title={storageErrorTitle(content.error, apiStatus(content.error) === 413 ? 'Preview unavailable' : 'Unable to open path')} message={gitErrorMessage(content.error)} onRetry={() => { void content.refetch() }}>
         {apiStatus(content.error) === 401 && <ActionButton asChild mt="20px" ml="12px"><PageLink to="/login" state={{ from: gitLocation(account, slug, branch, path, isFile) }}>Sign in</PageLink></ActionButton>}
         <PageLink to={root} display="block" mt="20px" fontSize="13px">Back to repository</PageLink>
       </RequestState> : isFile && file.data ? <Box border="1px solid var(--border)" borderRadius="8px" overflow="hidden">
@@ -78,7 +79,7 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
           </Box>}
         </Box>
         {!path && <Box mt="24px">
-          {readme.isPending ? <RequestState loading title="Loading README..." /> : readme.isError ? <RequestState title="Unable to load README" message={gitErrorMessage(readme.error)} onRetry={() => { void readme.refetch() }} /> : readme.data ? <Box as="section" aria-label="README" border="1px solid var(--border)" borderRadius="8px" overflow="hidden">
+          {readme.isPending ? <RequestState loading title="Loading README..." /> : readme.isError ? <RequestState title={storageErrorTitle(readme.error, 'Unable to load README')} message={gitErrorMessage(readme.error)} onRetry={() => { void readme.refetch() }} /> : readme.data ? <Box as="section" aria-label="README" border="1px solid var(--border)" borderRadius="8px" overflow="hidden">
             <Flex p="12px 16px" borderBottom="1px solid var(--border)" justify="space-between" gap="16px" fontSize="12px"><Heading as="h2" fontSize="12px" fontWeight="500">{readme.data.name}</Heading><PageLink to={gitLocation(account, slug, branch, readme.data.path, true)}>View source</PageLink></Flex>
             {readme.data.encoding === 'base64' ? <RequestState title="README preview unavailable" message="This README is not a text file." /> : <GitReadme file={readme.data} />}
           </Box> : <Text fontSize="13px" color="var(--muted)">No README in this branch.</Text>}

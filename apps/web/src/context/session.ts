@@ -13,6 +13,12 @@ export function apiStatus(error: unknown): number | undefined {
   if (typeof error === 'object' && error !== null && 'status' in error && typeof error.status === 'number') return error.status
 }
 
+export function apiCode(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null || !('info' in error)) return
+  const info = error.info
+  if (typeof info === 'object' && info !== null && 'code' in info && typeof info.code === 'string') return info.code
+}
+
 export function authErrorMessage(error: unknown, action: 'login' | 'register' | 'logout') {
   const status = apiStatus(error)
   if (action === 'login' && status === 401) return 'Incorrect email or password.'

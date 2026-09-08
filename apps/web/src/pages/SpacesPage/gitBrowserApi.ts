@@ -1,6 +1,7 @@
 import type { GetGitSpaceInfo200, GetGitSpaceTree200EntriesItem } from '../../api/generated/api.schemas.ts'
 import { apiStatus } from '../../context/session.ts'
 import { spacePath } from './spaceApi.ts'
+import { storageErrorMessage } from './storageErrors.ts'
 
 export function defaultGitBranch(info: GetGitSpaceInfo200) {
   return info.branches.includes(info.defaultBranch) ? info.defaultBranch : info.branches[0] ?? ''
@@ -19,6 +20,8 @@ export function sortGitEntries(entries: GetGitSpaceTree200EntriesItem[]) {
 }
 
 export function gitErrorMessage(error: unknown) {
+  const storageMessage = storageErrorMessage(error)
+  if (storageMessage) return storageMessage
   switch (apiStatus(error)) {
     case 400: return 'This path or branch cannot be opened.'
     case 401: return 'Please sign in to view this repository.'

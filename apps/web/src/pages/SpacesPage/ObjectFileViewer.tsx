@@ -9,8 +9,9 @@ import { apiStatus } from '../../context/session'
 import { fileErrorMessage, formatFileSize } from './objectFileApi'
 import { decodeObjectText, imagePreviewLimit, objectFileKind, objectPreviewKind, textPreviewLimit } from './objectPreview'
 import ObjectFileIcon from './ObjectFileIcon'
+import { storageErrorTitle } from './storageErrors'
 
-type Preview = { kind: 'loading' } | { kind: 'text'; text: string } | { kind: 'image'; url: string } | { kind: 'unavailable'; message: string } | { kind: 'error'; message: string }
+type Preview = { kind: 'loading' } | { kind: 'text'; text: string } | { kind: 'image'; url: string } | { kind: 'unavailable'; message: string } | { kind: 'error'; title: string; message: string }
 
 export default function ObjectFileViewer({ account, slug, file, downloading, downloadError, onDownload, onClose, returnFocus }: {
   account: string; slug: string; file: ListObjects200Item; downloading: boolean; downloadError: string
@@ -44,7 +45,7 @@ export default function ObjectFileViewer({ account, slug, file, downloading, dow
         }
       } catch (error) {
         if (controller.signal.aborted) return
-        setPreview({ kind: 'error', message: fileErrorMessage(error, 'preview') })
+        setPreview({ kind: 'error', title: storageErrorTitle(error, 'Unable to load preview'), message: fileErrorMessage(error, 'preview') })
         if (apiStatus(error) === 401) void client.invalidateQueries({ queryKey: ['session'] })
       }
     }
@@ -69,7 +70,7 @@ export default function ObjectFileViewer({ account, slug, file, downloading, dow
               {[['Size', formatFileSize(file.sizeBytes)], ['Content type', file.contentType], ['Last modified', new Date(file.updatedAt).toLocaleString('en-US')]].map(([label, value]) => <Box key={label}><Box as="dt" color="var(--muted)" mb="4px">{label}</Box><Box as="dd" m="0" overflowWrap="anywhere">{value}</Box></Box>)}
             </Box>
             <Box border="1px solid var(--border)" borderRadius="8px" overflow="hidden" minW="0">
-              {preview.kind === 'loading' ? <RequestState loading title="Loading preview..." /> : preview.kind === 'error' ? <RequestState title="Unable to load preview" message={preview.message} onRetry={() => setAttempt(value => value + 1)} /> : preview.kind === 'unavailable' ? <RequestState title="Preview unavailable" message={preview.message} /> : preview.kind === 'text' ? preview.text === '' ? <RequestState title="This file is empty" /> : <Box as="pre" aria-label="File contents" tabIndex={0} m="0" p="16px" fontSize="12px" lineHeight="1.8" maxH="50dvh" overflow="auto"><Box as="code" fontFamily="mono">{preview.text}</Box></Box> : <Flex p="16px" minH="160px" justify="center" bg="var(--surface)"><chakra.img src={preview.url} alt={file.key} maxW="100%" maxH="50dvh" objectFit="contain" onError={() => setPreview({ kind: 'unavailable', message: 'This image could not be displayed. Download it to open it on your device.' })} /></Flex>}
+              {preview.kind === 'loading' ? <RequestState loading title="Loading preview..." /> : preview.kind === 'error' ? <RequestState title={preview.title} message={preview.message} onRetry={() => setAttempt(value => value + 1)} /> : preview.kind === 'unavailable' ? <RequestState title="Preview unavailable" message={preview.message} /> : preview.kind === 'text' ? preview.text === '' ? <RequestState title="This file is empty" /> : <Box as="pre" aria-label="File contents" tabIndex={0} m="0" p="16px" fontSize="12px" lineHeight="1.8" maxH="50dvh" overflow="auto"><Box as="code" fontFamily="mono">{preview.text}</Box></Box> : <Flex p="16px" minH="160px" justify="center" bg="var(--surface)"><chakra.img src={preview.url} alt={file.key} maxW="100%" maxH="50dvh" objectFit="contain" onError={() => setPreview({ kind: 'unavailable', message: 'This image could not be displayed. Download it to open it on your device.' })} /></Flex>}
             </Box>
             {downloadError && <Text role="alert" mt="16px" fontSize="13px" color="fg.error">{downloadError}</Text>}
           </Dialog.Body>
