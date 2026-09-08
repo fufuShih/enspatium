@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { expect, test } from 'vitest'
 import { QueryClient } from '@tanstack/react-query'
 import { memberErrorMessage, refreshOrganization } from '../src/pages/UserPage/organizationApi.ts'
 
@@ -11,15 +10,15 @@ test('organization membership changes invalidate member lists, Space access and 
     const unchanged = [[base + '-other/members', 'owner'], ['/api/namespaces/another/spaces/demo', 'member']]
     for (const key of [...changed, ...unchanged]) client.setQueryData(key, [])
     await refreshOrganization(client, 'team')
-    for (const key of changed) assert.equal(client.getQueryState(key)?.isInvalidated, true)
-    for (const key of unchanged) assert.equal(client.getQueryState(key)?.isInvalidated, false)
+    for (const key of changed) expect(client.getQueryState(key)?.isInvalidated).toBe(true)
+    for (const key of unchanged) expect(client.getQueryState(key)?.isInvalidated).toBe(false)
   } finally { client.clear() }
 })
 
 test('member errors explain registration, organization membership and duplicate membership', () => {
-  assert.match(memberErrorMessage({ status: 404 }, true, true), /registered user/)
-  assert.match(memberErrorMessage({ status: 404 }, false, true), /organization first/)
-  assert.match(memberErrorMessage({ status: 409 }, false, true), /already a member/)
-  assert.match(memberErrorMessage({ status: 409 }, true), /owner cannot/)
-  assert.match(memberErrorMessage({ status: 403 }, false), /Only an owner/)
+  expect(memberErrorMessage({ status: 404 }, true, true)).toMatch(/registered user/)
+  expect(memberErrorMessage({ status: 404 }, false, true)).toMatch(/organization first/)
+  expect(memberErrorMessage({ status: 409 }, false, true)).toMatch(/already a member/)
+  expect(memberErrorMessage({ status: 409 }, true)).toMatch(/owner cannot/)
+  expect(memberErrorMessage({ status: 403 }, false)).toMatch(/Only an owner/)
 })

@@ -1,39 +1,38 @@
-import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { expect, test, vi } from 'vitest'
 import { fileErrorMessage, formatFileSize, uploadFile } from '../src/pages/SpacesPage/objectFileApi.ts'
 
-test('uploads raw file bytes with the original MIME type and encoded filename', async (t) => {
+test('uploads raw file bytes with the original MIME type and encoded filename', async () => {
   const file = new File([new Uint8Array([0, 255, 128, 10])], 'notes #1.txt', { type: 'text/plain' })
   const signal = new AbortController().signal
-  t.mock.method(globalThis, 'fetch', async (url: string, options?: RequestInit) => {
-    assert.equal(url, '/api/namespaces/team/spaces/files/objects/notes%20%231.txt')
-    assert.equal(options?.body, file)
-    assert.equal(new Headers(options?.headers).get('content-type'), 'text/plain')
-    assert.equal(options?.credentials, 'include')
-    assert.equal(options?.signal, signal)
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options) => {
+    expect(url).toBe('/api/namespaces/team/spaces/files/objects/notes%20%231.txt')
+    expect(options?.body).toBe(file)
+    expect(new Headers(options?.headers).get('content-type')).toBe('text/plain')
+    expect(options?.credentials).toBe('include')
+    expect(options?.signal).toBe(signal)
     return Response.json({ key: file.name }, { status: 201 })
   })
-  assert.equal((await uploadFile('team', 'files', file, signal)).key, file.name)
+  expect((await uploadFile('team', 'files', file, signal)).key).toBe(file.name)
 })
 
-test('empty files without a MIME type are sent as binary without adding a body wrapper', async (t) => {
+test('empty files without a MIME type are sent as binary without adding a body wrapper', async () => {
   const file = new File([], 'empty')
-  t.mock.method(globalThis, 'fetch', async (_url: string, options?: RequestInit) => {
-    assert.equal(new Headers(options?.headers).get('content-type'), 'application/octet-stream')
-    assert.ok(options?.body instanceof File)
-    assert.equal(options.body.size, 0)
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, options) => {
+    expect(new Headers(options?.headers).get('content-type')).toBe('application/octet-stream')
+    expect(options?.body).toBeInstanceOf(File)
+    expect(options?.body).toHaveProperty('size', 0)
     return Response.json({ key: file.name }, { status: 201 })
   })
   await uploadFile('team', 'files', file, new AbortController().signal)
 })
 
 test('file sizes and errors distinguish duplicates, permissions, and storage limits', () => {
-  assert.equal(formatFileSize(0), '0 B')
-  assert.equal(formatFileSize(1536), '1.5 KiB')
-  assert.equal(formatFileSize(100 * 1024 * 1024), '100 MiB')
-  assert.match(fileErrorMessage({ status: 409 }, 'upload'), /already exists/)
-  assert.match(fileErrorMessage({ status: 403 }, 'upload'), /write access/)
-  assert.match(fileErrorMessage({ status: 413 }, 'upload'), /storage space/)
-  assert.match(fileErrorMessage({ status: 404 }, 'download'), /no longer available/)
-  assert.match(fileErrorMessage(new TypeError('offline'), 'download'), /Please try again/)
+  expect(formatFileSize(0)).toBe('0 B')
+  expect(formatFileSize(1536)).toBe('1.5 KiB')
+  expect(formatFileSize(100 * 1024 * 1024)).toBe('100 MiB')
+  expect(fileErrorMessage({ status: 409 }, 'upload')).toMatch(/already exists/)
+  expect(fileErrorMessage({ status: 403 }, 'upload')).toMatch(/write access/)
+  expect(fileErrorMessage({ status: 413 }, 'upload')).toMatch(/storage space/)
+  expect(fileErrorMessage({ status: 404 }, 'download')).toMatch(/no longer available/)
+  expect(fileErrorMessage(new TypeError('offline'), 'download')).toMatch(/Please try again/)
 })

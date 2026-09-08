@@ -11,10 +11,11 @@
     "build": "tsc --project tsconfig.json",
     "start": "node dist/main.js",
     "test": "vitest run",
-    "test:integration": "tsc --project tsconfig.integration.json && node --import=tsx --test tests/core.integration.ts",
+    "test:integration": "tsc --project tsconfig.integration.json && vitest run --config vitest.integration.config.ts",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "generate:openapi": "tsx src/scripts/generate-openapi.ts",
-    "db:migrate": "node --env-file=../../.env --import=tsx src/db/migrate.ts"
+    "db:migrate": "node --env-file=../../.env --import=tsx src/db/migrate.ts",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@fastify/env": "^7.0.0",

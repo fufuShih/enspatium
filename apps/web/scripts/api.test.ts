@@ -1,36 +1,35 @@
-import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { expect, test, vi } from 'vitest'
 import { logout } from '../src/api/generated/auth.ts'
 import { downloadObject, uploadObject } from '../src/api/generated/objects.ts'
 import { createSpace, listSpaces } from '../src/api/generated/spaces.ts'
 
-test('generated client sends JSON, session credentials, and encoded paths', async (t) => {
+test('generated client sends JSON, session credentials, and encoded paths', async () => {
   const calls: { url: string; options?: RequestInit }[] = []
-  t.mock.method(globalThis, 'fetch', async (url: string, options?: RequestInit) => {
-    calls.push({ url, options })
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options) => {
+    calls.push({ url: String(url), options })
     return Response.json(options?.method === 'POST' ? { slug: 'demo' } : [])
   })
-  assert.deepEqual(await listSpaces('my team'), [])
-  assert.equal(calls[0].url, '/api/namespaces/my%20team/spaces')
-  assert.equal(calls[0].options?.credentials, 'include')
+  expect(await listSpaces('my team')).toStrictEqual([])
+  expect(calls[0].url).toBe('/api/namespaces/my%20team/spaces')
+  expect(calls[0].options?.credentials).toBe('include')
   const body = { name: 'Demo', slug: 'demo', type: 'git' as const }
-  assert.equal((await createSpace('team', body)).slug, 'demo')
-  assert.equal(calls[1].options?.method, 'POST')
-  assert.deepEqual(JSON.parse(calls[1].options?.body as string), body)
+  expect((await createSpace('team', body)).slug).toBe('demo')
+  expect(calls[1].options?.method).toBe('POST')
+  expect(JSON.parse(calls[1].options?.body as string)).toStrictEqual(body)
 })
 
-test('generated client handles binary content, no content, and failed responses', async (t) => {
+test('generated client handles binary content, no content, and failed responses', async () => {
   const blob = new Blob(['file contents'])
-  const fetch = t.mock.method(globalThis, 'fetch', async (_url: string, options?: RequestInit) => {
-    assert.equal(options?.body, blob)
+  const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, options) => {
+    expect(options?.body).toBe(blob)
     return Response.json({ key: 'folder/a #.txt' }, { status: 201 })
   })
   await uploadObject('team', 'files', 'folder/a #.txt', blob)
-  assert.equal(fetch.mock.calls[0].arguments[0], '/api/namespaces/team/spaces/files/objects/folder%2Fa%20%23.txt')
-  fetch.mock.mockImplementation(async () => new Response(blob))
-  assert.equal(await (await downloadObject('team', 'files', 'a.txt')).text(), 'file contents')
-  fetch.mock.mockImplementation(async () => new Response(null, { status: 204 }))
-  assert.equal(await logout(), undefined)
-  fetch.mock.mockImplementation(async () => Response.json({ message: 'Unauthorized' }, { status: 401 }))
-  await assert.rejects(listSpaces('team'), { status: 401, info: { message: 'Unauthorized' } })
+  expect(fetch.mock.calls[0][0]).toBe('/api/namespaces/team/spaces/files/objects/folder%2Fa%20%23.txt')
+  fetch.mockImplementation(async () => new Response(blob))
+  expect(await (await downloadObject('team', 'files', 'a.txt')).text()).toBe('file contents')
+  fetch.mockImplementation(async () => new Response(null, { status: 204 }))
+  expect(await logout()).toBe(undefined)
+  fetch.mockImplementation(async () => Response.json({ message: 'Unauthorized' }, { status: 401 }))
+  await expect(listSpaces('team')).rejects.toMatchObject({ status: 401, info: { message: 'Unauthorized' } })
 })

@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { expect, test } from 'vitest'
 import { QueryClient } from '@tanstack/react-query'
 import { refreshSpaceSettings } from '../src/pages/SpacesPage/settingsApi.ts'
 
@@ -11,7 +10,7 @@ test('settings changes invalidate metadata, contents and account list without in
     const unaffected = [[base + '-other', 'owner'], ['/api/namespaces/another/spaces/demo', 'owner']]
     for (const key of [...affected, ...unaffected]) client.setQueryData(key, {})
     await refreshSpaceSettings(client, 'owner', 'demo')
-    for (const key of affected) assert.equal(client.getQueryState(key)?.isInvalidated, true)
-    for (const key of unaffected) assert.equal(client.getQueryState(key)?.isInvalidated, false)
+    for (const key of affected) expect(client.getQueryState(key)?.isInvalidated).toBe(true)
+    for (const key of unaffected) expect(client.getQueryState(key)?.isInvalidated).toBe(false)
   } finally { client.clear() }
 })

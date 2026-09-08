@@ -17,6 +17,18 @@ pnpm dev
 
 The server exposes `GET http://127.0.0.1:3000/health`.
 
+## Unit tests
+
+Both frontend and backend tests use Vitest. Run them together from the repository root:
+
+```powershell
+pnpm test
+```
+
+Run one side with `pnpm --filter @enspatium/web test` or `pnpm --filter @enspatium/server test`. Use `test:watch` instead of `test` to rerun tests as files change. Frontend API client tests can also run alone with `pnpm --filter @enspatium/web test:api`.
+
+Each package has a small `vitest.config.ts` with explicit test paths. Frontend tests cover client requests and application logic in Node, with fetch spies restored before each test. Backend tests cover services and routes using mocks and temporary filesystem fixtures; Git-related tests require Git on `PATH`. These suites do not require a database, running servers, or browser installation. Browser scenarios remain in Playwright Test and are excluded from Vitest discovery.
+
 ## Integration tests
 
 With Git on `PATH`, PostgreSQL running, and `DATABASE_URL` configured in the root `.env`, run:
@@ -25,7 +37,7 @@ With Git on `PATH`, PostgreSQL running, and `DATABASE_URL` configured in the roo
 pnpm test:integration
 ```
 
-This type-checks and runs the real HTTP API and Git CLI acceptance flow: register/login, create an organization and private Space, clone as Reader, push as Writer, deny writes after downgrade, revoke access after member removal, change the default branch and verify a fresh clone, revoke a token, and sign out. It does not run browser UI tests. The existing `pnpm test` remains independent of this integration suite.
+This type-checks and uses Vitest to run the real HTTP API and Git CLI acceptance flow: register/login, create an organization and private Space, clone as Reader, push as Writer, deny writes after downgrade, revoke access after member removal, change the default branch and verify a fresh clone, revoke a token, and sign out. The backend's `vitest.integration.config.ts` sets the separate test paths and longer timeouts. It does not run browser UI tests. `pnpm test` remains independent of this integration suite.
 
 No running frontend/backend or manual migration is needed. Each run creates a unique `ensp_it_*` PostgreSQL schema, applies the actual SQL migrations (including isolated migration tracking tables), starts a backend on a random local port, and uses a temporary storage directory. The database user needs `CREATE SCHEMA` permission. Test data, tokens, audit records, and files are removed on success or assertion failure; existing application schemas and `data/` are not used. Git credentials and signing settings are isolated for the test process, so Credential Manager will not prompt.
 

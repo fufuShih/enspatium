@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { expect, test } from 'vitest'
 import { QueryClient } from '@tanstack/react-query'
 import type { CreateSpace201, ListNamespaces200Item } from '../src/api/generated/api.schemas.ts'
 import { getGetSpaceQueryKey, getListSpacesQueryKey } from '../src/api/generated/spaces.ts'
@@ -19,12 +18,12 @@ test('creation updates only the correct account and user caches and marks its li
     client.setQueryData(otherUser, [])
     await cacheCreatedSpace(client, 'owner', 'owner-id', created)
     await cacheCreatedSpace(client, 'owner', 'owner-id', created)
-    assert.deepEqual(client.getQueryData(key), [created])
-    assert.equal(client.getQueryState(key)?.isInvalidated, true)
-    assert.deepEqual(client.getQueryData(otherAccount), [])
-    assert.deepEqual(client.getQueryData(otherUser), [])
-    assert.deepEqual(client.getQueryData([...getGetSpaceQueryKey('owner', created.slug), 'owner-id']), created)
-    assert.equal(client.getQueryData([...getGetSpaceQueryKey('owner', created.slug), null]), undefined)
+    expect(client.getQueryData(key)).toStrictEqual([created])
+    expect(client.getQueryState(key)?.isInvalidated).toBe(true)
+    expect(client.getQueryData(otherAccount)).toStrictEqual([])
+    expect(client.getQueryData(otherUser)).toStrictEqual([])
+    expect(client.getQueryData([...getGetSpaceQueryKey('owner', created.slug), 'owner-id'])).toStrictEqual(created)
+    expect(client.getQueryData([...getGetSpaceQueryKey('owner', created.slug), null])).toBe(undefined)
   } finally { client.clear() }
 })
 
@@ -32,7 +31,7 @@ test('creation does not invent a partial list when the list has not loaded', asy
   const client = new QueryClient()
   try {
     await cacheCreatedSpace(client, 'owner', 'owner-id', created)
-    assert.equal(client.getQueryData([...getListSpacesQueryKey('owner'), 'owner-id']), undefined)
+    expect(client.getQueryData([...getListSpacesQueryKey('owner'), 'owner-id'])).toBe(undefined)
   } finally { client.clear() }
 })
 
@@ -42,20 +41,20 @@ test('the Owner menu excludes organizations where the user is only a member', ()
     { id: 'owned-team', ownerUserId: 'me', name: 'My Team', slug: 'my-team', kind: 'organization', createdAt: '' },
     { id: 'other-team', ownerUserId: 'someone-else', name: 'Other Team', slug: 'other-team', kind: 'organization', createdAt: '' },
   ]
-  assert.deepEqual(creatableNamespaces(namespaces, 'me').map(item => item.id), ['personal', 'owned-team'])
+  expect(creatableNamespaces(namespaces, 'me').map(item => item.id)).toStrictEqual(['personal', 'owned-team'])
 })
 
 test('suggested slugs follow backend rules and routes encode their components', () => {
-  assert.equal(makeSpaceSlug('  My New_Project!!  '), 'my-new-project')
-  assert.equal(makeSpaceSlug('a'.repeat(39) + ' more'), 'a'.repeat(39))
-  assert.equal(makeSpaceSlug('中文'), '')
-  assert.equal(spacePath('my team', 'files#1'), '/my%20team/files%231')
-  assert.match(spaceErrorMessage({ status: 409 }), /already used/)
-  assert.match(spaceErrorMessage({ status: 403 }), /permission/)
+  expect(makeSpaceSlug('  My New_Project!!  ')).toBe('my-new-project')
+  expect(makeSpaceSlug('a'.repeat(39) + ' more')).toBe('a'.repeat(39))
+  expect(makeSpaceSlug('中文')).toBe('')
+  expect(spacePath('my team', 'files#1')).toBe('/my%20team/files%231')
+  expect(spaceErrorMessage({ status: 409 })).toMatch(/already used/)
+  expect(spaceErrorMessage({ status: 403 })).toMatch(/permission/)
 })
 
 test('login returns to internal Space URLs and rejects external URLs and auth loops', () => {
-  assert.equal(authReturnPath('/owner/private-space'), '/owner/private-space')
-  assert.equal(authReturnPath('/space/create?owner=team'), '/space/create?owner=team')
-  for (const path of ['//example.com', 'https://example.com', '/\\example.com', '/login', '/register?from=/login', null]) assert.equal(authReturnPath(path), undefined)
+  expect(authReturnPath('/owner/private-space')).toBe('/owner/private-space')
+  expect(authReturnPath('/space/create?owner=team')).toBe('/space/create?owner=team')
+  for (const path of ['//example.com', 'https://example.com', '/\\example.com', '/login', '/register?from=/login', null]) expect(authReturnPath(path)).toBe(undefined)
 })
