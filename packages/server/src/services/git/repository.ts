@@ -135,6 +135,19 @@ export async function synchronizeGitHead(dataRoot: string, spaceId: string): Pro
   await runGit(repositoryPath, ['symbolic-ref', 'HEAD', branch])
 }
 
+export async function setGitDefaultBranch(dataRoot: string, spaceId: string, branch: string): Promise<void> {
+  if (!branch || branch.length > 255 || branch !== branch.trim()) {
+    throw new GitStorageError('REF_NOT_FOUND', 'Git branch not found')
+  }
+  const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git', true)
+  const branches = await runGit(repositoryPath, ['for-each-ref', '--format=%(refname)', 'refs/heads/'])
+  const ref = 'refs/heads/' + branch
+  if (!branches.split('\n').includes(ref)) {
+    throw new GitStorageError('REF_NOT_FOUND', 'Git branch not found')
+  }
+  await runGit(repositoryPath, ['symbolic-ref', 'HEAD', ref])
+}
+
 export async function getGitRepositoryInfo(
   dataRoot: string,
   spaceId: string,
@@ -142,23 +155,23 @@ export async function getGitRepositoryInfo(
   const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git')
 
   const [defaultBranchOutput, branchesOutput] = await Promise.all([
-    runGit(repositoryPath, ['symbolic-ref', '--short', 'HEAD']),
+    runGit(repositoryPath, ['symbolic-ref', 'HEAD']),
     runGit(repositoryPath, [
       'for-each-ref',
       '--sort=refname',
-      '--format=%(refname:short)',
+      '--format=%(refname)',
       'refs/heads/',
     ]),
   ])
 
   const branches = branchesOutput
     .split('\n')
-    .map((branch) => branch.trim())
     .filter(Boolean)
+    .map((branch) => branch.slice('refs/heads/'.length))
 
   if (branches.length === 0) {
     return {
-      defaultBranch: defaultBranchOutput.trim(),
+      defaultBranch: defaultBranchOutput.trim().slice('refs/heads/'.length),
       branches,
       commits: [],
     }
@@ -172,7 +185,7 @@ export async function getGitRepositoryInfo(
   ])
 
   return {
-    defaultBranch: defaultBranchOutput.trim(),
+    defaultBranch: defaultBranchOutput.trim().slice('refs/heads/'.length),
     branches,
     commits: parseGitCommits(commitsOutput),
   }

@@ -23,6 +23,7 @@ import {
   getGitTags,
   getGitTree,
   GitStorageError,
+  setGitDefaultBranch,
   type GitCommitDetail,
   type GitDiff,
   type GitFile,
@@ -289,7 +290,7 @@ export async function getSpaceDetails(db: Kysely<Database>, actorUserId: string 
       if (!(error instanceof SpaceServiceError) || error.statusCode !== 403) throw error
     }
   }
-  return { ...space, canDelete }
+  return { ...space, canDelete, canManage: canDelete }
 }
 
 export async function getGitSpaceInfo(
@@ -635,6 +636,33 @@ function throwGitStorageError(error: unknown, message: string): never {
   }
 
   throw new SpaceStorageUnavailable(new Error(message, { cause: error }))
+}
+
+export async function updateGitSpaceDefaultBranch(
+  db: Kysely<Database>,
+  dataRoot: string,
+  actorUserId: string,
+  namespaceSlug: string,
+  spaceSlug: string,
+  branch: string,
+): Promise<{ defaultBranch: string }> {
+  const access = await requireSpaceOwnerAccess(db, actorUserId, namespaceSlug, spaceSlug)
+  if (access.spaceType !== 'git') {
+    throw new SpaceServiceError('INVALID_INPUT', 400, 'default branch is only available for Git Spaces')
+  }
+  try {
+    await setGitDefaultBranch(dataRoot, access.spaceId, branch)
+  } catch (error) {
+    throwGitStorageError(error, 'failed to update Git default branch')
+  }
+  await createAuditEvent(db, {
+    actorUserId,
+    namespaceId: access.namespaceId,
+    spaceId: access.spaceId,
+    action: 'space.updated',
+    metadata: { changes: { defaultBranch: branch } },
+  })
+  return { defaultBranch: branch }
 }
 
 export async function updateSpace(

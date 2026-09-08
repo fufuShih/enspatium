@@ -286,6 +286,7 @@ export type GetSpace200 = {
   createdAt: string;
   updatedAt: string;
   canDelete: boolean;
+  canManage: boolean;
 };
 
 export const UpdateSpaceBodyVisibility = {  public: 'public',
@@ -481,6 +482,18 @@ export type GetGitSpaceReadme200 = {
   encoding: typeof GetGitSpaceReadme200Encoding[keyof typeof GetGitSpaceReadme200Encoding];
   content: string;
 } | null;
+
+export type UpdateGitSpaceDefaultBranchBody = {
+  /**
+     * @minLength 1
+     * @maxLength 255
+     */
+  branch: string;
+};
+
+export type UpdateGitSpaceDefaultBranch200 = {
+  defaultBranch: string;
+};
 
 export const AddSpaceMemberBodyRole = {  writer: 'writer',
   reader: 'reader',

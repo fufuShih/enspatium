@@ -17,6 +17,7 @@ import {
   listSpaces,
   removeSpaceMember,
   updateSpace,
+  updateGitSpaceDefaultBranch,
   updateSpaceMember,
 } from '../services/space/space.js'
 import {
@@ -104,7 +105,7 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
         security: [{}, { session: [] }],
         params: SpaceParamsSchema,
         response: {
-          200: Type.Object({ ...SpaceResponseSchema.properties, canDelete: Type.Boolean() }),
+          200: Type.Object({ ...SpaceResponseSchema.properties, canDelete: Type.Boolean(), canManage: Type.Boolean() }),
         },
       },
     },
@@ -297,6 +298,27 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
         request.query.ref,
       )
     },
+  )
+
+  app.patch(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/default-branch',
+    {
+      schema: {
+        operationId: 'updateGitSpaceDefaultBranch',
+        tags: ['spaces'],
+        params: SpaceParamsSchema,
+        body: Type.Object({ branch: Type.String({ minLength: 1, maxLength: 255 }) }, { additionalProperties: false }),
+        response: { 200: Type.Object({ defaultBranch: Type.String() }) },
+      },
+    },
+    async (request) => updateGitSpaceDefaultBranch(
+      app.db,
+      app.config.DATA_ROOT,
+      requireCurrentUserId(request),
+      request.params.namespaceSlug,
+      request.params.spaceSlug,
+      request.body.branch,
+    ),
   )
 
   app.patch(

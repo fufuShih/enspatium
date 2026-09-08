@@ -43,6 +43,8 @@ import type {
   GetSpace200,
   ListSpaceMembers200Item,
   ListSpaces200Item,
+  UpdateGitSpaceDefaultBranch200,
+  UpdateGitSpaceDefaultBranchBody,
   UpdateSpace200,
   UpdateSpaceBody,
   UpdateSpaceMember200,
@@ -1453,7 +1455,98 @@ export function useGetGitSpaceReadme<TData = Awaited<ReturnType<typeof getGitSpa
 
 
 
-export const getAddSpaceMemberUrl = (namespaceSlug: string,
+export const getUpdateGitSpaceDefaultBranchUrl = (namespaceSlug: string,
+    spaceSlug: string,) => {
+
+
+
+
+  return `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/git/default-branch`
+}
+
+export const updateGitSpaceDefaultBranch = async (namespaceSlug: string,
+    spaceSlug: string,
+    updateGitSpaceDefaultBranchBody: UpdateGitSpaceDefaultBranchBody, options?: RequestInit): Promise<UpdateGitSpaceDefaultBranch200> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+const res = await fetch(getUpdateGitSpaceDefaultBranchUrl(namespaceSlug,spaceSlug),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateGitSpaceDefaultBranchBody)
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: UpdateGitSpaceDefaultBranch200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getUpdateGitSpaceDefaultBranchMutationKey = () => ['updateGitSpaceDefaultBranch'] as const;
+
+export const getUpdateGitSpaceDefaultBranchMutationOptions = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateGitSpaceDefaultBranch>>, TError,UpdateGitSpaceDefaultBranchMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof updateGitSpaceDefaultBranch>>, TError,UpdateGitSpaceDefaultBranchMutationVariables, TContext> => {
+
+const mutationKey = getUpdateGitSpaceDefaultBranchMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateGitSpaceDefaultBranch>>, UpdateGitSpaceDefaultBranchMutationVariables> = (props) => {
+          const {namespaceSlug,spaceSlug,data} = props ?? {};
+
+          return  updateGitSpaceDefaultBranch(namespaceSlug,spaceSlug,data,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateGitSpaceDefaultBranchMutationResult = NonNullable<Awaited<ReturnType<typeof updateGitSpaceDefaultBranch>>>
+    export type UpdateGitSpaceDefaultBranchMutationBody = UpdateGitSpaceDefaultBranchBody
+    export type UpdateGitSpaceDefaultBranchMutationError = globalThis.Error & { info?: unknown; status?: number }
+    export type UpdateGitSpaceDefaultBranchMutationVariables = {namespaceSlug: string;spaceSlug: string;data: UpdateGitSpaceDefaultBranchBody}
+
+    export const useUpdateGitSpaceDefaultBranch = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateGitSpaceDefaultBranch>>, TError,UpdateGitSpaceDefaultBranchMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateGitSpaceDefaultBranch>>,
+        TError,
+        UpdateGitSpaceDefaultBranchMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateGitSpaceDefaultBranchMutationOptions(options), queryClient);
+    }
+    export const getAddSpaceMemberUrl = (namespaceSlug: string,
     spaceSlug: string,) => {
 
 

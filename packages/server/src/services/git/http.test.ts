@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { parseGitBasicToken } from '../../routes/git.route.js'
 import { createSpaceStorage, getSpaceStoragePath } from '../space/storage.js'
+import { getGitRepositoryInfo, setGitDefaultBranch } from './repository.js'
 import {
   serveGitHttpBackend,
   type GitHttpService,
@@ -45,6 +46,37 @@ afterEach(async () => {
 })
 
 describe('Git Smart HTTP', () => {
+  it('clones the selected default branch and rejects non-branch refs without changing HEAD', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'enspatium-git-http-'))
+    temporaryRoots.push(root)
+    await createSpaceStorage(root, spaceId, 'git')
+    await expect(setGitDefaultBranch(root, spaceId, 'main')).rejects.toMatchObject({ code: 'REF_NOT_FOUND' })
+    const server = createGitTestServer(root)
+    servers.push(server)
+    const url = 'http://127.0.0.1:' + String(await listen(server)) + '/repository.git'
+    const source = join(root, 'source')
+    const clone = join(root, 'clone')
+    await execFileAsync('git', ['clone', url, source])
+    await configureTestAuthor(source)
+    await writeFile(join(source, 'README.md'), '# Main\n')
+    await commitAndPush(source, 'Main')
+    await writeFile(join(source, 'README.md'), '# Release\n')
+    await commitAndPush(source, 'Release', 'release/stable')
+    await execFileAsync('git', ['-C', source, 'tag', 'release/stable'])
+    await execFileAsync('git', ['-C', source, 'tag', 'tag-only'])
+    await execFileAsync('git', ['-C', source, 'push', 'origin', '--tags'])
+    const commit = (await execFileAsync('git', ['-C', source, 'rev-parse', 'HEAD'])).stdout.trim()
+    for (const invalid of ['missing', 'tag-only', commit, 'refs/heads/main', '--help', 'main\nrefs/heads/release/stable']) {
+      await expect(setGitDefaultBranch(root, spaceId, invalid)).rejects.toMatchObject({ code: 'REF_NOT_FOUND' })
+      expect((await getGitRepositoryInfo(root, spaceId)).defaultBranch).toBe('main')
+    }
+    await setGitDefaultBranch(root, spaceId, 'release/stable')
+    expect(await getGitRepositoryInfo(root, spaceId)).toMatchObject({ defaultBranch: 'release/stable', branches: ['main', 'release/stable'] })
+    await execFileAsync('git', ['clone', url, clone])
+    expect((await execFileAsync('git', ['-C', clone, 'branch', '--show-current'])).stdout.trim()).toBe('release/stable')
+    expect(await readFile(join(clone, 'README.md'), 'utf8')).toBe('# Release\n')
+  }, 30_000)
+
   it.each(['main', 'master', 'feature/start'])(
     'checks out the first pushed branch %s and preserves it on later pushes',
     async (branch) => {
