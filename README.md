@@ -17,6 +17,20 @@ pnpm dev
 
 The server exposes `GET http://127.0.0.1:3000/health`.
 
+## Integration tests
+
+With Git on `PATH`, PostgreSQL running, and `DATABASE_URL` configured in the root `.env`, run:
+
+```powershell
+pnpm test:integration
+```
+
+This type-checks and runs the real HTTP API and Git CLI acceptance flow: register/login, create an organization and private Space, clone as Reader, push as Writer, deny writes after downgrade, revoke access after member removal, change the default branch and verify a fresh clone, revoke a token, and sign out. It does not run browser UI tests. The existing `pnpm test` remains independent of this integration suite.
+
+No running frontend/backend or manual migration is needed. Each run creates a unique `ensp_it_*` PostgreSQL schema, applies the actual SQL migrations (including isolated migration tracking tables), starts a backend on a random local port, and uses a temporary storage directory. The database user needs `CREATE SCHEMA` permission. Test data, tokens, audit records, and files are removed on success or assertion failure; existing application schemas and `data/` are not used. Git credentials and signing settings are isolated for the test process, so Credential Manager will not prompt.
+
+To use a separate test database, set `INTEGRATION_DATABASE_URL` before running the same command; it overrides `DATABASE_URL`. No additional packages or browser downloads are required. If setup fails, the command reports the missing prerequisite and exits unsuccessfully. Forced process termination cannot guarantee cleanup; cleanup failures report the exact temporary schema and directory for inspection.
+
 ## Authentication
 
 Start PostgreSQL and configure the root `.env` using `.env.example` (including `DATABASE_URL` and a random 32-byte hex `SESSION_KEY`). Apply migrations with `pnpm --filter @enspatium/server db:migrate`, then run `pnpm dev` and `pnpm --filter @enspatium/web dev` in separate terminals.

@@ -12,6 +12,7 @@
     "build": "pnpm --recursive build",
     "start": "pnpm --filter @enspatium/server start",
     "test": "pnpm --recursive test",
+    "test:integration": "pnpm --filter @enspatium/server test:integration",
     "typecheck": "pnpm --recursive typecheck"
   }
 }
