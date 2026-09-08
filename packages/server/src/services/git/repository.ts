@@ -121,6 +121,20 @@ interface RawGitTreeEntry {
   path: string
 }
 
+// A push creates branch refs but Git does not update an unborn bare HEAD.
+// Preserve a valid default; otherwise prefer main, then the first branch.
+export async function synchronizeGitHead(dataRoot: string, spaceId: string): Promise<void> {
+  const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git', true)
+  const [headOutput, branchesOutput] = await Promise.all([
+    runGit(repositoryPath, ['symbolic-ref', 'HEAD']),
+    runGit(repositoryPath, ['for-each-ref', '--sort=refname', '--format=%(refname)', 'refs/heads/']),
+  ])
+  const branches = branchesOutput.trim().split('\n').filter(Boolean)
+  if (branches.length === 0 || branches.includes(headOutput.trim())) return
+  const branch = branches.includes('refs/heads/main') ? 'refs/heads/main' : branches[0]!
+  await runGit(repositoryPath, ['symbolic-ref', 'HEAD', branch])
+}
+
 export async function getGitRepositoryInfo(
   dataRoot: string,
   spaceId: string,

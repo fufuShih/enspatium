@@ -14,6 +14,7 @@ import {
   getGitRepositoryInfo,
   getGitTags,
   getGitTree,
+  synchronizeGitHead,
 } from './repository.js'
 
 const execFileAsync = promisify(execFile)
@@ -42,9 +43,10 @@ describe('Git repository', () => {
 
     await createSpaceStorage(root, spaceId, 'git')
 
+    await synchronizeGitHead(root, spaceId)
     const info = await getGitRepositoryInfo(root, spaceId)
 
-    expect(info.defaultBranch).not.toBe('')
+    expect(info.defaultBranch).toBe('main')
     expect(info.branches).toEqual([])
     expect(info.commits).toEqual([])
     await expect(getGitTags(root, spaceId)).resolves.toEqual([])
@@ -96,8 +98,9 @@ describe('Git repository', () => {
       '--git-dir=' + repositoryPath,
       'symbolic-ref',
       'HEAD',
-      'refs/heads/main',
+      'refs/heads/missing-legacy-default',
     ])
+    await synchronizeGitHead(root, spaceId)
 
     const info = await getGitRepositoryInfo(root, spaceId)
 

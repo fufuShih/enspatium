@@ -107,7 +107,7 @@ export async function createSpaceStorage(
   const target = getSpaceStoragePath(dataRoot, spaceId)
 
   if (spaceType === 'git') {
-    await execFileAsync('git', ['init', '--bare', target], {
+    await execFileAsync('git', ['init', '--bare', '--initial-branch=main', target], {
       timeout: 10_000,
       windowsHide: true,
     })

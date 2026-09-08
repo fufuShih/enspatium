@@ -45,6 +45,32 @@ afterEach(async () => {
 })
 
 describe('Git Smart HTTP', () => {
+  it.each(['main', 'master', 'feature/start'])(
+    'checks out the first pushed branch %s and preserves it on later pushes',
+    async (branch) => {
+      const root = await mkdtemp(join(tmpdir(), 'enspatium-git-http-'))
+      temporaryRoots.push(root)
+      await createSpaceStorage(root, spaceId, 'git')
+      const server = createGitTestServer(root)
+      servers.push(server)
+      const port = await listen(server)
+      const url = 'http://127.0.0.1:' + String(port) + '/repository.git'
+      const source = join(root, 'source')
+      const clone = join(root, 'clone')
+      await execFileAsync('git', ['clone', url, source])
+      await configureTestAuthor(source)
+      await writeFile(join(source, 'README.md'), '# First push\n', 'utf8')
+      await commitAndPush(source, 'Initial commit', branch)
+      // Creating main later must not override an existing default branch.
+      await execFileAsync('git', ['-C', source, 'push', 'origin', 'HEAD:main', 'HEAD:another'])
+      const result = await execFileAsync('git', ['clone', url, clone])
+      expect(result.stderr).not.toContain('unable to checkout')
+      expect((await execFileAsync('git', ['-C', clone, 'branch', '--show-current'])).stdout.trim()).toBe(branch)
+      expect(await readFile(join(clone, 'README.md'), 'utf8')).toBe('# First push\n')
+    },
+    30_000,
+  )
+
   it(
     'serves clone, fetch and push through Smart HTTP',
     async () => {
@@ -59,12 +85,6 @@ describe('Git Smart HTTP', () => {
       await configureTestAuthor(sourcePath)
       await writeFile(join(sourcePath, 'README.md'), '# HTTP Git\n', 'utf8')
       await commitAndPush(sourcePath, 'Initial commit')
-      await execFileAsync('git', [
-        '--git-dir=' + repositoryPath,
-        'symbolic-ref',
-        'HEAD',
-        'refs/heads/main',
-      ])
 
       const server = createGitTestServer(root)
       const port = await listen(server)
@@ -216,6 +236,7 @@ async function configureTestAuthor(worktreePath: string): Promise<void> {
 async function commitAndPush(
   worktreePath: string,
   message: string,
+  branch = 'main',
 ): Promise<void> {
   await execFileAsync('git', ['-C', worktreePath, 'add', '.'])
   await execFileAsync('git', [
@@ -232,6 +253,6 @@ async function commitAndPush(
     worktreePath,
     'push',
     'origin',
-    'HEAD:main',
+    'HEAD:' + branch,
   ])
 }

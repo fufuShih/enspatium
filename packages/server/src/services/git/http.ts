@@ -11,6 +11,7 @@ import {
 import { pipeline } from 'node:stream/promises'
 
 import { resolveDataRoot } from '../space/storage.js'
+import { synchronizeGitHead } from './repository.js'
 
 const gitHttpTimeoutMilliseconds = 5 * 60 * 1000
 const maxCgiHeaderBytes = 32 * 1024
@@ -72,9 +73,14 @@ export async function serveGitHttpBackend(
   try {
     await Promise.all([
       pipeline(input.request, child.stdin),
-      pipeline(child.stdout, responseTransform, input.response),
+      pipeline(child.stdout, responseTransform, input.response, { end: false }),
       waitForGitProcess(child),
     ])
+    if (input.servicePath === 'git-receive-pack') {
+      await synchronizeGitHead(input.dataRoot, input.spaceId)
+    }
+    // Finish the push response only after HEAD is ready for the next clone.
+    input.response.end()
   } catch (error) {
     child.kill()
 
