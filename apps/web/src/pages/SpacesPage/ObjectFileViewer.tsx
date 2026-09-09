@@ -2,24 +2,40 @@ import { Box, Dialog, Flex, Portal, Text, chakra } from '@chakra-ui/react'
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { ListObjects200Item } from '../../api/generated/api.schemas'
-import { downloadObject } from '../../api/generated/objects'
+import { deleteObject, downloadObject } from '../../api/generated/objects'
 import { ActionButton } from '../../components/ui/Primitives'
 import RequestState from '../../components/RequestState'
 import { apiStatus } from '../../context/session'
-import { fileErrorMessage, formatFileSize } from './objectFileApi'
+import { fileErrorMessage, formatFileSize, refreshObjectLists } from './objectFileApi'
 import { decodeObjectText, imagePreviewLimit, objectFileKind, objectPreviewKind, textPreviewLimit } from './objectPreview'
 import ObjectFileIcon from './ObjectFileIcon'
 import { storageErrorTitle } from './storageErrors'
 
 type Preview = { kind: 'loading' } | { kind: 'text'; text: string } | { kind: 'image'; url: string } | { kind: 'unavailable'; message: string } | { kind: 'error'; title: string; message: string }
 
-export default function ObjectFileViewer({ account, slug, file, downloading, downloadError, onDownload, onClose, returnFocus }: {
+export default function ObjectFileViewer({ account, slug, file, downloading, downloadError, onDownload, onClose, onDeleted, returnFocus }: {
   account: string; slug: string; file: ListObjects200Item; downloading: boolean; downloadError: string
-  onDownload: () => void; onClose: () => void; returnFocus: () => HTMLElement | null
+  onDownload: () => void; onClose: () => void; onDeleted: () => void; returnFocus: () => HTMLElement | null
 }) {
   const client = useQueryClient()
   const [preview, setPreview] = useState<Preview>({ kind: 'loading' })
   const [attempt, setAttempt] = useState(0)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
+  async function handleDelete() {
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await deleteObject(account, slug, file.key)
+      await refreshObjectLists(client, account, slug)
+      onDeleted()
+    } catch (error) {
+      setDeleteError(fileErrorMessage(error, 'delete'))
+      if (apiStatus(error) === 401) void client.invalidateQueries({ queryKey: ['session'] })
+    } finally { setDeleting(false) }
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -53,7 +69,7 @@ export default function ObjectFileViewer({ account, slug, file, downloading, dow
     return () => { controller.abort(); if (imageUrl) URL.revokeObjectURL(imageUrl) }
   }, [account, slug, file, attempt, client])
 
-  return <Dialog.Root open onOpenChange={({ open }) => { if (!open) onClose() }} placement="center" scrollBehavior="inside" finalFocusEl={returnFocus}>
+  return <Dialog.Root open onOpenChange={({ open }) => { if (!open && !deleting) onClose() }} placement="center" scrollBehavior="inside" finalFocusEl={returnFocus}>
     <Portal>
       <Dialog.Backdrop bg="blackAlpha.600" />
       <Dialog.Positioner p={{ base: '12px', md: '24px' }}>
@@ -62,7 +78,7 @@ export default function ObjectFileViewer({ account, slug, file, downloading, dow
             <Flex align="start" gap="12px" w="100%">
               <Box pt="2px" color="var(--muted)"><ObjectFileIcon kind={objectFileKind(file)} /></Box>
               <Box minW="0" flex="1"><Dialog.Title fontSize="17px" fontWeight="500" overflowWrap="anywhere">{file.key}</Dialog.Title><Dialog.Description mt="6px" fontSize="12px" color="var(--muted)">Object preview</Dialog.Description></Box>
-              <Dialog.CloseTrigger asChild position="static"><ActionButton aria-label="Close preview" p="6px 10px" fontSize="18px">×</ActionButton></Dialog.CloseTrigger>
+              <Dialog.CloseTrigger asChild position="static"><ActionButton aria-label="Close preview" disabled={deleting} p="6px 10px" fontSize="18px">×</ActionButton></Dialog.CloseTrigger>
             </Flex>
           </Dialog.Header>
           <Dialog.Body p={{ base: '20px', md: '24px' }} minW="0">
@@ -73,9 +89,14 @@ export default function ObjectFileViewer({ account, slug, file, downloading, dow
               {preview.kind === 'loading' ? <RequestState loading title="Loading preview..." /> : preview.kind === 'error' ? <RequestState title={preview.title} message={preview.message} onRetry={() => setAttempt(value => value + 1)} /> : preview.kind === 'unavailable' ? <RequestState title="Preview unavailable" message={preview.message} /> : preview.kind === 'text' ? preview.text === '' ? <RequestState title="This file is empty" /> : <Box as="pre" aria-label="File contents" tabIndex={0} m="0" p="16px" fontSize="12px" lineHeight="1.8" maxH="50dvh" overflow="auto"><Box as="code" fontFamily="mono">{preview.text}</Box></Box> : <Flex p="16px" minH="160px" justify="center" bg="var(--surface)"><chakra.img src={preview.url} alt={file.key} maxW="100%" maxH="50dvh" objectFit="contain" onError={() => setPreview({ kind: 'unavailable', message: 'This image could not be displayed. Download it to open it on your device.' })} /></Flex>}
             </Box>
             {downloadError && <Text role="alert" mt="16px" fontSize="13px" color="fg.error">{downloadError}</Text>}
+            {deleteError && <Text role="alert" mt="16px" fontSize="13px" color="fg.error">{deleteError}</Text>}
+            {confirmDelete && <Text mt="16px" fontSize="13px">Permanently delete this file? This cannot be undone.</Text>}
           </Dialog.Body>
-          <Dialog.Footer p="16px 24px" borderTop="1px solid var(--border)">
-            <ActionButton loading={downloading} loadingText="Downloading..." onClick={onDownload} gap="8px"><ObjectFileIcon kind="download" />Download</ActionButton>
+          <Dialog.Footer p="16px 24px" borderTop="1px solid var(--border)" flexWrap="wrap">
+            {confirmDelete ? <><ActionButton disabled={deleting} onClick={() => { setConfirmDelete(false); setDeleteError('') }}>Cancel</ActionButton><ActionButton color="fg.error" loading={deleting} loadingText="Deleting..." onClick={() => { void handleDelete() }}>Confirm delete</ActionButton></> : <>
+              <ActionButton color="fg.error" mr="auto" disabled={downloading} onClick={() => setConfirmDelete(true)}>Delete file</ActionButton>
+              <ActionButton loading={downloading} loadingText="Downloading..." onClick={onDownload} gap="8px"><ObjectFileIcon kind="download" />Download</ActionButton>
+            </>}
           </Dialog.Footer>
         </Dialog.Content>
       </Dialog.Positioner>

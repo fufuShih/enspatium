@@ -32,10 +32,11 @@ export async function signOut(page: Page, user: TestUser) {
   await expect(page).toHaveURL(new URL('/', page.url()).href)
 }
 
-export async function createSpace(page: Page, name: string, organization?: string) {
+export async function createSpace(page: Page, name: string, organization?: string, type: 'git' | 'object' = 'git') {
   await page.getByRole('button', { name: 'Create menu', exact: true }).click()
   await page.getByRole('menuitem', { name: 'Create Space', exact: true }).click()
   if (organization) await page.getByLabel('Owner', { exact: true }).selectOption(organization)
+  await page.getByLabel('Type', { exact: true }).selectOption(type)
   await page.getByLabel('Name', { exact: true }).fill(name)
   const account = await page.getByLabel('Owner', { exact: true }).inputValue()
   const slug = await page.getByLabel('URL name', { exact: true }).inputValue()

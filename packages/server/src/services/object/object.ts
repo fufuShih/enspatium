@@ -1,4 +1,4 @@
-import type { Kysely } from 'kysely'
+import { sql, type Kysely } from 'kysely'
 import type { Readable } from 'node:stream'
 
 import type { Database } from '../../db/index.js'
@@ -60,6 +60,65 @@ export interface DownloadedObject {
   stream: Readable
 }
 
+export interface ObjectFolderPage {
+  prefix: string
+  folders: string[]
+  objects: PublicSpaceObject[]
+  nextCursor: string | null
+}
+
+export async function browseObjects(
+  db: Kysely<Database>, dataRoot: string, actorUserId: string,
+  namespaceSlug: string, spaceSlug: string,
+  input: { prefix?: string; filter?: string; cursor?: string; limit?: number },
+): Promise<ObjectFolderPage> {
+  const prefix = validateObjectPrefix(input.prefix)
+  const filter = validateObjectPrefix(input.filter)
+  const cursor = validateObjectPrefix(input.cursor)
+  const limit = normalizeObjectListLimit(input.limit)
+  const cursorName = cursor.slice(prefix.length).replace(/\/$/, '')
+  const invalidCursor = cursor && (!cursor.startsWith(prefix) || !cursorName || cursorName.includes('/'))
+  if ((prefix && !prefix.endsWith('/')) || filter.includes('/') || invalidCursor) {
+    throw new ObjectServiceError('INVALID_INPUT', 400, 'Invalid folder path or cursor')
+  }
+  const match = validateObjectPrefix(prefix + filter)
+  const space = await getReadableObjectSpace(db, actorUserId, namespaceSlug, spaceSlug)
+  await requireSpaceStorage(dataRoot, space.id, 'object')
+  try {
+    // Group the complete matching key set BEFORE pagination, so a folder with
+    // many descendants cannot hide other folders. char_length handles Unicode.
+    const cursorFolder = cursor.endsWith('/')
+    const after = cursor ? sql`where (entries.is_folder = ${cursorFolder} and entries.entry_key collate "C" > ${cursor} collate "C")
+      or (not entries.is_folder and ${cursorFolder})` : sql``
+    const result = await sql<SpaceObject & { entry_key: string; is_folder: boolean }>`
+      with children as (
+        select distinct case
+          when strpos(substr(key, char_length(${prefix}::text) + 1), '/') > 0
+          then left(key, char_length(${prefix}::text) + strpos(substr(key, char_length(${prefix}::text) + 1), '/'))
+          else key end as entry_key
+        from space_objects where space_id = ${space.id} and key like ${escapeLikePrefix(match) + '%'}
+      ), entries as (
+        select entry_key, right(entry_key, 1) = '/' as is_folder from children
+      )
+      select entries.entry_key, entries.is_folder, objects.*
+      from entries left join space_objects objects
+        on objects.space_id = ${space.id} and objects.key = entries.entry_key and not entries.is_folder
+      ${after}
+      order by entries.is_folder desc, entries.entry_key collate "C" asc
+      limit ${limit + 1}
+    `.execute(db)
+    const page = result.rows.slice(0, limit)
+    return {
+      prefix,
+      folders: page.filter(row => row.is_folder).map(row => row.entry_key),
+      objects: page.filter(row => !row.is_folder && row.id).map(toPublicSpaceObject),
+      nextCursor: result.rows.length > limit ? page.at(-1)!.entry_key : null,
+    }
+  } catch (error) {
+    throw new ObjectServiceError('INTERNAL', 500, 'failed to browse objects', error)
+  }
+}
+
 export async function uploadObject(
   db: Kysely<Database>,
   dataRoot: string,
@@ -80,18 +139,23 @@ export async function uploadObject(
 
   await requireSpaceStorage(dataRoot, space.id, 'object', true)
   try {
+    const segments = key.split('/')
+    const conflictingKeys = segments.map((_, index) => segments.slice(0, index + 1).join('/'))
     const existingObject = await db
       .selectFrom('space_objects')
       .select('id')
       .where('space_id', '=', space.id)
-      .where('key', '=', key)
+      .where(eb => eb.or([
+        eb('key', 'in', conflictingKeys),
+        eb('key', 'like', escapeLikePrefix(key + '/') + '%'),
+      ]))
       .executeTakeFirst()
 
     if (existingObject) {
       throw new ObjectServiceError(
         'CONFLICT',
         409,
-        'object key already exists',
+        'object key conflicts with an existing file or folder',
       )
     }
   } catch (error) {

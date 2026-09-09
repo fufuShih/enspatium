@@ -4,6 +4,7 @@ import { Readable } from 'node:stream'
 
 import {
   deleteObject,
+  browseObjects,
   downloadObject,
   getObjectStorageUsage,
   listObjects,
@@ -17,6 +18,8 @@ import {
 } from './current-user.route.js'
 import {
   ObjectKeyParamsSchema,
+  ObjectFolderQuerySchema,
+  ObjectFolderResponseSchema,
   ObjectListQuerySchema,
   ObjectSpaceParamsSchema,
   ObjectStorageUsageResponseSchema,
@@ -76,6 +79,22 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
         request.query.limit,
       )
     },
+  )
+
+  // Keep this outside /objects/* so existing object keys remain downloadable.
+  app.get(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/object-tree',
+    {
+      schema: {
+        operationId: 'browseObjects', tags: ['objects'],
+        params: ObjectSpaceParamsSchema, querystring: ObjectFolderQuerySchema,
+        response: { 200: ObjectFolderResponseSchema },
+      },
+    },
+    async request => browseObjects(
+      app.db, app.config.DATA_ROOT, requireCurrentUserId(request),
+      request.params.namespaceSlug, request.params.spaceSlug, request.query,
+    ),
   )
 
   app.put(

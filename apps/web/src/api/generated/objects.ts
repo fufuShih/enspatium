@@ -24,6 +24,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  BrowseObjects200,
+  BrowseObjectsParams,
   GetObjectStorageUsage200,
   ListObjects200Item,
   ListObjectsParams,
@@ -288,6 +290,138 @@ export function useListObjects<TData = Awaited<ReturnType<typeof listObjects>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getListObjectsQueryOptions(namespaceSlug,spaceSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getBrowseObjectsUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    params?: BrowseObjectsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-tree?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-tree`
+}
+
+export const browseObjects = async (namespaceSlug: string,
+    spaceSlug: string,
+    params?: BrowseObjectsParams, options?: RequestInit): Promise<BrowseObjects200> => {
+
+  const res = await fetch(getBrowseObjectsUrl(namespaceSlug,spaceSlug,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: BrowseObjects200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getBrowseObjectsQueryKey = (namespaceSlug: string,
+    spaceSlug: string,
+    params?: BrowseObjectsParams,) => {
+    return [
+    `/api/namespaces/${namespaceSlug}/spaces/${spaceSlug}/object-tree`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getBrowseObjectsQueryOptions = <TData = Awaited<ReturnType<typeof browseObjects>>, TError = globalThis.Error & { info?: unknown; status?: number }>(namespaceSlug: string,
+    spaceSlug: string,
+    params?: BrowseObjectsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof browseObjects>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getBrowseObjectsQueryKey(namespaceSlug,spaceSlug,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof browseObjects>>> = ({ signal }) => browseObjects(namespaceSlug,spaceSlug,params, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: namespaceSlug !== null && namespaceSlug !== undefined && spaceSlug !== null && spaceSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof browseObjects>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type BrowseObjectsQueryResult = NonNullable<Awaited<ReturnType<typeof browseObjects>>>
+export type BrowseObjectsQueryError = globalThis.Error & { info?: unknown; status?: number }
+
+
+export function useBrowseObjects<TData = Awaited<ReturnType<typeof browseObjects>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: undefined |  BrowseObjectsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof browseObjects>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof browseObjects>>,
+          TError,
+          Awaited<ReturnType<typeof browseObjects>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useBrowseObjects<TData = Awaited<ReturnType<typeof browseObjects>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params?: BrowseObjectsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof browseObjects>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof browseObjects>>,
+          TError,
+          Awaited<ReturnType<typeof browseObjects>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useBrowseObjects<TData = Awaited<ReturnType<typeof browseObjects>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params?: BrowseObjectsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof browseObjects>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useBrowseObjects<TData = Awaited<ReturnType<typeof browseObjects>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params?: BrowseObjectsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof browseObjects>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getBrowseObjectsQueryOptions(namespaceSlug,spaceSlug,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

@@ -39,6 +39,20 @@ export const SpaceObjectListResponseSchema = Type.Array(
   SpaceObjectResponseSchema,
 )
 
+export const ObjectFolderQuerySchema = Type.Object({
+  prefix: Type.Optional(Type.String({ maxLength: 1024 })),
+  filter: Type.Optional(Type.String({ maxLength: 1024 })),
+  cursor: Type.Optional(Type.String({ maxLength: 1024 })),
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: maximumObjectListLimit })),
+})
+
+export const ObjectFolderResponseSchema = Type.Object({
+  prefix: Type.String(),
+  folders: Type.Array(Type.String()),
+  objects: SpaceObjectListResponseSchema,
+  nextCursor: Type.Union([Type.String(), Type.Null()]),
+})
+
 export const ObjectStorageUsageResponseSchema = Type.Object({
   usedBytes: Type.Integer({ minimum: 0 }),
   quotaBytes: Type.Integer({ minimum: 1 }),

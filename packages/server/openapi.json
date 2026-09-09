@@ -3312,6 +3312,172 @@
         }
       }
     },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/object-tree": {
+      "get": {
+        "operationId": "browseObjects",
+        "tags": [
+          "objects"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "prefix",
+            "required": false
+          },
+          {
+            "schema": {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "filter",
+            "required": false
+          },
+          {
+            "schema": {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "cursor",
+            "required": false
+          },
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "prefix",
+                    "folders",
+                    "objects",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "prefix": {
+                      "type": "string"
+                    },
+                    "folders": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "objects": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "spaceId",
+                          "createdByUserId",
+                          "key",
+                          "contentType",
+                          "sizeBytes",
+                          "checksumSha256",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "spaceId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "createdByUserId": {
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "contentType": {
+                            "type": "string"
+                          },
+                          "sizeBytes": {
+                            "minimum": 0,
+                            "type": "integer"
+                          },
+                          "checksumSha256": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/objects/{objectKey}": {
       "put": {
         "operationId": "uploadObject",

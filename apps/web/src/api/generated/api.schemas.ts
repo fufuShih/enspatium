@@ -650,6 +650,47 @@ export type ListObjects200Item = {
   updatedAt: string;
 };
 
+export type BrowseObjectsParams = {
+/**
+ * @maxLength 1024
+ */
+prefix?: string;
+/**
+ * @maxLength 1024
+ */
+filter?: string;
+/**
+ * @maxLength 1024
+ */
+cursor?: string;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type BrowseObjects200ObjectsItem = {
+  id: string;
+  spaceId: string;
+  createdByUserId: string | null;
+  key: string;
+  contentType: string;
+  /** @minimum 0 */
+  sizeBytes: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  checksumSha256: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BrowseObjects200 = {
+  prefix: string;
+  folders: string[];
+  objects: BrowseObjects200ObjectsItem[];
+  nextCursor: string | null;
+};
+
 export type UploadObject201 = {
   id: string;
   spaceId: string;
