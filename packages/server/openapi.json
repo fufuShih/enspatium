@@ -1939,6 +1939,141 @@
         }
       }
     },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/git/commits": {
+      "get": {
+        "operationId": "listGitSpaceCommits",
+        "tags": [
+          "spaces"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 255,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "ref",
+            "required": false
+          },
+          {
+            "schema": {
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "offset",
+            "required": false
+          },
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "security": [
+          {},
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ref",
+                    "commitId",
+                    "commits",
+                    "hasMore"
+                  ],
+                  "properties": {
+                    "ref": {
+                      "type": "string"
+                    },
+                    "commitId": {
+                      "pattern": "^[0-9a-f]{40,64}$",
+                      "type": "string"
+                    },
+                    "commits": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "shortId",
+                          "authorName",
+                          "authorEmail",
+                          "authoredAt",
+                          "message"
+                        ],
+                        "properties": {
+                          "id": {
+                            "pattern": "^[0-9a-f]{40,64}$",
+                            "type": "string"
+                          },
+                          "shortId": {
+                            "pattern": "^[0-9a-f]+$",
+                            "type": "string"
+                          },
+                          "authorName": {
+                            "type": "string"
+                          },
+                          "authorEmail": {
+                            "type": "string"
+                          },
+                          "authoredAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/git/commit": {
       "get": {
         "operationId": "getGitSpaceCommit",
@@ -2068,7 +2203,8 @@
             },
             "in": "query",
             "name": "from",
-            "required": true
+            "required": false,
+            "description": "Defaults to the first parent of to, or the empty tree for an initial commit."
           },
           {
             "schema": {
@@ -2121,20 +2257,27 @@
                   ],
                   "properties": {
                     "from": {
-                      "type": "object",
-                      "required": [
-                        "ref",
-                        "commitId"
-                      ],
-                      "properties": {
-                        "ref": {
-                          "type": "string"
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "ref",
+                            "commitId"
+                          ],
+                          "properties": {
+                            "ref": {
+                              "type": "string"
+                            },
+                            "commitId": {
+                              "pattern": "^[0-9a-f]{40,64}$",
+                              "type": "string"
+                            }
+                          }
                         },
-                        "commitId": {
-                          "pattern": "^[0-9a-f]{40,64}$",
-                          "type": "string"
+                        {
+                          "type": "null"
                         }
-                      }
+                      ]
                     },
                     "to": {
                       "type": "object",

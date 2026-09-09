@@ -6,7 +6,7 @@ import type { PublicNamespace } from '../src/db/namespace.types.js'
 import type { PublicSpace } from '../src/db/space.types.js'
 import type { CreatedPersonalAccessToken } from '../src/db/token.types.js'
 import type { PublicUser } from '../src/db/user.types.js'
-import type { GitRepositoryInfo } from '../src/services/git/repository.js'
+import type { GitCommitPage, GitDiff, GitRepositoryInfo } from '../src/services/git/repository.js'
 import { createFixture } from './fixture.js'
 
 test('real authentication, Space collaboration and Git transport', async ({ onTestFinished }) => {
@@ -78,6 +78,16 @@ test('real authentication, Space collaboration and Git transport', async ({ onTe
   const initial = await owner.request<GitRepositoryInfo>('GET', spaceUrl + '/git')
   expect(initial.defaultBranch).toBe('main')
   expect(initial.branches).toStrictEqual(['main'])
+  const history = await member.request<GitCommitPage>('GET', spaceUrl + '/git/commits?ref=refs%2Fheads%2Fmain&limit=1')
+  expect(history).toMatchObject({ commits: [{ id: initial.commits[0]!.id }], hasMore: false })
+  const firstDiff = await member.request<GitDiff>('GET', spaceUrl + '/git/diff?to=' + history.commitId)
+  expect(firstDiff.from).toBeNull()
+  expect(firstDiff.patch).toContain('+# Main')
+  await guest.request('GET', spaceUrl + '/git/commits', 401)
+  await guest.request('GET', spaceUrl + '/git/diff?to=' + history.commitId, 401)
+  await member.request('GET', spaceUrl + '/git/commits?offset=-1', 400)
+  await member.request('GET', spaceUrl + '/git/commits?limit=101', 400)
+  await member.request('GET', spaceUrl + '/git/commits?ref=missing', 404)
   const cloneResult = await git(['clone', remote, memberClone], memberToken.token)
   expect(cloneResult.stderr).not.toMatch(/unable to checkout/)
   expect((await git(['-C', memberClone, 'branch', '--show-current'])).stdout.trim()).toBe('main')
@@ -131,6 +141,8 @@ test('real authentication, Space collaboration and Git transport', async ({ onTe
   await owner.request('DELETE', spaceUrl + '/members/' + memberUser.id, 204)
   await member.request('GET', spaceUrl, 403)
   await expect(git(['-C', memberClone, 'fetch', 'origin'], memberToken.token)).rejects.toMatchObject({ stderr: expect.stringMatching(/403/) })
+  await member.request('GET', spaceUrl + '/git/commits', 403)
+  await member.request('GET', spaceUrl + '/git/diff?to=' + history.commitId, 403)
   await expect(push()).rejects.toMatchObject({ stderr: expect.stringMatching(/403/) })
   await owner.request('POST', spaceUrl + '/members', 201, { email: memberUser.email, role: 'writer' })
   await owner.request('DELETE', namespace + '/members/' + memberUser.id, 204)

@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { createSpaceStorage, getSpaceStoragePath } from '../space/storage.js'
 import {
   getGitCommit,
+  getGitCommits,
   getGitDiff,
   getGitFile,
   getGitReadme,
@@ -128,6 +129,11 @@ describe('Git repository', () => {
       },
     ])
 
+    const initialDiff = await getGitDiff(root, spaceId, undefined, initialCommitId)
+    expect(initialDiff.from).toBeNull()
+    expect(initialDiff.patch).toContain('+# Test')
+    expect(initialDiff.patch).toContain('new file mode')
+
     await expect(getGitCommit(root, spaceId, 'v1.0.0')).resolves.toMatchObject({
       ref: 'v1.0.0',
       id: initialCommitId,
@@ -234,6 +240,14 @@ describe('Git repository', () => {
     expect(diff.patch).toContain("-export const value = 'test'")
     expect(diff.patch).toContain("+export const value = 'updated'")
 
+    expect((await getGitDiff(root, spaceId, undefined, updatedCommit.id)).patch).toBe(diff.patch)
+    const firstPage = await getGitCommits(root, spaceId, 'refs/heads/main', 0, 1)
+    expect(firstPage).toMatchObject({ commitId: updatedCommit.id, hasMore: true, commits: [{ id: updatedCommit.id }] })
+    const secondPage = await getGitCommits(root, spaceId, firstPage.commitId, 1, 1)
+    expect(secondPage).toMatchObject({ hasMore: false, commits: [{ id: initialCommitId }] })
+    expect((await getGitCommits(root, spaceId, 'v1.0.0')).commits.map(commit => commit.id)).toEqual([initialCommitId])
+    await expect(getGitCommits(root, spaceId, '--all')).rejects.toMatchObject({ code: 'REF_NOT_FOUND' })
+
     await writeFile(
       join(worktreePath, 'large.txt'),
       'x'.repeat(1024 * 1024 + 1024) + '\n',
@@ -260,6 +274,43 @@ describe('Git repository', () => {
     await expect(
       getGitDiff(root, spaceId, updatedCommit.id, 'main'),
     ).rejects.toMatchObject({ code: 'DIFF_TOO_LARGE' })
+    expect((await getGitCommits(root, spaceId, firstPage.commitId, 1, 1)).commits[0]?.id).toBe(initialCommitId)
+  })
+
+  it('compares merge commits with the first parent and handles commits without file changes', async () => {
+    const root = await createTemporaryRoot()
+    await createSpaceStorage(root, spaceId, 'git')
+    const worktree = join(root, 'merge-worktree')
+    await execFileAsync('git', ['clone', getSpaceStoragePath(root, spaceId), worktree])
+    await configureTestAuthor(worktree)
+    const git = (args: string[]) => execFileAsync('git', ['-C', worktree, '-c', 'commit.gpgsign=false', ...args])
+    await writeFile(join(worktree, 'base.txt'), 'Base\n')
+    await git(['add', '.'])
+    await git(['commit', '-m', 'Base'])
+    await git(['branch', 'side'])
+    await writeFile(join(worktree, 'main.txt'), 'Main only\n')
+    await git(['add', '.'])
+    await git(['commit', '-m', 'Main change'])
+    const mainParent = (await git(['rev-parse', 'HEAD'])).stdout.trim()
+    await git(['switch', 'side'])
+    await writeFile(join(worktree, 'side.txt'), 'Side change\n')
+    await git(['add', '.'])
+    await git(['commit', '-m', 'Side change'])
+    await git(['switch', 'main'])
+    await git(['merge', '--no-ff', 'side', '-m', 'Merge side'])
+    await git(['push', 'origin', 'main'])
+    const merge = await getGitCommit(root, spaceId, 'main')
+    expect(merge.parentIds).toHaveLength(2)
+    const diff = await getGitDiff(root, spaceId, undefined, merge.id)
+    expect(diff.from?.commitId).toBe(mainParent)
+    expect(diff.patch).toContain('+Side change')
+    expect(diff.patch).not.toContain('main.txt')
+    const page = await getGitCommits(root, spaceId, 'main')
+    expect(page.commits).toHaveLength(4)
+    expect(page.commits[0]?.id).toBe(merge.id)
+    await git(['commit', '--allow-empty', '-m', 'No file changes'])
+    await git(['push', 'origin', 'main'])
+    expect((await getGitDiff(root, spaceId, undefined, 'main')).patch).toBe('')
   })
 })
 

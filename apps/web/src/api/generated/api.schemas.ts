@@ -376,6 +376,43 @@ export type GetGitSpaceTags200Item = {
   commitId: string;
 };
 
+export type ListGitSpaceCommitsParams = {
+/**
+ * @minLength 1
+ * @maxLength 255
+ */
+ref?: string;
+/**
+ * @minimum 0
+ * @maximum 1000000
+ */
+offset?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type ListGitSpaceCommits200CommitsItem = {
+  /** @pattern ^[0-9a-f]{40,64}$ */
+  id: string;
+  /** @pattern ^[0-9a-f]+$ */
+  shortId: string;
+  authorName: string;
+  authorEmail: string;
+  authoredAt: string;
+  message: string;
+};
+
+export type ListGitSpaceCommits200 = {
+  ref: string;
+  /** @pattern ^[0-9a-f]{40,64}$ */
+  commitId: string;
+  commits: ListGitSpaceCommits200CommitsItem[];
+  hasMore: boolean;
+};
+
 export type GetGitSpaceCommitParams = {
 /**
  * @minLength 1
@@ -403,10 +440,11 @@ export type GetGitSpaceCommit200 = {
 
 export type GetGitSpaceDiffParams = {
 /**
+ * Defaults to the first parent of to, or the empty tree for an initial commit.
  * @minLength 1
  * @maxLength 255
  */
-from: string;
+from?: string;
 /**
  * @minLength 1
  * @maxLength 255
@@ -418,7 +456,7 @@ export type GetGitSpaceDiff200From = {
   ref: string;
   /** @pattern ^[0-9a-f]{40,64}$ */
   commitId: string;
-};
+} | null;
 
 export type GetGitSpaceDiff200To = {
   ref: string;

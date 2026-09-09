@@ -6,6 +6,7 @@ import {
   createSpace,
   deleteSpace,
   getGitSpaceCommit,
+  listGitSpaceCommits,
   getGitSpaceDiff,
   getGitSpaceFile,
   getGitSpaceInfo,
@@ -28,6 +29,8 @@ import {
   AddSpaceMemberBodySchema,
   CreateSpaceBodySchema,
   GitCommitDetailResponseSchema,
+  GitCommitsQuerySchema,
+  GitCommitPageResponseSchema,
   GitDiffQuerySchema,
   GitDiffResponseSchema,
   GitFileQuerySchema,
@@ -192,6 +195,23 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
         request.params.spaceSlug,
       )
     },
+  )
+
+  app.get(
+    '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/commits',
+    {
+      schema: {
+        operationId: 'listGitSpaceCommits', tags: ['spaces'],
+        security: [{}, { session: [] }], params: SpaceParamsSchema,
+        querystring: GitCommitsQuerySchema,
+        response: { 200: GitCommitPageResponseSchema },
+      },
+    },
+    async request => listGitSpaceCommits(
+      app.db, app.config.DATA_ROOT, getCurrentUserId(request),
+      request.params.namespaceSlug, request.params.spaceSlug,
+      request.query.ref, request.query.offset, request.query.limit,
+    ),
   )
 
   app.get(

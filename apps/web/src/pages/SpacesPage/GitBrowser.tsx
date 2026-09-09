@@ -12,6 +12,8 @@ import { apiStatus } from '../../context/session'
 import { defaultGitBranch, gitErrorMessage, gitLocation, sortGitEntries } from './gitBrowserApi'
 import { formatFileSize } from './objectFileApi'
 import GitReadme from './GitReadme'
+import GitHistory from './GitHistory'
+import { gitHistoryLocation } from './gitHistoryApi'
 import { storageErrorTitle } from './storageErrors'
 import { EmptyGitRepository, GitCloneMenu } from './GitRepositoryActions'
 
@@ -24,15 +26,16 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
   const branch = params.get('ref') || (info.data ? defaultGitBranch(info.data) : '')
   const path = params.get('path') || ''
   const isFile = params.get('view') === 'file'
+  const isHistory = params.get('view') === 'commits'
   const ready = info.isSuccess && info.data.branches.includes(branch)
   const revision = `refs/heads/${branch}`
   const treeParams = { ref: revision, path }
   const fileParams = { ref: revision, path }
-  const tree = useGetGitSpaceTree(account, slug, treeParams, { query: { enabled: ready && !isFile, retry: false, queryKey: [...getGetGitSpaceTreeQueryKey(account, slug, treeParams), viewer] } })
-  const file = useGetGitSpaceFile(account, slug, fileParams, { query: { enabled: ready && isFile, retry: false, queryKey: [...getGetGitSpaceFileQueryKey(account, slug, fileParams), viewer] } })
+  const tree = useGetGitSpaceTree(account, slug, treeParams, { query: { enabled: ready && !isHistory && !isFile, retry: false, queryKey: [...getGetGitSpaceTreeQueryKey(account, slug, treeParams), viewer] } })
+  const file = useGetGitSpaceFile(account, slug, fileParams, { query: { enabled: ready && !isHistory && isFile, retry: false, queryKey: [...getGetGitSpaceFileQueryKey(account, slug, fileParams), viewer] } })
   // Pin README to the displayed tree so a concurrent push cannot mix revisions.
   const readmeParams = { ref: tree.data?.commitId ?? revision }
-  const readme = useGetGitSpaceReadme(account, slug, readmeParams, { query: { enabled: ready && !isFile && !path && tree.isSuccess, retry: false, queryKey: [...getGetGitSpaceReadmeQueryKey(account, slug, readmeParams), viewer] } })
+  const readme = useGetGitSpaceReadme(account, slug, readmeParams, { query: { enabled: ready && !isHistory && !isFile && !path && tree.isSuccess, retry: false, queryKey: [...getGetGitSpaceReadmeQueryKey(account, slug, readmeParams), viewer] } })
   const root = gitLocation(account, slug, branch)
   const segments = path.split('/').filter(Boolean)
   const parent = gitLocation(account, slug, branch, segments.slice(0, -1).join('/'))
@@ -45,21 +48,26 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
     <Flex align="center" justify="space-between" gap="16px" mb="20px"><Text fontSize="13px" color="var(--muted)">Repository</Text><GitCloneMenu url={cloneUrl} /></Flex>
     <EmptyGitRepository url={cloneUrl} refreshing={info.isFetching} onRefresh={() => { void info.refetch() }} />
   </Box>
-  if (!ready) return <RequestState title="Branch not found" message="Choose an existing branch to continue."><ActionButton asChild mt="20px"><PageLink to={gitLocation(account, slug, defaultGitBranch(info.data))}>Back to repository</PageLink></ActionButton></RequestState>
+  if (!ready && !(isHistory && params.get('commit'))) return <RequestState title="Branch not found" message="Choose an existing branch to continue."><ActionButton asChild mt="20px"><PageLink to={gitLocation(account, slug, defaultGitBranch(info.data))}>Back to repository</PageLink></ActionButton></RequestState>
 
   const content = isFile ? file : tree
   return (
     <Box as="section" aria-label="Repository browser" minW="0">
       <Flex align="center" wrap="wrap" gap="16px" mb="20px">
-        <SelectInput aria-label="Branch" w={{ base: '100%', sm: '200px' }} value={branch} onChange={event => navigate(gitLocation(account, slug, event.target.value))}>
+        <SelectInput aria-label="Branch" w={{ base: '100%', sm: '200px' }} value={branch} onChange={event => navigate(isHistory ? gitHistoryLocation(account, slug, event.target.value) : gitLocation(account, slug, event.target.value))}>
           {info.data.branches.map(name => <option key={name} value={name}>{name}</option>)}
         </SelectInput>
-        <Box as="nav" aria-label="Repository path" fontSize="13px" color="var(--muted)" minW="0" flex="1" overflowWrap="anywhere">
+        <Box display={isHistory ? 'none' : undefined} as="nav" aria-label="Repository path" fontSize="13px" color="var(--muted)" minW="0" flex="1" overflowWrap="anywhere">
           <PageLink to={root} aria-current={!path ? 'page' : undefined}>{slug}</PageLink>
           {segments.map((part, index) => <Fragment key={index}><Text as="span" mx="8px" aria-hidden="true">/</Text>{index === segments.length - 1 ? <Text as="span" aria-current="page" color="var(--foreground)">{part}</Text> : <PageLink to={gitLocation(account, slug, branch, segments.slice(0, index + 1).join('/'))}>{part}</PageLink>}</Fragment>)}
         </Box>
-        <GitCloneMenu url={cloneUrl} />
+        <Box ml="auto"><GitCloneMenu url={cloneUrl} /></Box>
       </Flex>
+      <Flex as="nav" aria-label="Repository views" gap="24px" mb="24px" borderBottom="1px solid var(--border)" fontSize="13px">
+        <PageLink to={root} pb="12px" borderBottom={!isHistory ? '2px solid var(--foreground)' : '2px solid transparent'} color={!isHistory ? 'var(--foreground)' : 'var(--muted)'} aria-current={!isHistory ? 'page' : undefined}>Files</PageLink>
+        <PageLink to={gitHistoryLocation(account, slug, branch)} pb="12px" borderBottom={isHistory ? '2px solid var(--foreground)' : '2px solid transparent'} color={isHistory ? 'var(--foreground)' : 'var(--muted)'} aria-current={isHistory ? 'page' : undefined}>Commits</PageLink>
+      </Flex>
+      {isHistory ? <GitHistory account={account} slug={slug} branch={branch} /> : <>
       {path && <PageLink to={parent} display="inline-block" mb="16px" fontSize="13px" color="var(--muted)">Back to parent folder</PageLink>}
       {content.isPending ? <RequestState loading title={isFile ? 'Loading file...' : 'Loading files...'} /> : content.isError ? <RequestState title={storageErrorTitle(content.error, apiStatus(content.error) === 413 ? 'Preview unavailable' : 'Unable to open path')} message={gitErrorMessage(content.error)} onRetry={() => { void content.refetch() }}>
         {apiStatus(content.error) === 401 && <ActionButton asChild mt="20px" ml="12px"><PageLink to="/login" state={{ from: gitLocation(account, slug, branch, path, isFile) }}>Sign in</PageLink></ActionButton>}
@@ -85,6 +93,7 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
           </Box> : <Text fontSize="13px" color="var(--muted)">No README in this branch.</Text>}
         </Box>}
       </> : null}
+      </>}
     </Box>
   )
 }

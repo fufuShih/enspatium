@@ -117,8 +117,21 @@ export const GitFileQuerySchema = Type.Object({
 })
 
 export const GitDiffQuerySchema = Type.Object({
-  from: Type.String({ minLength: 1, maxLength: 255 }),
+  from: Type.Optional(Type.String({ minLength: 1, maxLength: 255, description: 'Defaults to the first parent of to, or the empty tree for an initial commit.' })),
   to: Type.String({ minLength: 1, maxLength: 255 }),
+})
+
+export const GitCommitsQuerySchema = Type.Object({
+  ref: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+  offset: Type.Optional(Type.Integer({ minimum: 0, maximum: 1_000_000, default: 0 })),
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, default: 30 })),
+})
+
+export const GitCommitPageResponseSchema = Type.Object({
+  ref: Type.String(),
+  commitId: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
+  commits: Type.Array(GitCommitResponseSchema),
+  hasMore: Type.Boolean(),
 })
 
 export const GitTagResponseSchema = Type.Object({
@@ -148,7 +161,7 @@ export const GitDiffRevisionResponseSchema = Type.Object({
 })
 
 export const GitDiffResponseSchema = Type.Object({
-  from: GitDiffRevisionResponseSchema,
+  from: Type.Union([GitDiffRevisionResponseSchema, Type.Null()]),
   to: GitDiffRevisionResponseSchema,
   patch: Type.String(),
 })

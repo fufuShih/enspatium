@@ -16,6 +16,7 @@ import type {
 import { createAuditEvent } from '../audit/audit.js'
 import {
   getGitCommit,
+  getGitCommits,
   getGitDiff,
   getGitFile,
   getGitReadme,
@@ -25,6 +26,7 @@ import {
   GitStorageError,
   setGitDefaultBranch,
   type GitCommitDetail,
+  type GitCommitPage,
   type GitDiff,
   type GitFile,
   type GitRepositoryInfo,
@@ -314,6 +316,18 @@ export async function getGitSpaceInfo(
   }
 }
 
+export async function listGitSpaceCommits(
+  db: Kysely<Database>, dataRoot: string, actorUserId: string | undefined,
+  inputNamespaceSlug: string, inputSpaceSlug: string, inputRef?: string, offset = 0, limit = 30,
+): Promise<GitCommitPage> {
+  const space = await getReadableGitSpace(db, actorUserId, inputNamespaceSlug, inputSpaceSlug)
+  try {
+    return await getGitCommits(dataRoot, space.id, inputRef, offset, limit)
+  } catch (error) {
+    throwGitStorageError(error, 'failed to read Git commits')
+  }
+}
+
 export async function getGitSpaceTags(
   db: Kysely<Database>,
   dataRoot: string,
@@ -363,7 +377,7 @@ export async function getGitSpaceDiff(
   actorUserId: string | undefined,
   inputNamespaceSlug: string,
   inputSpaceSlug: string,
-  inputFromRef: string,
+  inputFromRef: string | undefined,
   inputToRef: string,
 ): Promise<GitDiff> {
   const space = await getReadableGitSpace(

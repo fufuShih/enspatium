@@ -77,9 +77,16 @@ export interface GitDiffRevision {
 }
 
 export interface GitDiff {
-  from: GitDiffRevision
+  from: GitDiffRevision | null
   to: GitDiffRevision
   patch: string
+}
+
+export interface GitCommitPage {
+  ref: string
+  commitId: string
+  commits: GitCommit[]
+  hasMore: boolean
 }
 
 export type GitTreeEntryType =
@@ -191,6 +198,40 @@ export async function getGitRepositoryInfo(
   }
 }
 
+export async function getGitCommits(
+  dataRoot: string,
+  spaceId: string,
+  inputRef?: string,
+  offset = 0,
+  limit = 30,
+): Promise<GitCommitPage> {
+  const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git')
+  const revision = await resolveGitCommit(repositoryPath, inputRef)
+  const output = await runGit(repositoryPath, [
+    'log',
+    '--topo-order',
+    `--skip=${offset}`,
+    `--max-count=${limit + 1}`,
+    '--format=%H%x00%h%x00%an%x00%ae%x00%aI%x00%s%x00',
+    revision.commitId,
+    '--',
+  ])
+  // NUL fields preserve commit subjects containing control separators.
+  const fields = output.split('\0')
+  const commits: GitCommit[] = []
+  for (let index = 0; index + 5 < fields.length; index += 6) {
+    commits.push({
+      id: fields[index]!.trim(),
+      shortId: fields[index + 1]!,
+      authorName: fields[index + 2]!,
+      authorEmail: fields[index + 3]!,
+      authoredAt: fields[index + 4]!,
+      message: fields[index + 5]!,
+    })
+  }
+  return { ...revision, commits: commits.slice(0, limit), hasMore: commits.length > limit }
+}
+
 export async function getGitTags(
   dataRoot: string,
   spaceId: string,
@@ -283,26 +324,33 @@ export async function getGitCommit(
 export async function getGitDiff(
   dataRoot: string,
   spaceId: string,
-  inputFromRef: string,
+  inputFromRef: string | undefined,
   inputToRef: string,
 ): Promise<GitDiff> {
   const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git')
-  const [from, to] = await Promise.all([
-    resolveGitCommit(repositoryPath, inputFromRef),
-    resolveGitCommit(repositoryPath, inputToRef),
-  ])
+  const to = await resolveGitCommit(repositoryPath, inputToRef)
+  let from: GitDiffRevision | null
+  if (inputFromRef !== undefined) {
+    from = await resolveGitCommit(repositoryPath, inputFromRef)
+  } else {
+    const parents = await runGit(repositoryPath, ['rev-list', '--parents', '-n', '1', to.commitId, '--'])
+    const parentId = parents.trim().split(' ')[1]
+    from = parentId ? { ref: parentId, commitId: parentId } : null
+  }
   let patch: string
 
   try {
     patch = await runGit(
       repositoryPath,
       [
-        'diff',
+        ...(from ? ['diff'] : ['diff-tree', '--root', '--no-commit-id', '-r', '-p']),
         '--no-color',
         '--no-ext-diff',
         '--no-textconv',
         '--find-renames',
-        from.commitId,
+        '--src-prefix=a/',
+        '--dst-prefix=b/',
+        ...(from ? [from.commitId] : []),
         to.commitId,
         '--',
       ],
