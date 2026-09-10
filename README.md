@@ -57,7 +57,7 @@ Then, with PostgreSQL running and the same database configuration as the integra
 pnpm test:e2e
 ```
 
-Playwright type-checks and runs six Chromium scenarios: UI registration/login and Space creation, settings persistence after reload (name, visibility and Git default branch), organization/Space membership across accounts, commit history/diff browsing across branches, and Object folder navigation with file upload, preview, download and deletion, plus Object version uploads, historical downloads, restoration and deleted-file recovery. The tests use actual pages and HTTP requests, with no mocked API responses. Git branches for settings and history scenarios are seeded in isolated test repositories; `pnpm test:integration` continues to verify actual clone/push permissions.
+Playwright type-checks and runs seven Chromium scenarios: UI registration/login and Space creation, settings persistence after reload (name, visibility and Git default branch), organization/Space membership across accounts, commit history/diff browsing across branches, Object folder navigation with file upload, preview, download and deletion, Object version uploads, historical downloads, restoration and deleted-file recovery, and Media playback, seeking, photos and sharing. The tests use actual pages and HTTP requests, with no mocked API responses. Git branches for settings and history scenarios are seeded in isolated test repositories; `pnpm test:integration` continues to verify actual clone/push permissions.
 
 The worker automatically starts its own Vite and backend servers on available local ports. It shares the integration suite's temporary schema, migration and storage setup; each worker gets a fresh environment and each test gets a fresh browser context. Existing dev servers are not reused or stopped. Servers, schema and temporary files are cleaned up even when an assertion fails. Tests run with one worker and no retries by default.
 
@@ -75,7 +75,7 @@ Start PostgreSQL and configure the root `.env` using `.env.example` (including `
 
 Open `/register` to create an account, then sign in at `/login`. Authentication uses the generated API client and the backend's HttpOnly session cookie. Refreshing the page restores the user through `/auth/me`; the profile URL uses the personal namespace returned by `/namespaces`. The user menu signs out through `/auth/logout`.
 
-After signing in, use the navigation's Create menu to open `/space/create`. Owner choices come from the backend and include only namespaces you own. Creation supports Git repositories and object storage, with private visibility by default. The URL name is editable and must contain 3–40 lowercase letters, numbers, or single hyphens.
+After signing in, use the navigation's Create menu to open `/space/create`. Owner choices come from the backend and include only namespaces you own. Creation supports Git repositories, object storage and Media, with private visibility by default. The URL name is editable and must contain 3–40 lowercase letters, numbers, or single hyphens.
 
 Creation updates the account list and opens `/:account/:spaceSlug`. Account profiles, organization icons, Space lists, and Space details use real API data and survive reloads. Lists require namespace membership; public Space details can be opened without signing in. Run frontend tests with `pnpm --filter @enspatium/web test`.
 
@@ -129,6 +129,26 @@ The normal backend entry point starts one cleanup sweep after listening, then re
 
 Cleanup durably marks expired versions before removing bytes, hides them from history/download/restore, and locks the Space while deleting content and updating metadata/audit. Capacity is released only after successful metadata removal. Failed or interrupted purges retain their marker and quota charge for retry, even if the policy is subsequently relaxed. Missing mounts or inaccessible storage block cleanup and preserve records. The cleanup touches only version records with known storage locators; unrelated/orphan files are not automatically deleted.
 
+## Media Spaces
+
+Choose **Media** on `/space/create` to create an Object Space with `app: media`. Git and ordinary Object Spaces keep `app: null`. Media uses the same storage, permissions, quota, version history and retention settings as Files; there is no second Space or media database.
+
+Apply migration 0012 before starting the updated backend:
+
+```powershell
+pnpm --filter @enspatium/server db:migrate
+```
+
+Existing Spaces keep their current interface. Changing an existing Space's app is not included. The database and API both reject Media on Git Spaces.
+
+The default Media view offers **All / Music / Videos / Photos**, filename search, cursor pagination, and an upload button for owners and writers. Music and videos use native browser controls with no autoplay; selecting another item or leaving the view stops the previous player. Photos support previous/next within the current page and download. Photo previews retain the 10 MiB limit. Use **Files** to manage folders, all formats, versions, deletion and restoration; both views refresh after content changes.
+
+`GET /namespaces/:namespaceSlug/spaces/:spaceSlug/media` filters current, non-deleted media before pagination. Audio/video MIME types and supported raster image MIME types are included; HTML/SVG and unclassified files stay in Files. Content types do not guarantee decodability: unsupported or damaged media shows an error with Reload and Download options. There is no transcoding, thumbnail generation, playlist service or background playback.
+
+The version-pinned `/media/content?key=...&versionId=...` endpoint supports GET, HEAD and Range. A public visitor can only read the current active version; an updated/deleted old version becomes inaccessible to that visitor. Authorized signed-in readers can use retained history. Private Spaces require access on every list and content request. Responses use `private, no-store`; the active list refreshes every 30 seconds and on window focus, and Reload checks immediately. Already downloaded bytes cannot be revoked. The existing Object version endpoint still requires sign-in.
+
+Vitest integration tests cover app validation, filtering beyond 100 ordinary files, pagination, literal searches, member permissions, versions and storage errors. The Media Playwright flow uploads synthetic MP3, H.264/AAC MP4, VP9 WebM and PNG fixtures, checks playback time and seeking, verifies player cleanup, downloads photos, switches to Files, checks unsupported content and public/private access. Fixture files are included; FFmpeg is not a runtime or test dependency.
+
 ## Object streaming
 
 Both the current-content URL (`/namespaces/:namespaceSlug/spaces/:spaceSlug/objects/:objectKey`) and the version-content URL (`/namespaces/:namespaceSlug/spaces/:spaceSlug/object-versions/content?key=...&versionId=...`) support GET and HEAD. No new configuration or migration is required for streaming.
@@ -139,7 +159,7 @@ Both the current-content URL (`/namespaces/:namespaceSlug/spaces/:spaceSlug/obje
 - `If-Range` accepts the exact strong ETag returned by the server. A mismatch, weak tag or HTTP-date returns full content with `200`. The server does not publish Last-Modified because separate revisions can share the same second. `X-Content-SHA256` always describes the entire object, including on partial responses.
 - Every request checks permissions and version availability before disclosing content metadata. Public current content permits anonymous reads; the version-content endpoint still requires sign-in. Responses use `Cache-Control: private, no-store`. Disconnecting closes the file stream. Missing content/storage retains the existing errors; a stored size mismatch returns `409 OBJECT_CONTENT_CORRUPT`.
 
-Use a version-content URL as the future audio/video element's `src` to keep successive ranges on the same immutable revision. Let the browser stream from that same-origin URL with session cookies; the generated Blob download functions are for explicit downloads. Media App UI and browser playback/seek validation are the next step. Range API behavior is covered by the Vitest integration suite, including a real socket cancellation; the protocol follows [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#section-14).
+Use a version-pinned content URL as the audio/video element's `src` to keep successive ranges on the same immutable revision. Let the browser stream from that same-origin URL with session cookies; the generated Blob download functions are for explicit downloads. Media uses `/media/content` to also support public current-version reads. Range API behavior is covered by the Vitest integration suite, including a real socket cancellation; the protocol follows [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#section-14).
 
 ## API generation
 

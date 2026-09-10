@@ -1,0 +1,86 @@
+import { readFile } from 'node:fs/promises'
+import { test, expect } from './fixtures.js'
+import { createSpace, register, signIn } from './helpers.js'
+import type { Locator } from '@playwright/test'
+
+async function playAndSeek(player: Locator) {
+  await expect.poll(() => player.evaluate((element: HTMLMediaElement) => element.readyState)).toBeGreaterThanOrEqual(1)
+  expect(await player.evaluate((element: HTMLMediaElement) => element.paused)).toBe(true)
+  await player.evaluate(async (element: HTMLMediaElement) => { element.muted = true; await element.play() })
+  await expect.poll(() => player.evaluate((element: HTMLMediaElement) => element.currentTime)).toBeGreaterThan(0.25)
+  await player.evaluate((element: HTMLMediaElement) => { element.currentTime = 5 })
+  await expect.poll(() => player.evaluate((element: HTMLMediaElement) => element.currentTime)).toBeGreaterThan(5.25)
+  expect(await player.evaluate((element: HTMLMediaElement) => element.error)).toBeNull()
+}
+
+test('Media creates, uploads, plays and seeks audio/video, browses photos and shares current content', async ({ page, browser, environment }, testInfo) => {
+  test.setTimeout(120_000)
+  const user = await register(page, 'Media owner')
+  await signIn(page, user)
+  const space = await createSpace(page, 'My media', undefined, 'media')
+  const base = `/api/namespaces/${space.account}/spaces/${space.slug}`
+  await expect(page.getByRole('heading', { name: 'No media yet' })).toBeVisible()
+  const source = (name: string) => readFile(new URL('./media-fixtures/' + name, import.meta.url))
+  for (const [name, mimeType] of [['tone.mp3', 'audio/mpeg'], ['clip.mp4', 'video/mp4'], ['clip.webm', 'video/webm'], ['photo.png', 'image/png']] as const) {
+    await page.getByLabel('Choose media to upload').setInputFiles({ name, mimeType, buffer: await source(name!) })
+    await expect(page.getByRole('status').filter({ hasText: `Uploaded ${name}.` })).toBeVisible()
+    await expect(page.getByRole('button', { name: `Open media ${name}`, exact: true })).toBeVisible()
+  }
+  expect((await page.request.put(base + '/objects/second.png', { headers: { 'content-type': 'image/png' }, data: await source('photo.png') })).status()).toBe(201)
+  const rangeRequests: string[] = []
+  page.on('response', response => {
+    if (response.url().includes('/media/content') && response.status() === 206) rangeRequests.push(response.url())
+  })
+  await page.getByRole('button', { name: 'Open media tone.mp3', exact: true }).click()
+  const audio = page.locator('audio')
+  await playAndSeek(audio)
+  const oldAudio = await audio.elementHandle()
+  await page.getByRole('button', { name: 'Open media clip.mp4', exact: true }).click()
+  expect(await oldAudio!.evaluate(element => ({ paused: (element as HTMLMediaElement).paused, src: element.getAttribute('src') }))).toEqual({ paused: true, src: null })
+  await playAndSeek(page.locator('video'))
+  await page.getByRole('button', { name: 'Open media clip.webm', exact: true }).click()
+  await playAndSeek(page.locator('video'))
+  expect(rangeRequests.some(url => url.includes('tone.mp3'))).toBe(true)
+  expect(rangeRequests.some(url => url.includes('clip.mp4'))).toBe(true)
+  expect(rangeRequests.every(url => url.includes('versionId='))).toBe(true)
+  await page.getByRole('button', { name: 'Reload', exact: true }).click()
+  await page.getByLabel('Media type').selectOption('image')
+  await page.getByRole('button', { name: 'Open media photo.png', exact: true }).click()
+  await expect.poll(() => page.getByRole('img', { name: 'photo.png', exact: true }).evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(320)
+  await page.getByRole('button', { name: 'Next photo' }).click()
+  await expect(page.getByRole('img', { name: 'second.png', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Previous photo' }).click()
+  const download = page.waitForEvent('download')
+  await page.getByRole('link', { name: 'Download', exact: true }).click()
+  expect((await download).suggestedFilename()).toBe('photo.png')
+  await page.setViewportSize({ width: 390, height: 844 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await page.screenshot({ path: testInfo.outputPath('media-mobile.png'), fullPage: true, animations: 'disabled' })
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.getByLabel('Media type').selectOption('')
+  await page.getByRole('navigation', { name: 'Space views' }).getByRole('button', { name: 'Files', exact: true }).click()
+  await page.getByRole('button', { name: 'Open tone.mp3', exact: true }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete file', exact: true }).click()
+  await page.getByRole('button', { name: 'Confirm delete', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Space views' }).getByRole('button', { name: 'Media', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Open media tone.mp3', exact: true })).toHaveCount(0)
+  expect((await page.request.put(base + '/objects/broken.mp3', { headers: { 'content-type': 'audio/mpeg' }, data: 'not audio' })).status()).toBe(201)
+  await page.getByRole('button', { name: 'Reload', exact: true }).click()
+  await page.getByRole('button', { name: 'Open media broken.mp3', exact: true }).click()
+  await expect(page.getByRole('alert')).toContainText('Cannot play this file')
+  expect((await page.request.patch(base, { data: { visibility: 'public' } })).status()).toBe(200)
+  const guestContext = await browser.newContext()
+  try {
+    const guest = await guestContext.newPage()
+    await guest.goto(environment.webOrigin + space.url)
+    await expect(guest.getByRole('button', { name: 'Upload', exact: true })).toHaveCount(0)
+    await guest.getByRole('button', { name: 'Open media clip.mp4', exact: true }).click()
+    await playAndSeek(guest.locator('video'))
+    expect((await page.request.patch(base, { data: { visibility: 'private' } })).status()).toBe(200)
+    await guest.getByRole('button', { name: 'Reload', exact: true }).click()
+    await expect(guest.getByRole('heading', { name: 'Unable to load media' })).toBeVisible()
+    await expect(guest.locator('video')).toHaveCount(0)
+    await guest.reload()
+    await expect(guest.getByRole('heading', { name: 'Sign in to view this Space' })).toBeVisible()
+  } finally { await guestContext.close() }
+})
