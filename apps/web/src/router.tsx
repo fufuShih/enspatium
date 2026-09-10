@@ -6,8 +6,10 @@ import SpacePage from "./pages/SpacesPage/SpacePage";
 import CreateSpacePage from "./pages/SpacesPage/CreateSpacePage";
 import AccessTokensPage from "./pages/UserPage/AccessTokensPage";
 import CreateOrganizationPage from "./pages/UserPage/CreateOrganizationPage";
+import AppPage from "./pages/AppPages/AppPage";
 
 export const router = createBrowserRouter([
+  { path: '/app/:appType/:spaceId', Component: AppPage },
   {
     path: "/",
     Component: BaseLayout,

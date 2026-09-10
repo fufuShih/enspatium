@@ -15,20 +15,20 @@ import ObjectFileIcon from './ObjectFileIcon'
 import { objectFileKind } from './objectPreview'
 import { storageErrorTitle } from './storageErrors'
 
-export default function ObjectFileList({ account, slug, media = false }: { account: string; slug: string; media?: boolean }) {
+export default function ObjectFileList({ account, slug }: { account: string; slug: string }) {
   const [search] = useSearchParams()
   const prefix = search.get('path') || ''
-  return <ObjectFolder key={prefix + search.get('deleted')} account={account} slug={slug} prefix={prefix} media={media} />
+  return <ObjectFolder key={prefix + search.get('deleted')} account={account} slug={slug} prefix={prefix} />
 }
 
-function ObjectFolder({ account, slug, prefix, media }: { account: string; slug: string; prefix: string; media: boolean }) {
+function ObjectFolder({ account, slug, prefix }: { account: string; slug: string; prefix: string }) {
   const [search] = useSearchParams()
   const navigate = useNavigate()
   const nameFilter = search.get('filter') || ''
   const cursor = search.get('cursor') || ''
   const deleted = search.get('deleted') === 'true'
   const crumbs = objectBreadcrumbs(prefix)
-  const location = (path = prefix, filter = nameFilter, after = '') => objectFolderLocation(account, slug, path, filter, after, deleted, media)
+  const location = (path = prefix, filter = nameFilter, after = '') => objectFolderLocation(account, slug, path, filter, after, deleted)
   const [folderName, setFolderName] = useState('')
   const [creatingFolder, setCreatingFolder] = useState(false)
   const { user } = useAuth()
@@ -129,7 +129,7 @@ function ObjectFolder({ account, slug, prefix, media }: { account: string; slug:
           <ActionButton loading={upload.isPending} loadingText="Uploading..." disabled={files.isPending} onClick={() => input.current?.click()} bg="var(--foreground)" color="var(--background)">Upload file</ActionButton>
         </Flex>}
       </Flex>
-      {user && <Flex gap="8px" mb="20px"><ActionButton asChild><PageLink to={objectFolderLocation(account, slug, '', '', '', false, media)} aria-current={!deleted ? 'page' : undefined}>Files</PageLink></ActionButton><ActionButton asChild><PageLink to={objectFolderLocation(account, slug, '', '', '', true, media)} aria-current={deleted ? 'page' : undefined}>Deleted files</PageLink></ActionButton></Flex>}
+      {user && <Flex gap="8px" mb="20px"><ActionButton asChild><PageLink to={objectFolderLocation(account, slug)} aria-current={!deleted ? 'page' : undefined}>Files</PageLink></ActionButton><ActionButton asChild><PageLink to={objectFolderLocation(account, slug, '', '', '', true)} aria-current={deleted ? 'page' : undefined}>Deleted files</PageLink></ActionButton></Flex>}
       <Box as="nav" aria-label="Folder path" fontSize="13px" color="var(--muted)" mb="20px" overflowWrap="anywhere">
         <PageLink to={location('', '')} aria-current={!prefix ? 'page' : undefined}>All files</PageLink>
         {crumbs.map((crumb, index) => <Fragment key={crumb.prefix}><Text as="span" mx="8px" aria-hidden="true">/</Text><PageLink to={location(crumb.prefix, '')} aria-current={index === crumbs.length - 1 ? 'page' : undefined}>{crumb.name}</PageLink></Fragment>)}

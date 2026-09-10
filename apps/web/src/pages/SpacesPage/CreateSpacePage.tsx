@@ -12,6 +12,8 @@ import { useAuth } from '../../context/auth'
 import { apiStatus } from '../../context/session'
 import { namespacePath } from '../UserPage/namespaces'
 import { cacheCreatedSpace, creatableNamespaces, makeSpaceSlug, spaceErrorMessage, spacePath } from './spaceApi'
+import { getAppPlugin } from '../AppPages/registry'
+import { getListAppsQueryKey, useListApps } from '../../api/generated/apps'
 
 export default function CreateSpacePage() {
   const { user, isLoading, error: sessionError } = useAuth()
@@ -24,6 +26,8 @@ export default function CreateSpacePage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const owners = useListNamespaces({ query: { enabled: Boolean(user), retry: false, queryKey: [...getListNamespacesQueryKey(), user?.id ?? null] } })
+  const apps = useListApps({ query: { enabled: Boolean(user), retry: false, queryKey: [...getListAppsQueryKey(), user?.id ?? null] } })
+  const availableApps = (apps.data ?? []).filter(app => getAppPlugin(app.type)?.integration.storageType === app.storageType)
   const create = useCreateSpace({ mutation: { retry: false } })
   const available = creatableNamespaces(owners.data ?? [], user?.id ?? '')
   const owner = available.find(item => item.slug === ownerKey) ?? available.find(item => item.kind === 'personal') ?? available[0]
@@ -31,22 +35,26 @@ export default function CreateSpacePage() {
 
   if (isLoading || (sessionError && !user)) return <AuthStatus />
   if (!user) return <Navigate to="/login" replace state={{ from: `/space/create${params.size ? `?${params}` : ''}` }} />
-  if (owners.isPending) return <PageContainer><RequestState loading title="Loading your accounts..." /></PageContainer>
+  if (owners.isPending || apps.isPending) return <PageContainer><RequestState loading title="Loading Space options..." /></PageContainer>
   if (owners.isError) return <PageContainer><RequestState title="Unable to load accounts" message={spaceErrorMessage(owners.error)} onRetry={() => { void owners.refetch() }} /></PageContainer>
+  if (apps.isError) return <PageContainer><RequestState title="Unable to load apps" onRetry={() => { void apps.refetch() }} /></PageContainer>
   if (!owner) return <PageContainer><RequestState title="No accounts available" message="You need to own an account or organization to create a Space." /></PageContainer>
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (submitting || !user || !owner) return
     const form = new FormData(event.currentTarget)
+    const type = String(form.get('type'))
+    const app = availableApps.find(app => app.type === type)
+    if (!app && type !== 'git' && type !== 'object') { setError('Choose an available Space type.'); return }
     if (!name.trim()) { setError('Please enter a name.'); return }
     setError('')
     setSubmitting(true)
     try {
       const space = await create.mutateAsync({ namespaceSlug: owner.slug, data: {
         name: name.trim(), slug,
-        type: form.get('type') === 'git' ? 'git' : 'object',
-        app: form.get('type') === 'media' ? 'media' : null,
+        type: app?.storageType ?? (type === 'git' ? 'git' : 'object'),
+        app: app?.type ?? null,
         visibility: form.get('visibility') === 'public' ? 'public' : 'private',
       } })
       await cacheCreatedSpace(client, owner.slug, user.id, space)
@@ -77,7 +85,7 @@ export default function CreateSpacePage() {
           <Flex gap="16px" mt="20px">
             <Box flex="1" minW="0">
               <chakra.label htmlFor="space-type" display="block" fontSize="13px" mb="8px">Type</chakra.label>
-              <SelectInput id="space-type" name="type"><option value="git">Git repository</option><option value="object">Object storage</option><option value="media">Media</option></SelectInput>
+              <SelectInput id="space-type" name="type"><option value="git">Git repository</option><option value="object">Object storage</option>{availableApps.map(app => <option key={app.type} value={app.type}>{app.name}{app.kind === 'builtin' ? ' (built-in)' : ''}</option>)}</SelectInput>
             </Box>
             <Box flex="1" minW="0">
               <chakra.label htmlFor="space-visibility" display="block" fontSize="13px" mb="8px">Visibility</chakra.label>
