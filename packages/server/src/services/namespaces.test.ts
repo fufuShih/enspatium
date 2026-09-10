@@ -24,7 +24,7 @@ describe('namespace service', () => {
     expect(() => validateNamespace('Game Team', 'game-team')).not.toThrow()
   })
 
-  it.each(['api', 'login', 'register', 'space', 'settings', 'organization'])(
+  it.each(['api', 'app', 'login', 'register', 'space', 'settings', 'organization'])(
     'rejects organization URL %s that would collide with an application route',
     slug => expect(() => validateNamespace('My team', slug)).toThrow(NamespaceServiceError),
   )

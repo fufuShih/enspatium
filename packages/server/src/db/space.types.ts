@@ -17,7 +17,7 @@ export interface SpaceTable {
   name: string
   slug: string
   type: SpaceType
-  app: Generated<'media' | null>
+  app: Generated<string | null>
   visibility: Generated<SpaceVisibility>
   quota_bytes: Generated<string>
   object_version_limit: Generated<number>
@@ -40,7 +40,7 @@ export interface SpaceMemberTable {
 export type SpaceMember = Selectable<SpaceMemberTable>
 
 export interface CreateSpaceInput {
-  app?: 'media' | null
+  app?: string | null
   name: string
   slug: string
   type: SpaceType
@@ -72,7 +72,7 @@ export interface PublicSpaceMember {
 }
 
 export interface PublicSpace {
-  app: 'media' | null
+  app: string | null
   id: string
   namespaceId: string
   createdByUserId: string | null

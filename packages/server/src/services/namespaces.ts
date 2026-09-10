@@ -383,7 +383,7 @@ export function validateNamespace(name: string, slug: string): void {
   }
 
   validateNamespaceSlug(slug)
-  if (['api', 'login', 'register', 'space', 'settings', 'organization'].includes(slug)) {
+  if (['api', 'app', 'login', 'register', 'space', 'settings', 'organization'].includes(slug)) {
     throw new NamespaceServiceError('INVALID_INPUT', 400, 'this namespace URL is reserved')
   }
 }

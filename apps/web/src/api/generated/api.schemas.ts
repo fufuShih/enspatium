@@ -26,6 +26,52 @@ export type GetDatabaseHealth200 = {
   status: GetDatabaseHealth200Status;
 };
 
+export const ListApps200ItemKind = {  builtin: 'builtin',
+  custom: 'custom',
+} as const
+export const ListApps200ItemStorageType = {  git: 'git',
+  object: 'object',
+} as const
+export type ListApps200Item = {
+  /**
+     * @minLength 3
+     * @maxLength 60
+     * @pattern ^[a-z0-9]+(-[a-z0-9]+)*$
+     */
+  type: string;
+  name: string;
+  kind: typeof ListApps200ItemKind[keyof typeof ListApps200ItemKind];
+  ownerUserId: string | null;
+  storageType: typeof ListApps200ItemStorageType[keyof typeof ListApps200ItemStorageType];
+};
+
+export const GetAppSpace200AppKind = {  builtin: 'builtin',
+  custom: 'custom',
+} as const
+export const GetAppSpace200AppStorageType = {  git: 'git',
+  object: 'object',
+} as const
+export type GetAppSpace200App = {
+  /**
+     * @minLength 3
+     * @maxLength 60
+     * @pattern ^[a-z0-9]+(-[a-z0-9]+)*$
+     */
+  type: string;
+  name: string;
+  kind: typeof GetAppSpace200AppKind[keyof typeof GetAppSpace200AppKind];
+  ownerUserId: string | null;
+  storageType: typeof GetAppSpace200AppStorageType[keyof typeof GetAppSpace200AppStorageType];
+};
+
+export type GetAppSpace200 = {
+  id: string;
+  name: string;
+  slug: string;
+  account: string;
+  app: GetAppSpace200App;
+};
+
 export type CreateUserBody = {
   /**
      * @minLength 1
@@ -212,13 +258,6 @@ export type ListNamespaceMembers200Item = {
   joinedAt: string;
 };
 
-export type CreateSpaceBodyApp = typeof CreateSpaceBodyApp[keyof typeof CreateSpaceBodyApp] | null;
-
-
-export const CreateSpaceBodyApp = {
-  media: 'media',
-} as const;
-
 export const CreateSpaceBodyType = {  git: 'git',
   object: 'object',
 } as const
@@ -226,7 +265,7 @@ export const CreateSpaceBodyVisibility = {  public: 'public',
   private: 'private',
 } as const
 export type CreateSpaceBody = {
-  app?: CreateSpaceBodyApp;
+  app?: string | null;
   /**
      * @minLength 1
      * @maxLength 100
@@ -241,13 +280,6 @@ export type CreateSpaceBody = {
   visibility?: typeof CreateSpaceBodyVisibility[keyof typeof CreateSpaceBodyVisibility];
 };
 
-export type CreateSpace201App = typeof CreateSpace201App[keyof typeof CreateSpace201App] | null;
-
-
-export const CreateSpace201App = {
-  media: 'media',
-} as const;
-
 export const CreateSpace201Type = {  git: 'git',
   object: 'object',
 } as const
@@ -255,7 +287,7 @@ export const CreateSpace201Visibility = {  public: 'public',
   private: 'private',
 } as const
 export type CreateSpace201 = {
-  app: CreateSpace201App;
+  app: string | null;
   /**
      * @minimum 1
      * @maximum 1000
@@ -277,13 +309,6 @@ export type CreateSpace201 = {
   updatedAt: string;
 };
 
-export type ListSpaces200ItemApp = typeof ListSpaces200ItemApp[keyof typeof ListSpaces200ItemApp] | null;
-
-
-export const ListSpaces200ItemApp = {
-  media: 'media',
-} as const;
-
 export const ListSpaces200ItemType = {  git: 'git',
   object: 'object',
 } as const
@@ -291,7 +316,7 @@ export const ListSpaces200ItemVisibility = {  public: 'public',
   private: 'private',
 } as const
 export type ListSpaces200Item = {
-  app: ListSpaces200ItemApp;
+  app: string | null;
   /**
      * @minimum 1
      * @maximum 1000
@@ -313,13 +338,6 @@ export type ListSpaces200Item = {
   updatedAt: string;
 };
 
-export type GetSpace200App = typeof GetSpace200App[keyof typeof GetSpace200App] | null;
-
-
-export const GetSpace200App = {
-  media: 'media',
-} as const;
-
 export const GetSpace200Type = {  git: 'git',
   object: 'object',
 } as const
@@ -327,7 +345,7 @@ export const GetSpace200Visibility = {  public: 'public',
   private: 'private',
 } as const
 export type GetSpace200 = {
-  app: GetSpace200App;
+  app: string | null;
   /**
      * @minimum 1
      * @maximum 1000
@@ -373,13 +391,6 @@ export type UpdateSpaceBody = {
   visibility?: typeof UpdateSpaceBodyVisibility[keyof typeof UpdateSpaceBodyVisibility];
 };
 
-export type UpdateSpace200App = typeof UpdateSpace200App[keyof typeof UpdateSpace200App] | null;
-
-
-export const UpdateSpace200App = {
-  media: 'media',
-} as const;
-
 export const UpdateSpace200Type = {  git: 'git',
   object: 'object',
 } as const
@@ -387,7 +398,7 @@ export const UpdateSpace200Visibility = {  public: 'public',
   private: 'private',
 } as const
 export type UpdateSpace200 = {
-  app: UpdateSpace200App;
+  app: string | null;
   /**
      * @minimum 1
      * @maximum 1000

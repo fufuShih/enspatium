@@ -59,15 +59,21 @@ export async function createSpace(
   const visibility = input.visibility ?? 'private'
 
   validateSpace(name, slug, input.type, visibility)
-  if (input.app != null && (input.app !== 'media' || input.type !== 'object')) {
-    throw new SpaceServiceError('INVALID_INPUT', 400, 'Media requires an Object Space.')
-  }
 
   const namespace = await requireNamespaceOwner(
     db,
     actorUserId,
     inputNamespaceSlug,
   )
+
+  if (input.app != null) {
+    const app = await db.selectFrom('apps').selectAll().where('type', '=', input.app).executeTakeFirst()
+    if (!app) throw new SpaceServiceError('INVALID_INPUT', 400, 'App type is not registered.')
+    if (app.storage_type !== input.type) throw new SpaceServiceError('INVALID_INPUT', 400, 'App does not support this storage type.')
+    if (app.kind === 'custom' && app.owner_user_id !== actorUserId) {
+      throw new SpaceServiceError('FORBIDDEN', 403, 'Only the creator can create Spaces with this custom app.')
+    }
+  }
 
   let space: Space
 

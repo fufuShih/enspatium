@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 
 import { auditRoutes } from './audit.route.js'
+import { appRoutes } from './apps.route.js'
 import { authRoutes } from './auth.route.js'
 import { gitRoutes } from './git.route.js'
 import { healthRoutes } from './health.route.js'
@@ -13,6 +14,7 @@ import { userRoutes } from './users.route.js'
 // Runtime and OpenAPI export register the same routes.
 export async function registerRoutes(app: FastifyInstance) {
   await app.register(healthRoutes)
+  await app.register(appRoutes)
   await app.register(userRoutes)
   await app.register(authRoutes)
   await app.register(tokenRoutes)

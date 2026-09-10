@@ -79,6 +79,230 @@
         }
       }
     },
+    "/apps": {
+      "get": {
+        "operationId": "listApps",
+        "tags": [
+          "apps"
+        ],
+        "security": [
+          {},
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "type",
+                      "name",
+                      "kind",
+                      "ownerUserId",
+                      "storageType"
+                    ],
+                    "properties": {
+                      "type": {
+                        "minLength": 3,
+                        "maxLength": 60,
+                        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "builtin"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "custom"
+                            ]
+                          }
+                        ]
+                      },
+                      "ownerUserId": {
+                        "anyOf": [
+                          {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "storageType": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "git"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "object"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/apps/{appType}/spaces/{spaceId}": {
+      "get": {
+        "operationId": "getAppSpace",
+        "tags": [
+          "apps"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 3,
+              "maxLength": 60,
+              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "appType",
+            "required": true
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceId",
+            "required": true
+          }
+        ],
+        "security": [
+          {},
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "name",
+                    "slug",
+                    "account",
+                    "app"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "account": {
+                      "type": "string"
+                    },
+                    "app": {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "name",
+                        "kind",
+                        "ownerUserId",
+                        "storageType"
+                      ],
+                      "properties": {
+                        "type": {
+                          "minLength": 3,
+                          "maxLength": 60,
+                          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "builtin"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "custom"
+                              ]
+                            }
+                          ]
+                        },
+                        "ownerUserId": {
+                          "anyOf": [
+                            {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "storageType": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "git"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "object"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users": {
       "post": {
         "operationId": "createUser",
@@ -1054,10 +1278,10 @@
                   "app": {
                     "anyOf": [
                       {
-                        "type": "string",
-                        "enum": [
-                          "media"
-                        ]
+                        "minLength": 3,
+                        "maxLength": 60,
+                        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                        "type": "string"
                       },
                       {
                         "type": "null"
@@ -1148,10 +1372,10 @@
                     "app": {
                       "anyOf": [
                         {
-                          "type": "string",
-                          "enum": [
-                            "media"
-                          ]
+                          "minLength": 3,
+                          "maxLength": 60,
+                          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                          "type": "string"
                         },
                         {
                           "type": "null"
@@ -1282,10 +1506,10 @@
                       "app": {
                         "anyOf": [
                           {
-                            "type": "string",
-                            "enum": [
-                              "media"
-                            ]
+                            "minLength": 3,
+                            "maxLength": 60,
+                            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                            "type": "string"
                           },
                           {
                             "type": "null"
@@ -1435,10 +1659,10 @@
                     "app": {
                       "anyOf": [
                         {
-                          "type": "string",
-                          "enum": [
-                            "media"
-                          ]
+                          "minLength": 3,
+                          "maxLength": 60,
+                          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                          "type": "string"
                         },
                         {
                           "type": "null"
@@ -1628,10 +1852,10 @@
                     "app": {
                       "anyOf": [
                         {
-                          "type": "string",
-                          "enum": [
-                            "media"
-                          ]
+                          "minLength": 3,
+                          "maxLength": 60,
+                          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                          "type": "string"
                         },
                         {
                           "type": "null"
