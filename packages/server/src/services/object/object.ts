@@ -7,21 +7,16 @@ import type {
   PublicSpaceObject,
   SpaceObject,
 } from '../../db/object.types.js'
-import { createAuditEvent } from '../audit/audit.js'
 import { requireSpaceStorage, SpaceStorageUnavailable } from '../space/storage.js'
 import {
   getReadableObjectSpace,
-  getWritableObjectSpace,
 } from '../space/space.js'
 import {
-  deleteObjectFile,
   maximumObjectSizeBytes,
   normalizeObjectKey,
   normalizeObjectPrefix,
   ObjectStorageError,
   readObjectFile,
-  type StoredObjectFile,
-  writeObjectFile,
 } from './storage.js'
 
 const defaultContentType = 'application/octet-stream'
@@ -33,6 +28,7 @@ export type ObjectServiceErrorCode =
   | 'CONFLICT'
   | 'NOT_FOUND'
   | 'OBJECT_CONTENT_MISSING'
+  | 'OBJECT_CONTENT_CORRUPT'
   | 'QUOTA_EXCEEDED'
   | 'INTERNAL'
 
@@ -53,6 +49,7 @@ export interface UploadObjectInput {
   contentType?: string
   contentLength?: string
   source: Readable
+  expectedVersion?: string
 }
 
 export interface DownloadedObject {
@@ -70,7 +67,7 @@ export interface ObjectFolderPage {
 export async function browseObjects(
   db: Kysely<Database>, dataRoot: string, actorUserId: string,
   namespaceSlug: string, spaceSlug: string,
-  input: { prefix?: string; filter?: string; cursor?: string; limit?: number },
+  input: { prefix?: string; filter?: string; cursor?: string; limit?: number; deleted?: boolean },
 ): Promise<ObjectFolderPage> {
   const prefix = validateObjectPrefix(input.prefix)
   const filter = validateObjectPrefix(input.filter)
@@ -96,7 +93,7 @@ export async function browseObjects(
           when strpos(substr(key, char_length(${prefix}::text) + 1), '/') > 0
           then left(key, char_length(${prefix}::text) + strpos(substr(key, char_length(${prefix}::text) + 1), '/'))
           else key end as entry_key
-        from space_objects where space_id = ${space.id} and key like ${escapeLikePrefix(match) + '%'}
+        from space_objects where space_id = ${space.id} and is_deleted = ${input.deleted ?? false} and key like ${escapeLikePrefix(match) + '%'}
       ), entries as (
         select entry_key, right(entry_key, 1) = '/' as is_folder from children
       )
@@ -116,153 +113,6 @@ export async function browseObjects(
     }
   } catch (error) {
     throw new ObjectServiceError('INTERNAL', 500, 'failed to browse objects', error)
-  }
-}
-
-export async function uploadObject(
-  db: Kysely<Database>,
-  dataRoot: string,
-  actorUserId: string,
-  namespaceSlug: string,
-  spaceSlug: string,
-  input: UploadObjectInput,
-): Promise<PublicSpaceObject> {
-  const key = validateObjectKey(input.key)
-  const contentType = normalizeContentType(input.contentType)
-  const declaredSize = parseContentLength(input.contentLength)
-  const space = await getWritableObjectSpace(
-    db,
-    actorUserId,
-    namespaceSlug,
-    spaceSlug,
-  )
-
-  await requireSpaceStorage(dataRoot, space.id, 'object', true)
-  try {
-    const segments = key.split('/')
-    const conflictingKeys = segments.map((_, index) => segments.slice(0, index + 1).join('/'))
-    const existingObject = await db
-      .selectFrom('space_objects')
-      .select('id')
-      .where('space_id', '=', space.id)
-      .where(eb => eb.or([
-        eb('key', 'in', conflictingKeys),
-        eb('key', 'like', escapeLikePrefix(key + '/') + '%'),
-      ]))
-      .executeTakeFirst()
-
-    if (existingObject) {
-      throw new ObjectServiceError(
-        'CONFLICT',
-        409,
-        'object key conflicts with an existing file or folder',
-      )
-    }
-  } catch (error) {
-    if (error instanceof ObjectServiceError) {
-      throw error
-    }
-
-    throw new ObjectServiceError(
-      'INTERNAL',
-      500,
-      'failed to check object key',
-      error,
-    )
-  }
-
-  let storedFile: StoredObjectFile
-
-  try {
-    storedFile = await writeObjectFile(
-      dataRoot,
-      space.id,
-      key,
-      input.source,
-      declaredSize,
-    )
-  } catch (error) {
-    throwObjectStorageError(error)
-  }
-
-  try {
-    const object = await db.transaction().execute(async (transaction) => {
-      const usage = await readObjectStorageUsage(
-        transaction,
-        space.id,
-        true,
-      )
-
-      ensureObjectQuota(usage, storedFile.sizeBytes)
-
-      const createdObject = await transaction
-        .insertInto('space_objects')
-        .values({
-          space_id: space.id,
-          created_by_user_id: actorUserId,
-          key,
-          content_type: contentType,
-          size_bytes: storedFile.sizeBytes,
-          checksum_sha256: storedFile.checksumSha256,
-        })
-        .returningAll()
-        .executeTakeFirstOrThrow()
-
-      await createAuditEvent(transaction, {
-        actorUserId,
-        namespaceId: space.namespaceId,
-        spaceId: space.id,
-        action: 'object.uploaded',
-        metadata: {
-          objectId: createdObject.id,
-          key: createdObject.key,
-          contentType: createdObject.content_type,
-          sizeBytes: createdObject.size_bytes,
-          checksumSha256: createdObject.checksum_sha256,
-        },
-      })
-
-      return createdObject
-    })
-
-    return toPublicSpaceObject(object)
-  } catch (error) {
-    let cleanupError: unknown
-
-    try {
-      await deleteObjectFile(dataRoot, space.id, key)
-    } catch (errorDuringCleanup) {
-      cleanupError = errorDuringCleanup
-    }
-
-    if (cleanupError) {
-      throw new ObjectServiceError(
-        'INTERNAL',
-        500,
-        'database write and object cleanup both failed',
-        new AggregateError([error, cleanupError]),
-      )
-    }
-
-    if (error instanceof ObjectServiceError) {
-      throw error
-    }
-
-    if (isUniqueViolation(error)) {
-      throw new ObjectServiceError(
-        'CONFLICT',
-        409,
-        'object key already exists',
-        error,
-      )
-    }
-
-    throw new ObjectServiceError(
-      'INTERNAL',
-      500,
-      'failed to create object metadata',
-      error,
-    )
   }
 }
 
@@ -290,6 +140,7 @@ export async function listObjects(
       .selectFrom('space_objects')
       .selectAll()
       .where('space_id', '=', space.id)
+      .where('is_deleted', '=', false)
 
     if (prefix) {
       query = query.where('key', 'like', escapeLikePrefix(prefix) + '%')
@@ -344,6 +195,7 @@ export async function downloadObject(
   namespaceSlug: string,
   spaceSlug: string,
   inputKey: string,
+  versionId?: string,
 ): Promise<DownloadedObject> {
   const key = validateObjectKey(inputKey)
   const space = await getReadableObjectSpace(
@@ -354,85 +206,25 @@ export async function downloadObject(
   )
   const object = await getObjectByKey(db, space.id, key)
 
+  if (!actorUserId && (object.is_deleted || (versionId && versionId !== object.current_version_id))) {
+    throw new ObjectServiceError('NOT_FOUND', 404, 'object was not found')
+  }
+  const version = await db.selectFrom('space_object_versions').selectAll()
+    .where('object_id', '=', object.id).where('id', '=', versionId ?? object.current_version_id)
+    .where('purge_started_at', 'is', null).executeTakeFirst()
+  if (!version || version.is_deleted || !version.storage_key) throw new ObjectServiceError('NOT_FOUND', 404, 'object content was not found')
   try {
     return {
-      object: toPublicSpaceObject(object),
-      stream: await readObjectFile(dataRoot, space.id, key),
+      object: toPublicSpaceObject({ ...object, content_type: version.content_type, size_bytes: version.size_bytes,
+        checksum_sha256: version.checksum_sha256, created_by_user_id: version.created_by_user_id,
+        updated_at: version.created_at, current_version_id: version.id, revision: version.revision, is_deleted: false }),
+      stream: await readObjectFile(dataRoot, space.id, version.storage_key),
     }
   } catch (error) {
     if (error instanceof ObjectStorageError && error.code === 'NOT_FOUND') {
       throw new ObjectServiceError('OBJECT_CONTENT_MISSING', 404, 'Object metadata exists, but its stored content is missing.', error)
     }
     throwObjectStorageError(error)
-  }
-}
-
-export async function deleteObject(
-  db: Kysely<Database>,
-  dataRoot: string,
-  actorUserId: string,
-  namespaceSlug: string,
-  spaceSlug: string,
-  inputKey: string,
-): Promise<void> {
-  const key = validateObjectKey(inputKey)
-  const space = await getWritableObjectSpace(
-    db,
-    actorUserId,
-    namespaceSlug,
-    spaceSlug,
-  )
-
-  await getObjectByKey(db, space.id, key)
-
-  try {
-    await deleteObjectFile(dataRoot, space.id, key)
-  } catch (error) {
-    throwObjectStorageError(error)
-  }
-
-  try {
-    await db.transaction().execute(async (transaction) => {
-      const deletedObject = await transaction
-        .deleteFrom('space_objects')
-        .where('space_id', '=', space.id)
-        .where('key', '=', key)
-        .returningAll()
-        .executeTakeFirst()
-
-      if (!deletedObject) {
-        throw new ObjectServiceError(
-          'NOT_FOUND',
-          404,
-          'object was not found',
-        )
-      }
-
-      await createAuditEvent(transaction, {
-        actorUserId,
-        namespaceId: space.namespaceId,
-        spaceId: space.id,
-        action: 'object.deleted',
-        metadata: {
-          objectId: deletedObject.id,
-          key: deletedObject.key,
-          contentType: deletedObject.content_type,
-          sizeBytes: deletedObject.size_bytes,
-          checksumSha256: deletedObject.checksum_sha256,
-        },
-      })
-    })
-  } catch (error) {
-    if (error instanceof ObjectServiceError) {
-      throw error
-    }
-
-    throw new ObjectServiceError(
-      'INTERNAL',
-      500,
-      'failed to delete object metadata',
-      error,
-    )
   }
 }
 
@@ -517,7 +309,7 @@ export function ensureObjectQuota(
   }
 }
 
-function validateObjectKey(input: string): string {
+export function validateObjectKey(input: string): string {
   try {
     return normalizeObjectKey(input)
   } catch (error) {
@@ -525,7 +317,7 @@ function validateObjectKey(input: string): string {
   }
 }
 
-function validateObjectPrefix(input?: string): string {
+export function validateObjectPrefix(input?: string): string {
   try {
     return normalizeObjectPrefix(input)
   } catch (error) {
@@ -533,7 +325,7 @@ function validateObjectPrefix(input?: string): string {
   }
 }
 
-function normalizeContentType(input?: string): string {
+export function normalizeContentType(input?: string): string {
   const contentType = input?.trim() || defaultContentType
 
   if (contentType.length > 255) {
@@ -547,7 +339,7 @@ function normalizeContentType(input?: string): string {
   return contentType
 }
 
-function throwObjectStorageError(error: unknown): never {
+export function throwObjectStorageError(error: unknown): never {
   if (error instanceof SpaceStorageUnavailable) throw error
   if (error instanceof ObjectStorageError) {
     if (error.code === 'INVALID_KEY') {
@@ -585,7 +377,7 @@ function throwObjectStorageError(error: unknown): never {
   )
 }
 
-function toPublicSpaceObject(object: SpaceObject): PublicSpaceObject {
+export function toPublicSpaceObject(object: SpaceObject): PublicSpaceObject {
   return {
     id: object.id,
     spaceId: object.space_id,
@@ -596,10 +388,13 @@ function toPublicSpaceObject(object: SpaceObject): PublicSpaceObject {
     checksumSha256: object.checksum_sha256,
     createdAt: object.created_at.toISOString(),
     updatedAt: object.updated_at.toISOString(),
+    versionId: object.current_version_id,
+    revision: object.revision,
+    isDeleted: object.is_deleted,
   }
 }
 
-async function getObjectByKey(
+export async function getObjectByKey(
   db: Kysely<Database>,
   spaceId: string,
   key: string,
@@ -635,7 +430,7 @@ async function getObjectByKey(
   }
 }
 
-async function readObjectStorageUsage(
+export async function readObjectStorageUsage(
   db: Kysely<Database>,
   spaceId: string,
   lockSpace: boolean,
@@ -656,7 +451,7 @@ async function readObjectStorageUsage(
   }
 
   const total = await db
-    .selectFrom('space_objects')
+    .selectFrom('space_object_versions')
     .select(({ fn }) => fn.sum<string>('size_bytes').as('used_bytes'))
     .where('space_id', '=', spaceId)
     .executeTakeFirstOrThrow()
@@ -692,15 +487,6 @@ function toSafeByteNumber(input: string | number | bigint): number {
   return Number(value)
 }
 
-function escapeLikePrefix(input: string): string {
+export function escapeLikePrefix(input: string): string {
   return input.replace(/[\\%_]/g, '\\$&')
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    error.code === '23505'
-  )
 }

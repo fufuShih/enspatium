@@ -9,6 +9,7 @@ import { useAuth } from '../../context/auth'
 import { apiStatus } from '../../context/session'
 import DeleteSpaceButton from './DeleteSpaceButton'
 import SpaceMembers from './SpaceMembers'
+import ObjectRetentionSettings from './ObjectRetentionSettings'
 import { refreshSpaceSettings, settingsErrorMessage } from './settingsApi'
 import { storageErrorTitle } from './storageErrors'
 
@@ -58,6 +59,7 @@ export default function SpaceSettings({ account, space }: { account: string; spa
       </form>
     </Box>
     {space.type === 'git' && <GitSettings account={account} slug={space.slug} />}
+    {space.type === 'object' && <ObjectRetentionSettings account={account} space={space} />}
     <SpaceMembers account={account} slug={space.slug} />
     {space.canDelete && <Box as="section" aria-labelledby="danger-heading" borderTop="1px solid var(--border)" mt="32px" pt="28px">
       <Heading as="h2" id="danger-heading" fontSize="17px">Danger zone</Heading>

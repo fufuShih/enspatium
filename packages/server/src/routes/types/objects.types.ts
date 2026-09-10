@@ -33,6 +33,9 @@ export const SpaceObjectResponseSchema = Type.Object({
   checksumSha256: Type.String({ pattern: '^[0-9a-f]{64}$' }),
   createdAt: Type.String({ format: 'date-time' }),
   updatedAt: Type.String({ format: 'date-time' }),
+  versionId: Type.String({ format: 'uuid' }),
+  revision: Type.Integer({ minimum: 1 }),
+  isDeleted: Type.Boolean(),
 })
 
 export const SpaceObjectListResponseSchema = Type.Array(
@@ -44,6 +47,7 @@ export const ObjectFolderQuerySchema = Type.Object({
   filter: Type.Optional(Type.String({ maxLength: 1024 })),
   cursor: Type.Optional(Type.String({ maxLength: 1024 })),
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: maximumObjectListLimit })),
+  deleted: Type.Optional(Type.Boolean()),
 })
 
 export const ObjectFolderResponseSchema = Type.Object({
@@ -57,4 +61,32 @@ export const ObjectStorageUsageResponseSchema = Type.Object({
   usedBytes: Type.Integer({ minimum: 0 }),
   quotaBytes: Type.Integer({ minimum: 1 }),
   remainingBytes: Type.Integer({ minimum: 0 }),
+})
+
+export const ObjectHeadQuerySchema = Type.Object({ key: Type.String({ minLength: 1, maxLength: 1024 }) })
+export const ObjectWriteQuerySchema = Type.Object({
+  expectedVersion: Type.Optional(Type.Union([Type.String({ format: 'uuid' }), Type.Literal('none')])),
+})
+export const ObjectVersionsQuerySchema = Type.Object({
+  ...ObjectHeadQuerySchema.properties,
+  cursor: Type.Optional(Type.Integer({ minimum: 1 })),
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
+})
+export const ObjectVersionQuerySchema = Type.Object({
+  ...ObjectHeadQuerySchema.properties,
+  versionId: Type.String({ format: 'uuid' }),
+})
+export const RestoreObjectVersionQuerySchema = Type.Object({
+  ...ObjectVersionQuerySchema.properties,
+  expectedVersion: Type.String({ format: 'uuid' }),
+})
+export const ObjectVersionsResponseSchema = Type.Object({
+  versionLimit: Type.Integer({ minimum: 1 }),
+  retentionDays: Type.Integer({ minimum: 1 }),
+  object: SpaceObjectResponseSchema,
+  versions: Type.Array(Type.Object({
+    ...SpaceObjectResponseSchema.properties,
+    createdByName: Type.Union([Type.String(), Type.Null()]),
+  })),
+  nextCursor: Type.Union([Type.Integer(), Type.Null()]),
 })

@@ -37,7 +37,14 @@ test('object folders group before pagination, preserve key boundaries and enforc
   await guest.request('GET', base + '/object-tree', 401)
   // Seed many keys to prove grouping is not limited by the first 100 objects.
   const keys = [...Array.from({ length: 105 }, (_, index) => `many/item-${index}.txt`), ...Array.from({ length: 105 }, (_, index) => `folder-${String(index).padStart(3, '0')}/item.txt`)]
-  await app.db.insertInto('space_objects').values(keys.map(key => ({ space_id: space.id, created_by_user_id: user.id, key, content_type: 'text/plain', size_bytes: 0, checksum_sha256: '0'.repeat(64) }))).execute()
+  await app.db.transaction().execute(async tx => {
+    const objects = await tx.insertInto('space_objects').values(keys.map(key => ({ space_id: space.id, created_by_user_id: user.id, key, content_type: 'text/plain', size_bytes: 0, checksum_sha256: '0'.repeat(64) }))).returningAll().execute()
+    await tx.insertInto('space_object_versions').values(objects.map(object => ({
+      id: object.current_version_id, object_id: object.id, space_id: space.id, revision: 1,
+      storage_key: object.key, is_deleted: false, content_type: object.content_type,
+      size_bytes: 0, checksum_sha256: object.checksum_sha256, created_by_user_id: user.id,
+    }))).execute()
+  })
   const allFolders: string[] = []
   const allObjects: string[] = []
   let cursor: string | null = null

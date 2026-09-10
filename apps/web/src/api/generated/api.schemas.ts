@@ -240,6 +240,16 @@ export const CreateSpace201Visibility = {  public: 'public',
   private: 'private',
 } as const
 export type CreateSpace201 = {
+  /**
+     * @minimum 1
+     * @maximum 1000
+     */
+  objectVersionLimit: number;
+  /**
+     * @minimum 1
+     * @maximum 36500
+     */
+  objectRetentionDays: number;
   id: string;
   namespaceId: string;
   createdByUserId: string | null;
@@ -258,6 +268,16 @@ export const ListSpaces200ItemVisibility = {  public: 'public',
   private: 'private',
 } as const
 export type ListSpaces200Item = {
+  /**
+     * @minimum 1
+     * @maximum 1000
+     */
+  objectVersionLimit: number;
+  /**
+     * @minimum 1
+     * @maximum 36500
+     */
+  objectRetentionDays: number;
   id: string;
   namespaceId: string;
   createdByUserId: string | null;
@@ -276,6 +296,16 @@ export const GetSpace200Visibility = {  public: 'public',
   private: 'private',
 } as const
 export type GetSpace200 = {
+  /**
+     * @minimum 1
+     * @maximum 1000
+     */
+  objectVersionLimit: number;
+  /**
+     * @minimum 1
+     * @maximum 36500
+     */
+  objectRetentionDays: number;
   id: string;
   namespaceId: string;
   createdByUserId: string | null;
@@ -294,6 +324,16 @@ export const UpdateSpaceBodyVisibility = {  public: 'public',
 } as const
 export type UpdateSpaceBody = {
   /**
+     * @minimum 1
+     * @maximum 1000
+     */
+  objectVersionLimit?: number;
+  /**
+     * @minimum 1
+     * @maximum 36500
+     */
+  objectRetentionDays?: number;
+  /**
      * @minLength 1
      * @maxLength 100
      */
@@ -308,6 +348,16 @@ export const UpdateSpace200Visibility = {  public: 'public',
   private: 'private',
 } as const
 export type UpdateSpace200 = {
+  /**
+     * @minimum 1
+     * @maximum 1000
+     */
+  objectVersionLimit: number;
+  /**
+     * @minimum 1
+     * @maximum 36500
+     */
+  objectRetentionDays: number;
   id: string;
   namespaceId: string;
   createdByUserId: string | null;
@@ -602,6 +652,7 @@ export const ListSpaceAuditEvents200ItemAction = {  spacecreated: 'space.created
   gitpushed: 'git.pushed',
   objectuploaded: 'object.uploaded',
   objectdeleted: 'object.deleted',
+  objectversion_purged: 'object.version_purged',
 } as const
 export type ListSpaceAuditEvents200ItemMetadata = {[key: string]: unknown};
 
@@ -648,6 +699,10 @@ export type ListObjects200Item = {
   checksumSha256: string;
   createdAt: string;
   updatedAt: string;
+  versionId: string;
+  /** @minimum 1 */
+  revision: number;
+  isDeleted: boolean;
 };
 
 export type BrowseObjectsParams = {
@@ -668,6 +723,7 @@ cursor?: string;
  * @maximum 100
  */
 limit?: number;
+deleted?: boolean;
 };
 
 export type BrowseObjects200ObjectsItem = {
@@ -682,6 +738,10 @@ export type BrowseObjects200ObjectsItem = {
   checksumSha256: string;
   createdAt: string;
   updatedAt: string;
+  versionId: string;
+  /** @minimum 1 */
+  revision: number;
+  isDeleted: boolean;
 };
 
 export type BrowseObjects200 = {
@@ -689,6 +749,10 @@ export type BrowseObjects200 = {
   folders: string[];
   objects: BrowseObjects200ObjectsItem[];
   nextCursor: string | null;
+};
+
+export type UploadObjectParams = {
+expectedVersion?: string | 'none';
 };
 
 export type UploadObject201 = {
@@ -703,5 +767,140 @@ export type UploadObject201 = {
   checksumSha256: string;
   createdAt: string;
   updatedAt: string;
+  versionId: string;
+  /** @minimum 1 */
+  revision: number;
+  isDeleted: boolean;
+};
+
+export type DeleteObjectParams = {
+expectedVersion?: string | 'none';
+};
+
+export type GetObjectHeadParams = {
+/**
+ * @minLength 1
+ * @maxLength 1024
+ */
+key: string;
+};
+
+export type GetObjectHead200 = {
+  id: string;
+  spaceId: string;
+  createdByUserId: string | null;
+  key: string;
+  contentType: string;
+  /** @minimum 0 */
+  sizeBytes: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  checksumSha256: string;
+  createdAt: string;
+  updatedAt: string;
+  versionId: string;
+  /** @minimum 1 */
+  revision: number;
+  isDeleted: boolean;
+} | null;
+
+export type ListObjectVersionsParams = {
+/**
+ * @minLength 1
+ * @maxLength 1024
+ */
+key: string;
+/**
+ * @minimum 1
+ */
+cursor?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type ListObjectVersions200Object = {
+  id: string;
+  spaceId: string;
+  createdByUserId: string | null;
+  key: string;
+  contentType: string;
+  /** @minimum 0 */
+  sizeBytes: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  checksumSha256: string;
+  createdAt: string;
+  updatedAt: string;
+  versionId: string;
+  /** @minimum 1 */
+  revision: number;
+  isDeleted: boolean;
+};
+
+export type ListObjectVersions200VersionsItem = {
+  id: string;
+  spaceId: string;
+  createdByUserId: string | null;
+  key: string;
+  contentType: string;
+  /** @minimum 0 */
+  sizeBytes: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  checksumSha256: string;
+  createdAt: string;
+  updatedAt: string;
+  versionId: string;
+  /** @minimum 1 */
+  revision: number;
+  isDeleted: boolean;
+  createdByName: string | null;
+};
+
+export type ListObjectVersions200 = {
+  /** @minimum 1 */
+  versionLimit: number;
+  /** @minimum 1 */
+  retentionDays: number;
+  object: ListObjectVersions200Object;
+  versions: ListObjectVersions200VersionsItem[];
+  nextCursor: number | null;
+};
+
+export type RestoreObjectVersionParams = {
+/**
+ * @minLength 1
+ * @maxLength 1024
+ */
+key: string;
+versionId: string;
+expectedVersion: string;
+};
+
+export type RestoreObjectVersion201 = {
+  id: string;
+  spaceId: string;
+  createdByUserId: string | null;
+  key: string;
+  contentType: string;
+  /** @minimum 0 */
+  sizeBytes: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  checksumSha256: string;
+  createdAt: string;
+  updatedAt: string;
+  versionId: string;
+  /** @minimum 1 */
+  revision: number;
+  isDeleted: boolean;
+};
+
+export type DownloadObjectVersionParams = {
+/**
+ * @minLength 1
+ * @maxLength 1024
+ */
+key: string;
+versionId: string;
 };
 

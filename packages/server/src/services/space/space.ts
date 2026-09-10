@@ -689,6 +689,8 @@ export async function updateSpace(
   const spaceSlug = normalizeSpaceSlug(inputSpaceSlug)
   const name = input.name?.trim()
   const normalizedInput: UpdateSpaceInput = {}
+  if (input.objectVersionLimit !== undefined) normalizedInput.objectVersionLimit = input.objectVersionLimit
+  if (input.objectRetentionDays !== undefined) normalizedInput.objectRetentionDays = input.objectRetentionDays
 
   if (name !== undefined) {
     normalizedInput.name = name
@@ -708,11 +710,17 @@ export async function updateSpace(
     spaceSlug,
   )
 
+  if (spaceAccess.spaceType !== 'object' && (input.objectVersionLimit !== undefined || input.objectRetentionDays !== undefined)) {
+    throw new SpaceServiceError('INVALID_INPUT', 400, 'Object retention settings are only available for Object Spaces')
+  }
+
   try {
     return await db.transaction().execute(async (transaction) => {
       const space = await transaction
         .updateTable('spaces')
         .set({
+          ...(normalizedInput.objectVersionLimit !== undefined ? { object_version_limit: normalizedInput.objectVersionLimit } : {}),
+          ...(normalizedInput.objectRetentionDays !== undefined ? { object_retention_days: normalizedInput.objectRetentionDays } : {}),
           ...(normalizedInput.name !== undefined
             ? { name: normalizedInput.name }
             : {}),
@@ -1121,12 +1129,18 @@ export function validateSpace(
 }
 
 export function validateSpaceUpdate(input: UpdateSpaceInput): void {
-  if (input.name === undefined && input.visibility === undefined) {
+  if (input.name === undefined && input.visibility === undefined && input.objectVersionLimit === undefined && input.objectRetentionDays === undefined) {
     throw new SpaceServiceError(
       'INVALID_INPUT',
       400,
       'at least one space field is required',
     )
+  }
+
+  for (const [value, maximum] of [[input.objectVersionLimit, 1000], [input.objectRetentionDays, 36500]] as const) {
+    if (value !== undefined && (!Number.isInteger(value) || value < 1 || value > maximum)) {
+      throw new SpaceServiceError('INVALID_INPUT', 400, 'Invalid Object retention settings')
+    }
   }
 
   if (input.name !== undefined) {
@@ -1353,6 +1367,8 @@ function validateSlug(slug: string, subject: 'namespace' | 'space'): void {
 
 function toPublicSpace(space: Space): PublicSpace {
   return {
+    objectVersionLimit: space.object_version_limit ?? 3,
+    objectRetentionDays: space.object_retention_days ?? 7,
     id: space.id,
     namespaceId: space.namespace_id,
     createdByUserId: space.created_by_user_id,

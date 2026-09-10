@@ -1118,6 +1118,8 @@
                 "schema": {
                   "type": "object",
                   "required": [
+                    "objectVersionLimit",
+                    "objectRetentionDays",
                     "id",
                     "namespaceId",
                     "createdByUserId",
@@ -1129,6 +1131,16 @@
                     "updatedAt"
                   ],
                   "properties": {
+                    "objectVersionLimit": {
+                      "minimum": 1,
+                      "maximum": 1000,
+                      "type": "integer"
+                    },
+                    "objectRetentionDays": {
+                      "minimum": 1,
+                      "maximum": 36500,
+                      "type": "integer"
+                    },
                     "id": {
                       "format": "uuid",
                       "type": "string"
@@ -1226,6 +1238,8 @@
                   "items": {
                     "type": "object",
                     "required": [
+                      "objectVersionLimit",
+                      "objectRetentionDays",
                       "id",
                       "namespaceId",
                       "createdByUserId",
@@ -1237,6 +1251,16 @@
                       "updatedAt"
                     ],
                     "properties": {
+                      "objectVersionLimit": {
+                        "minimum": 1,
+                        "maximum": 1000,
+                        "type": "integer"
+                      },
+                      "objectRetentionDays": {
+                        "minimum": 1,
+                        "maximum": 36500,
+                        "type": "integer"
+                      },
                       "id": {
                         "format": "uuid",
                         "type": "string"
@@ -1351,6 +1375,8 @@
                 "schema": {
                   "type": "object",
                   "required": [
+                    "objectVersionLimit",
+                    "objectRetentionDays",
                     "id",
                     "namespaceId",
                     "createdByUserId",
@@ -1364,6 +1390,16 @@
                     "canManage"
                   ],
                   "properties": {
+                    "objectVersionLimit": {
+                      "minimum": 1,
+                      "maximum": 1000,
+                      "type": "integer"
+                    },
+                    "objectRetentionDays": {
+                      "minimum": 1,
+                      "maximum": 36500,
+                      "type": "integer"
+                    },
                     "id": {
                       "format": "uuid",
                       "type": "string"
@@ -1454,6 +1490,16 @@
                 "minProperties": 1,
                 "type": "object",
                 "properties": {
+                  "objectVersionLimit": {
+                    "minimum": 1,
+                    "maximum": 1000,
+                    "type": "integer"
+                  },
+                  "objectRetentionDays": {
+                    "minimum": 1,
+                    "maximum": 36500,
+                    "type": "integer"
+                  },
                   "name": {
                     "minLength": 1,
                     "maxLength": 100,
@@ -1510,6 +1556,8 @@
                 "schema": {
                   "type": "object",
                   "required": [
+                    "objectVersionLimit",
+                    "objectRetentionDays",
                     "id",
                     "namespaceId",
                     "createdByUserId",
@@ -1521,6 +1569,16 @@
                     "updatedAt"
                   ],
                   "properties": {
+                    "objectVersionLimit": {
+                      "minimum": 1,
+                      "maximum": 1000,
+                      "type": "integer"
+                    },
+                    "objectRetentionDays": {
+                      "minimum": 1,
+                      "maximum": 36500,
+                      "type": "integer"
+                    },
                     "id": {
                       "format": "uuid",
                       "type": "string"
@@ -3113,6 +3171,12 @@
                             "enum": [
                               "object.deleted"
                             ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "object.version_purged"
+                            ]
                           }
                         ]
                       },
@@ -3259,7 +3323,10 @@
                       "sizeBytes",
                       "checksumSha256",
                       "createdAt",
-                      "updatedAt"
+                      "updatedAt",
+                      "versionId",
+                      "revision",
+                      "isDeleted"
                     ],
                     "properties": {
                       "id": {
@@ -3302,6 +3369,17 @@
                       "updatedAt": {
                         "format": "date-time",
                         "type": "string"
+                      },
+                      "versionId": {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      "revision": {
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "isDeleted": {
+                        "type": "boolean"
                       }
                     }
                   }
@@ -3354,6 +3432,14 @@
             },
             "in": "query",
             "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "deleted",
             "required": false
           },
           {
@@ -3413,7 +3499,10 @@
                           "sizeBytes",
                           "checksumSha256",
                           "createdAt",
-                          "updatedAt"
+                          "updatedAt",
+                          "versionId",
+                          "revision",
+                          "isDeleted"
                         ],
                         "properties": {
                           "id": {
@@ -3456,6 +3545,17 @@
                           "updatedAt": {
                             "format": "date-time",
                             "type": "string"
+                          },
+                          "versionId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "revision": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "isDeleted": {
+                            "type": "boolean"
                           }
                         }
                       }
@@ -3496,6 +3596,25 @@
           }
         },
         "parameters": [
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "none"
+                  ]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "expectedVersion",
+            "required": false
+          },
           {
             "schema": {
               "minLength": 1,
@@ -3543,7 +3662,10 @@
                     "sizeBytes",
                     "checksumSha256",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "versionId",
+                    "revision",
+                    "isDeleted"
                   ],
                   "properties": {
                     "id": {
@@ -3586,6 +3708,17 @@
                     "updatedAt": {
                       "format": "date-time",
                       "type": "string"
+                    },
+                    "versionId": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "revision": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "isDeleted": {
+                      "type": "boolean"
                     }
                   }
                 }
@@ -3659,6 +3792,25 @@
         "parameters": [
           {
             "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "none"
+                  ]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "expectedVersion",
+            "required": false
+          },
+          {
+            "schema": {
               "minLength": 1,
               "maxLength": 100,
               "type": "string"
@@ -3691,6 +3843,587 @@
         "responses": {
           "204": {
             "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/object-head": {
+      "get": {
+        "operationId": "getObjectHead",
+        "tags": [
+          "objects"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "key",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "spaceId",
+                        "createdByUserId",
+                        "key",
+                        "contentType",
+                        "sizeBytes",
+                        "checksumSha256",
+                        "createdAt",
+                        "updatedAt",
+                        "versionId",
+                        "revision",
+                        "isDeleted"
+                      ],
+                      "properties": {
+                        "id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "spaceId": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "createdByUserId": {
+                          "anyOf": [
+                            {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "key": {
+                          "type": "string"
+                        },
+                        "contentType": {
+                          "type": "string"
+                        },
+                        "sizeBytes": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "checksumSha256": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "versionId": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "revision": {
+                          "minimum": 1,
+                          "type": "integer"
+                        },
+                        "isDeleted": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/object-versions": {
+      "get": {
+        "operationId": "listObjectVersions",
+        "tags": [
+          "objects"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "key",
+            "required": true
+          },
+          {
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "cursor",
+            "required": false
+          },
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "versionLimit",
+                    "retentionDays",
+                    "object",
+                    "versions",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "versionLimit": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "retentionDays": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "object": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "spaceId",
+                        "createdByUserId",
+                        "key",
+                        "contentType",
+                        "sizeBytes",
+                        "checksumSha256",
+                        "createdAt",
+                        "updatedAt",
+                        "versionId",
+                        "revision",
+                        "isDeleted"
+                      ],
+                      "properties": {
+                        "id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "spaceId": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "createdByUserId": {
+                          "anyOf": [
+                            {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "key": {
+                          "type": "string"
+                        },
+                        "contentType": {
+                          "type": "string"
+                        },
+                        "sizeBytes": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "checksumSha256": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "versionId": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "revision": {
+                          "minimum": 1,
+                          "type": "integer"
+                        },
+                        "isDeleted": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "versions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "spaceId",
+                          "createdByUserId",
+                          "key",
+                          "contentType",
+                          "sizeBytes",
+                          "checksumSha256",
+                          "createdAt",
+                          "updatedAt",
+                          "versionId",
+                          "revision",
+                          "isDeleted",
+                          "createdByName"
+                        ],
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "spaceId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "createdByUserId": {
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "contentType": {
+                            "type": "string"
+                          },
+                          "sizeBytes": {
+                            "minimum": 0,
+                            "type": "integer"
+                          },
+                          "checksumSha256": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "versionId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "revision": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "isDeleted": {
+                            "type": "boolean"
+                          },
+                          "createdByName": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/object-versions/restore": {
+      "post": {
+        "operationId": "restoreObjectVersion",
+        "tags": [
+          "objects"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "key",
+            "required": true
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "versionId",
+            "required": true
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "expectedVersion",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "spaceId",
+                    "createdByUserId",
+                    "key",
+                    "contentType",
+                    "sizeBytes",
+                    "checksumSha256",
+                    "createdAt",
+                    "updatedAt",
+                    "versionId",
+                    "revision",
+                    "isDeleted"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "spaceId": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "createdByUserId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "key": {
+                      "type": "string"
+                    },
+                    "contentType": {
+                      "type": "string"
+                    },
+                    "sizeBytes": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "checksumSha256": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "versionId": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "revision": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "isDeleted": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/object-versions/content": {
+      "get": {
+        "operationId": "downloadObjectVersion",
+        "tags": [
+          "objects"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "key",
+            "required": true
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "versionId",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           }
         }
       }

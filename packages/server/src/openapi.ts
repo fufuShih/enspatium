@@ -24,7 +24,7 @@ export async function registerOpenApi(app: FastifyInstance) {
           body: { type: 'string', format: 'binary' },
         }
       }
-      if (schema.operationId === 'downloadObject') {
+      if (schema.operationId === 'downloadObject' || schema.operationId === 'downloadObjectVersion') {
         documented = {
           ...documented,
           produces: ['application/octet-stream'],

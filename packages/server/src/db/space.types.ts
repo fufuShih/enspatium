@@ -19,6 +19,8 @@ export interface SpaceTable {
   type: SpaceType
   visibility: Generated<SpaceVisibility>
   quota_bytes: Generated<string>
+  object_version_limit: Generated<number>
+  object_retention_days: Generated<number>
   created_at: Generated<Date>
   updated_at: Generated<Date>
 }
@@ -46,6 +48,8 @@ export interface CreateSpaceInput {
 export interface UpdateSpaceInput {
   name?: string
   visibility?: SpaceVisibility
+  objectVersionLimit?: number
+  objectRetentionDays?: number
 }
 
 export interface AddSpaceMemberInput {
@@ -75,6 +79,8 @@ export interface PublicSpace {
   visibility: SpaceVisibility
   createdAt: string
   updatedAt: string
+  objectVersionLimit: number
+  objectRetentionDays: number
 }
 
 export type SpaceServiceErrorCode =

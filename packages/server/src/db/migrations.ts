@@ -18,10 +18,11 @@ class SqlMigrationProvider implements MigrationProvider {
   }
 }
 
-export function migrateDatabase(db: Kysely<Database>, migrationTableSchema?: string) {
-  return new Migrator({
+export function migrateDatabase(db: Kysely<Database>, migrationTableSchema?: string, target?: string) {
+  const migrator = new Migrator({
     db,
     provider: new SqlMigrationProvider(),
     ...(migrationTableSchema ? { migrationTableSchema } : {}),
-  }).migrateToLatest()
+  })
+  return target ? migrator.migrateTo(target) : migrator.migrateToLatest()
 }

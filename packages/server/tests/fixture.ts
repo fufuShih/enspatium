@@ -36,6 +36,7 @@ export class ApiSession {
 export interface FixtureLifecycle {
   after(cleanup: () => Promise<void>): void
   diagnostic(message: string): void
+  migrationTarget?: string
 }
 
 export async function createFixture(t: FixtureLifecycle) {
@@ -95,10 +96,10 @@ export async function createFixture(t: FixtureLifecycle) {
   try {
     const result = await sql<{ schema: string }>`SELECT current_schema() AS schema`.execute(scopedDb)
     assert.equal(result.rows[0]?.schema, schema)
-    const migrations = await migrateDatabase(scopedDb, schema)
+    const migrations = await migrateDatabase(scopedDb, schema, t.migrationTarget)
     if (migrations.error) throw migrations.error
     assert.ok(migrations.results?.length, 'Fresh schema must apply migrations')
-    const repeated = await migrateDatabase(scopedDb, schema)
+    const repeated = await migrateDatabase(scopedDb, schema, t.migrationTarget)
     if (repeated.error) throw repeated.error
     assert.deepEqual(repeated.results, [], 'Re-running migrations must not apply them again')
     assert.deepEqual(await scopedDb.selectFrom('users').selectAll().execute(), [])
@@ -127,5 +128,5 @@ export async function createFixture(t: FixtureLifecycle) {
       },
     })
   }
-  return { origin, root, app, git, session: () => new ApiSession(origin) }
+  return { origin, root, app, git, schema, session: () => new ApiSession(origin) }
 }

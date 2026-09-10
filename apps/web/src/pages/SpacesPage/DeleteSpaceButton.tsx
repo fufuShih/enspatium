@@ -34,7 +34,7 @@ export default function DeleteSpaceButton({ account, slug }: { account: string; 
     <Dialog.Trigger asChild><ActionButton color="fg.error">Delete Space</ActionButton></Dialog.Trigger>
     <Portal><Dialog.Backdrop /><Dialog.Positioner p="20px"><Dialog.Content w="100%" maxW="480px" bg="var(--background)" color="var(--foreground)" border="1px solid var(--border)" borderRadius="12px" p="24px">
       <Dialog.Title fontSize="20px">Delete Space</Dialog.Title>
-      <Dialog.Description mt="12px" fontSize="13px" lineHeight="1.8">This permanently deletes this Space, its remaining files or Git history, and its member access. This cannot be undone.</Dialog.Description>
+      <Dialog.Description mt="12px" fontSize="13px" lineHeight="1.8">This permanently deletes this Space, all file versions including deleted files, its Git history, and its member access. This cannot be undone.</Dialog.Description>
       <Text mt="12px" fontSize="13px" color="var(--muted)">If the Space directory is already missing, its records can still be removed once the storage root is available.</Text>
       <Box asChild mt="20px"><form onSubmit={event => { event.preventDefault(); void handleDelete() }}>
         <chakra.label htmlFor="delete-space-confirmation" display="block" fontSize="13px" mb="8px" overflowWrap="anywhere">Type {slug} to confirm</chakra.label>

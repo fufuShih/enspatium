@@ -5,7 +5,7 @@ import { getGetSpaceQueryKey, getListSpacesQueryKey } from '../src/api/generated
 import { cacheCreatedSpace, creatableNamespaces, makeSpaceSlug, spaceErrorMessage, spacePath } from '../src/pages/SpacesPage/spaceApi.ts'
 import { authReturnPath } from '../src/context/session.ts'
 
-const created: CreateSpace201 = { id: 'space-id', namespaceId: 'namespace-id', createdByUserId: 'owner-id', name: 'My Project', slug: 'my-project', type: 'git', visibility: 'private', createdAt: '', updatedAt: '' }
+const created: CreateSpace201 = { objectVersionLimit: 3, objectRetentionDays: 7, id: 'space-id', namespaceId: 'namespace-id', createdByUserId: 'owner-id', name: 'My Project', slug: 'my-project', type: 'git', visibility: 'private', createdAt: '', updatedAt: '' }
 
 test('creation updates only the correct account and user caches and marks its list stale', async () => {
   const client = new QueryClient()

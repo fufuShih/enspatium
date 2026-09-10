@@ -26,10 +26,19 @@ import type {
 import type {
   BrowseObjects200,
   BrowseObjectsParams,
+  DeleteObjectParams,
+  DownloadObjectVersionParams,
+  GetObjectHead200,
+  GetObjectHeadParams,
   GetObjectStorageUsage200,
+  ListObjectVersions200,
+  ListObjectVersionsParams,
   ListObjects200Item,
   ListObjectsParams,
-  UploadObject201
+  RestoreObjectVersion201,
+  RestoreObjectVersionParams,
+  UploadObject201,
+  UploadObjectParams
 } from './api.schemas';
 
 
@@ -435,18 +444,27 @@ export function useBrowseObjects<TData = Awaited<ReturnType<typeof browseObjects
 
 export const getUploadObjectUrl = (namespaceSlug: string,
     spaceSlug: string,
-    objectKey: string,) => {
+    objectKey: string,
+    params?: UploadObjectParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/objects/${encodeURIComponent(String(objectKey))}`
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/objects/${encodeURIComponent(String(objectKey))}?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/objects/${encodeURIComponent(String(objectKey))}`
 }
 
 export const uploadObject = async (namespaceSlug: string,
     spaceSlug: string,
     objectKey: string,
-    uploadObjectBody: Blob, options?: RequestInit): Promise<UploadObject201> => {
+    uploadObjectBody: Blob,
+    params?: UploadObjectParams, options?: RequestInit): Promise<UploadObject201> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -454,7 +472,7 @@ export const uploadObject = async (namespaceSlug: string,
     if (Array.isArray(h)) return Object.fromEntries(h);
     return h;
   };
-const res = await fetch(getUploadObjectUrl(namespaceSlug,spaceSlug,objectKey),
+const res = await fetch(getUploadObjectUrl(namespaceSlug,spaceSlug,objectKey,params),
   {
       credentials: 'include',
     ...options,
@@ -499,9 +517,9 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadObject>>, UploadObjectMutationVariables> = (props) => {
-          const {namespaceSlug,spaceSlug,objectKey,data} = props ?? {};
+          const {namespaceSlug,spaceSlug,objectKey,data,params} = props ?? {};
 
-          return  uploadObject(namespaceSlug,spaceSlug,objectKey,data,fetchOptions)
+          return  uploadObject(namespaceSlug,spaceSlug,objectKey,data,params,fetchOptions)
         }
 
 
@@ -514,7 +532,7 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
     export type UploadObjectMutationResult = NonNullable<Awaited<ReturnType<typeof uploadObject>>>
     export type UploadObjectMutationBody = Blob
     export type UploadObjectMutationError = globalThis.Error & { info?: unknown; status?: number }
-    export type UploadObjectMutationVariables = {namespaceSlug: string;spaceSlug: string;objectKey: string;data: Blob}
+    export type UploadObjectMutationVariables = {namespaceSlug: string;spaceSlug: string;objectKey: string;data: Blob;params?: UploadObjectParams}
 
     export const useUploadObject = <TError = globalThis.Error & { info?: unknown; status?: number },
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadObject>>, TError,UploadObjectMutationVariables, TContext>, fetch?: RequestInit}
@@ -653,19 +671,28 @@ export function useDownloadObject<TData = Awaited<ReturnType<typeof downloadObje
 
 export const getDeleteObjectUrl = (namespaceSlug: string,
     spaceSlug: string,
-    objectKey: string,) => {
+    objectKey: string,
+    params?: DeleteObjectParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/objects/${encodeURIComponent(String(objectKey))}`
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/objects/${encodeURIComponent(String(objectKey))}?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/objects/${encodeURIComponent(String(objectKey))}`
 }
 
 export const deleteObject = async (namespaceSlug: string,
     spaceSlug: string,
-    objectKey: string, options?: RequestInit): Promise<void> => {
+    objectKey: string,
+    params?: DeleteObjectParams, options?: RequestInit): Promise<void> => {
 
-  const res = await fetch(getDeleteObjectUrl(namespaceSlug,spaceSlug,objectKey),
+  const res = await fetch(getDeleteObjectUrl(namespaceSlug,spaceSlug,objectKey,params),
   {
       credentials: 'include',
     ...options,
@@ -710,9 +737,9 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteObject>>, DeleteObjectMutationVariables> = (props) => {
-          const {namespaceSlug,spaceSlug,objectKey} = props ?? {};
+          const {namespaceSlug,spaceSlug,objectKey,params} = props ?? {};
 
-          return  deleteObject(namespaceSlug,spaceSlug,objectKey,fetchOptions)
+          return  deleteObject(namespaceSlug,spaceSlug,objectKey,params,fetchOptions)
         }
 
 
@@ -725,7 +752,7 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
     export type DeleteObjectMutationResult = NonNullable<Awaited<ReturnType<typeof deleteObject>>>
 
     export type DeleteObjectMutationError = globalThis.Error & { info?: unknown; status?: number }
-    export type DeleteObjectMutationVariables = {namespaceSlug: string;spaceSlug: string;objectKey: string}
+    export type DeleteObjectMutationVariables = {namespaceSlug: string;spaceSlug: string;objectKey: string;params?: DeleteObjectParams}
 
     export const useDeleteObject = <TError = globalThis.Error & { info?: unknown; status?: number },
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteObject>>, TError,DeleteObjectMutationVariables, TContext>, fetch?: RequestInit}
@@ -737,3 +764,486 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
       > => {
       return useMutation(getDeleteObjectMutationOptions(options), queryClient);
     }
+    export const getGetObjectHeadUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    params: GetObjectHeadParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-head?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-head`
+}
+
+export const getObjectHead = async (namespaceSlug: string,
+    spaceSlug: string,
+    params: GetObjectHeadParams, options?: RequestInit): Promise<GetObjectHead200> => {
+
+  const res = await fetch(getGetObjectHeadUrl(namespaceSlug,spaceSlug,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: GetObjectHead200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getGetObjectHeadQueryKey = (namespaceSlug: string,
+    spaceSlug: string,
+    params?: GetObjectHeadParams,) => {
+    return [
+    `/api/namespaces/${namespaceSlug}/spaces/${spaceSlug}/object-head`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetObjectHeadQueryOptions = <TData = Awaited<ReturnType<typeof getObjectHead>>, TError = globalThis.Error & { info?: unknown; status?: number }>(namespaceSlug: string,
+    spaceSlug: string,
+    params: GetObjectHeadParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getObjectHead>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetObjectHeadQueryKey(namespaceSlug,spaceSlug,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getObjectHead>>> = ({ signal }) => getObjectHead(namespaceSlug,spaceSlug,params, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: namespaceSlug !== null && namespaceSlug !== undefined && spaceSlug !== null && spaceSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getObjectHead>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetObjectHeadQueryResult = NonNullable<Awaited<ReturnType<typeof getObjectHead>>>
+export type GetObjectHeadQueryError = globalThis.Error & { info?: unknown; status?: number }
+
+
+export function useGetObjectHead<TData = Awaited<ReturnType<typeof getObjectHead>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: GetObjectHeadParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getObjectHead>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getObjectHead>>,
+          TError,
+          Awaited<ReturnType<typeof getObjectHead>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetObjectHead<TData = Awaited<ReturnType<typeof getObjectHead>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: GetObjectHeadParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getObjectHead>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getObjectHead>>,
+          TError,
+          Awaited<ReturnType<typeof getObjectHead>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetObjectHead<TData = Awaited<ReturnType<typeof getObjectHead>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: GetObjectHeadParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getObjectHead>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetObjectHead<TData = Awaited<ReturnType<typeof getObjectHead>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: GetObjectHeadParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getObjectHead>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetObjectHeadQueryOptions(namespaceSlug,spaceSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getListObjectVersionsUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    params: ListObjectVersionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-versions?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-versions`
+}
+
+export const listObjectVersions = async (namespaceSlug: string,
+    spaceSlug: string,
+    params: ListObjectVersionsParams, options?: RequestInit): Promise<ListObjectVersions200> => {
+
+  const res = await fetch(getListObjectVersionsUrl(namespaceSlug,spaceSlug,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: ListObjectVersions200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getListObjectVersionsQueryKey = (namespaceSlug: string,
+    spaceSlug: string,
+    params?: ListObjectVersionsParams,) => {
+    return [
+    `/api/namespaces/${namespaceSlug}/spaces/${spaceSlug}/object-versions`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListObjectVersionsQueryOptions = <TData = Awaited<ReturnType<typeof listObjectVersions>>, TError = globalThis.Error & { info?: unknown; status?: number }>(namespaceSlug: string,
+    spaceSlug: string,
+    params: ListObjectVersionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listObjectVersions>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListObjectVersionsQueryKey(namespaceSlug,spaceSlug,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listObjectVersions>>> = ({ signal }) => listObjectVersions(namespaceSlug,spaceSlug,params, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: namespaceSlug !== null && namespaceSlug !== undefined && spaceSlug !== null && spaceSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listObjectVersions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListObjectVersionsQueryResult = NonNullable<Awaited<ReturnType<typeof listObjectVersions>>>
+export type ListObjectVersionsQueryError = globalThis.Error & { info?: unknown; status?: number }
+
+
+export function useListObjectVersions<TData = Awaited<ReturnType<typeof listObjectVersions>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: ListObjectVersionsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listObjectVersions>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listObjectVersions>>,
+          TError,
+          Awaited<ReturnType<typeof listObjectVersions>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListObjectVersions<TData = Awaited<ReturnType<typeof listObjectVersions>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: ListObjectVersionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listObjectVersions>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listObjectVersions>>,
+          TError,
+          Awaited<ReturnType<typeof listObjectVersions>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListObjectVersions<TData = Awaited<ReturnType<typeof listObjectVersions>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: ListObjectVersionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listObjectVersions>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListObjectVersions<TData = Awaited<ReturnType<typeof listObjectVersions>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: ListObjectVersionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listObjectVersions>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListObjectVersionsQueryOptions(namespaceSlug,spaceSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getRestoreObjectVersionUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    params: RestoreObjectVersionParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-versions/restore?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-versions/restore`
+}
+
+export const restoreObjectVersion = async (namespaceSlug: string,
+    spaceSlug: string,
+    params: RestoreObjectVersionParams, options?: RequestInit): Promise<RestoreObjectVersion201> => {
+
+  const res = await fetch(getRestoreObjectVersionUrl(namespaceSlug,spaceSlug,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'POST'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: RestoreObjectVersion201 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getRestoreObjectVersionMutationKey = () => ['restoreObjectVersion'] as const;
+
+export const getRestoreObjectVersionMutationOptions = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restoreObjectVersion>>, TError,RestoreObjectVersionMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof restoreObjectVersion>>, TError,RestoreObjectVersionMutationVariables, TContext> => {
+
+const mutationKey = getRestoreObjectVersionMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof restoreObjectVersion>>, RestoreObjectVersionMutationVariables> = (props) => {
+          const {namespaceSlug,spaceSlug,params} = props ?? {};
+
+          return  restoreObjectVersion(namespaceSlug,spaceSlug,params,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RestoreObjectVersionMutationResult = NonNullable<Awaited<ReturnType<typeof restoreObjectVersion>>>
+
+    export type RestoreObjectVersionMutationError = globalThis.Error & { info?: unknown; status?: number }
+    export type RestoreObjectVersionMutationVariables = {namespaceSlug: string;spaceSlug: string;params: RestoreObjectVersionParams}
+
+    export const useRestoreObjectVersion = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restoreObjectVersion>>, TError,RestoreObjectVersionMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof restoreObjectVersion>>,
+        TError,
+        RestoreObjectVersionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRestoreObjectVersionMutationOptions(options), queryClient);
+    }
+    export const getDownloadObjectVersionUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    params: DownloadObjectVersionParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-versions/content?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-versions/content`
+}
+
+export const downloadObjectVersion = async (namespaceSlug: string,
+    spaceSlug: string,
+    params: DownloadObjectVersionParams, options?: RequestInit): Promise<Blob> => {
+
+  const res = await fetch(getDownloadObjectVersionUrl(namespaceSlug,spaceSlug,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+  if (!res.ok) {
+    const errorBody = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = errorBody ? JSON.parse(errorBody) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const body = [204, 205, 304].includes(res.status) ? null : await res.blob();
+  const data: Blob = body as Blob
+  return data
+}
+
+
+
+
+
+export const getDownloadObjectVersionQueryKey = (namespaceSlug: string,
+    spaceSlug: string,
+    params?: DownloadObjectVersionParams,) => {
+    return [
+    `/api/namespaces/${namespaceSlug}/spaces/${spaceSlug}/object-versions/content`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getDownloadObjectVersionQueryOptions = <TData = Awaited<ReturnType<typeof downloadObjectVersion>>, TError = globalThis.Error & { info?: unknown; status?: number }>(namespaceSlug: string,
+    spaceSlug: string,
+    params: DownloadObjectVersionParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadObjectVersion>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadObjectVersionQueryKey(namespaceSlug,spaceSlug,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadObjectVersion>>> = ({ signal }) => downloadObjectVersion(namespaceSlug,spaceSlug,params, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: namespaceSlug !== null && namespaceSlug !== undefined && spaceSlug !== null && spaceSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadObjectVersion>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type DownloadObjectVersionQueryResult = NonNullable<Awaited<ReturnType<typeof downloadObjectVersion>>>
+export type DownloadObjectVersionQueryError = globalThis.Error & { info?: unknown; status?: number }
+
+
+export function useDownloadObjectVersion<TData = Awaited<ReturnType<typeof downloadObjectVersion>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: DownloadObjectVersionParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadObjectVersion>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadObjectVersion>>,
+          TError,
+          Awaited<ReturnType<typeof downloadObjectVersion>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDownloadObjectVersion<TData = Awaited<ReturnType<typeof downloadObjectVersion>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: DownloadObjectVersionParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadObjectVersion>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadObjectVersion>>,
+          TError,
+          Awaited<ReturnType<typeof downloadObjectVersion>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDownloadObjectVersion<TData = Awaited<ReturnType<typeof downloadObjectVersion>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: DownloadObjectVersionParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadObjectVersion>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useDownloadObjectVersion<TData = Awaited<ReturnType<typeof downloadObjectVersion>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: DownloadObjectVersionParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadObjectVersion>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getDownloadObjectVersionQueryOptions(namespaceSlug,spaceSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}

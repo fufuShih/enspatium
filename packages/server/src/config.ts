@@ -17,6 +17,7 @@ const configSchema = Type.Object({
   PORT: Type.Integer({ default: 3000, minimum: 1, maximum: 65_535 }),
   DATABASE_URL: Type.String({ minLength: 1 }),
   DATA_ROOT: Type.String({ minLength: 1, default: './data' }),
+  OBJECT_CLEANUP_INTERVAL_SECONDS: Type.Integer({ default: 3600, minimum: 60, maximum: 86400 }),
   LOG_LEVEL: Type.String({ default: 'info' }),
   SESSION_KEY: Type.String({
     minLength: 64,

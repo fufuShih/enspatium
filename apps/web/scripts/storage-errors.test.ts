@@ -8,6 +8,7 @@ import { clearDeletedSpace } from '../src/pages/SpacesPage/spaceApi.ts'
 test('missing content and unavailable storage are distinguished from missing metadata and network errors', () => {
   const unavailable = { status: 503, info: { code: 'SPACE_STORAGE_UNAVAILABLE' } }
   const missing = { status: 404, info: { code: 'OBJECT_CONTENT_MISSING' } }
+  expect(fileErrorMessage({ status: 409, info: { code: 'OBJECT_CONTENT_CORRUPT' } }, 'restore')).toMatch(/current version was kept/)
   expect(storageErrorTitle(unavailable, 'Failed')).toBe('Storage unavailable')
   expect(gitErrorMessage(unavailable)).toMatch(/records have been kept/)
   expect(fileErrorMessage(unavailable, 'upload')).toMatch(/Restore storage/)

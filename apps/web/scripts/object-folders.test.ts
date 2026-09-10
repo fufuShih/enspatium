@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest'
 import { QueryClient } from '@tanstack/react-query'
-import { getBrowseObjectsQueryKey, getListObjectsQueryKey, getGetObjectStorageUsageQueryKey } from '../src/api/generated/objects.ts'
+import { getBrowseObjectsQueryKey, getListObjectsQueryKey, getGetObjectStorageUsageQueryKey, getListObjectVersionsQueryKey, getGetObjectHeadQueryKey } from '../src/api/generated/objects.ts'
 import { objectBreadcrumbs, objectFolderLocation, newObjectFolder } from '../src/pages/SpacesPage/objectFolderApi.ts'
 import { uploadFile, refreshObjectLists } from '../src/pages/SpacesPage/objectFileApi.ts'
 
@@ -24,6 +24,7 @@ test('uploads preserve raw bytes and use the full current folder key', async () 
   const file = new File(['Nested contents'], 'same name.txt', { type: 'text/plain' })
   const signal = new AbortController().signal
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options) => {
+    if (options?.method === 'GET') return Response.json(null)
     expect(String(url)).toContain('/objects/' + encodeURIComponent('docs/中文/same name.txt'))
     expect(options?.body).toBe(file)
     expect(options?.signal).toBe(signal)
@@ -38,6 +39,9 @@ test('file mutations invalidate ancestor folder listings, flat lists and storage
     getBrowseObjectsQueryKey('owner', 'files', { prefix: '' }),
     getBrowseObjectsQueryKey('owner', 'files', { prefix: 'docs/', cursor: 'docs/a.txt' }),
     getListObjectsQueryKey('owner', 'files'), getGetObjectStorageUsageQueryKey('owner', 'files'),
+    getBrowseObjectsQueryKey('owner', 'files', { deleted: true }),
+    getListObjectVersionsQueryKey('owner', 'files', { key: 'docs/a.txt', cursor: 20 }),
+    getGetObjectHeadQueryKey('owner', 'files', { key: 'docs/a.txt' }),
   ]
   const other = getBrowseObjectsQueryKey('owner', 'other')
   try {

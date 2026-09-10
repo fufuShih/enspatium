@@ -12,6 +12,7 @@ export const auditActions = [
   'git.pushed',
   'object.uploaded',
   'object.deleted',
+  'object.version_purged',
 ] as const
 
 export type AuditAction = (typeof auditActions)[number]

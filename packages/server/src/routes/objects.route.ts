@@ -3,15 +3,14 @@ import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
 import { Readable } from 'node:stream'
 
 import {
-  deleteObject,
   browseObjects,
   downloadObject,
   getObjectStorageUsage,
   listObjects,
   ObjectServiceError,
-  uploadObject,
 } from '../services/object/object.js'
 import { maximumObjectSizeBytes } from '../services/object/storage.js'
+import { deleteObject, getObjectHead, listObjectVersions, restoreObjectVersion, uploadObject } from '../services/object/versions.js'
 import {
   getCurrentUserId,
   requireCurrentUserId,
@@ -25,6 +24,8 @@ import {
   ObjectStorageUsageResponseSchema,
   SpaceObjectListResponseSchema,
   SpaceObjectResponseSchema,
+  ObjectHeadQuerySchema, ObjectWriteQuerySchema, ObjectVersionsQuerySchema,
+  ObjectVersionQuerySchema, RestoreObjectVersionQuerySchema, ObjectVersionsResponseSchema,
 } from './types/objects.types.js'
 
 export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
@@ -103,6 +104,7 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
       bodyLimit: maximumObjectSizeBytes,
       schema: {
         operationId: 'uploadObject',
+        querystring: ObjectWriteQuerySchema,
         tags: ['objects'],
         params: ObjectKeyParamsSchema,
         response: {
@@ -128,6 +130,7 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
         {
           key: request.params['*'],
           source: request.body,
+          ...(request.query.expectedVersion ? { expectedVersion: request.query.expectedVersion } : {}),
           ...(request.headers['content-type']
             ? { contentType: request.headers['content-type'] }
             : {}),
@@ -175,6 +178,7 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
     {
       schema: {
         operationId: 'deleteObject',
+        querystring: ObjectWriteQuerySchema,
         tags: ['objects'],
         response: { 204: Type.Null() },
         params: ObjectKeyParamsSchema,
@@ -188,9 +192,39 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
         request.params.namespaceSlug,
         request.params.spaceSlug,
         request.params['*'],
+        request.query.expectedVersion,
       )
 
       return reply.code(204).send(null)
     },
   )
+
+  app.get('/namespaces/:namespaceSlug/spaces/:spaceSlug/object-head', {
+    schema: { operationId: 'getObjectHead', tags: ['objects'], params: ObjectSpaceParamsSchema,
+      querystring: ObjectHeadQuerySchema, response: { 200: Type.Union([SpaceObjectResponseSchema, Type.Null()]) } },
+  }, request => getObjectHead(app.db, requireCurrentUserId(request), request.params.namespaceSlug, request.params.spaceSlug, request.query.key))
+
+  app.get('/namespaces/:namespaceSlug/spaces/:spaceSlug/object-versions', {
+    schema: { operationId: 'listObjectVersions', tags: ['objects'], params: ObjectSpaceParamsSchema,
+      querystring: ObjectVersionsQuerySchema, response: { 200: ObjectVersionsResponseSchema } },
+  }, request => listObjectVersions(app.db, requireCurrentUserId(request), request.params.namespaceSlug, request.params.spaceSlug, request.query))
+
+  app.post('/namespaces/:namespaceSlug/spaces/:spaceSlug/object-versions/restore', {
+    schema: { operationId: 'restoreObjectVersion', tags: ['objects'], params: ObjectSpaceParamsSchema,
+      querystring: RestoreObjectVersionQuerySchema, response: { 201: SpaceObjectResponseSchema } },
+  }, async (request, reply) => reply.code(201).send(await restoreObjectVersion(app.db, app.config.DATA_ROOT,
+    requireCurrentUserId(request), request.params.namespaceSlug, request.params.spaceSlug, request.query)))
+
+  app.get('/namespaces/:namespaceSlug/spaces/:spaceSlug/object-versions/content', {
+    schema: { operationId: 'downloadObjectVersion', tags: ['objects'], params: ObjectSpaceParamsSchema,
+      querystring: ObjectVersionQuerySchema },
+  }, async (request, reply) => {
+    const download = await downloadObject(app.db, app.config.DATA_ROOT, requireCurrentUserId(request),
+      request.params.namespaceSlug, request.params.spaceSlug, request.query.key, request.query.versionId)
+    return reply.header('content-type', download.object.contentType)
+      .header('content-length', download.object.sizeBytes)
+      .header('etag', `"${download.object.checksumSha256}"`)
+      .header('cache-control', 'private, no-store')
+      .header('x-content-sha256', download.object.checksumSha256).send(download.stream)
+  })
 }

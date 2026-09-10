@@ -2,7 +2,7 @@ import { Box, Button, Flex, Heading, Text, chakra } from '@chakra-ui/react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { downloadObject, getBrowseObjectsQueryKey, useBrowseObjects } from '../../api/generated/objects'
+import { downloadObject, downloadObjectVersion, getBrowseObjectsQueryKey, useBrowseObjects } from '../../api/generated/objects'
 import { ActionButton, PageLink, TextInput } from '../../components/ui/Primitives'
 import RequestState from '../../components/RequestState'
 import { useAuth } from '../../context/auth'
@@ -18,7 +18,7 @@ import { storageErrorTitle } from './storageErrors'
 export default function ObjectFileList({ account, slug }: { account: string; slug: string }) {
   const [search] = useSearchParams()
   const prefix = search.get('path') || ''
-  return <ObjectFolder key={prefix} account={account} slug={slug} prefix={prefix} />
+  return <ObjectFolder key={prefix + search.get('deleted')} account={account} slug={slug} prefix={prefix} />
 }
 
 function ObjectFolder({ account, slug, prefix }: { account: string; slug: string; prefix: string }) {
@@ -26,8 +26,9 @@ function ObjectFolder({ account, slug, prefix }: { account: string; slug: string
   const navigate = useNavigate()
   const nameFilter = search.get('filter') || ''
   const cursor = search.get('cursor') || ''
+  const deleted = search.get('deleted') === 'true'
   const crumbs = objectBreadcrumbs(prefix)
-  const location = (path = prefix, filter = nameFilter, after = '') => objectFolderLocation(account, slug, path, filter, after)
+  const location = (path = prefix, filter = nameFilter, after = '') => objectFolderLocation(account, slug, path, filter, after, deleted)
   const [folderName, setFolderName] = useState('')
   const [creatingFolder, setCreatingFolder] = useState(false)
   const { user } = useAuth()
@@ -41,7 +42,7 @@ function ObjectFolder({ account, slug, prefix }: { account: string; slug: string
   const [downloadError, setDownloadError] = useState('')
   const [selected, setSelected] = useState<ListObjects200Item | null>(null)
   const previewTrigger = useRef<HTMLElement | null>(null)
-  const params = { limit: fileListLimit, prefix, filter: nameFilter, ...(cursor ? { cursor } : {}) }
+  const params = { limit: fileListLimit, deleted, prefix, filter: nameFilter, ...(cursor ? { cursor } : {}) }
   const files = useBrowseObjects(account, slug, params, { query: {
     enabled: Boolean(user), retry: false,
     queryKey: [...getBrowseObjectsQueryKey(account, slug, params), user?.id ?? null],
@@ -86,14 +87,14 @@ function ObjectFolder({ account, slug, prefix }: { account: string; slug: string
     }
   }
 
-  async function handleDownload(key: string) {
+  async function handleDownload(key: string, versionId?: string) {
     if (downloadController.current) return
     const controller = new AbortController()
     downloadController.current = controller
     setDownloading(key)
     setDownloadError('')
     try {
-      const blob = await downloadObject(account, slug, key, { signal: controller.signal })
+      const blob = versionId ? await downloadObjectVersion(account, slug, { key, versionId }, { signal: controller.signal }) : await downloadObject(account, slug, key, { signal: controller.signal })
       if (controller.signal.aborted) return
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
@@ -117,8 +118,8 @@ function ObjectFolder({ account, slug, prefix }: { account: string; slug: string
   return (
     <Box as="section" aria-label="Files">
       <Flex justify="space-between" align="center" wrap="wrap" gap="16px" mb="20px">
-        <Box><Heading as="h2" fontSize="20px" fontWeight="600">Files</Heading><Text mt="6px" fontSize="12px" color="var(--muted)">Up to 100 MiB per file.</Text></Box>
-        {user && !files.isError && <Flex gap="8px">
+        <Box><Heading as="h2" fontSize="20px" fontWeight="600">{deleted ? 'Deleted files' : 'Files'}</Heading><Text mt="6px" fontSize="12px" color="var(--muted)">{deleted ? 'Deleted content uses storage until retention cleanup removes it.' : 'Up to 100 MiB per file. Upload the same name to create a new version.'}</Text></Box>
+        {user && !deleted && !files.isError && <Flex gap="8px">
           <ActionButton disabled={upload.isPending} onClick={() => { setCreatingFolder(value => !value); setError('') }}>New folder</ActionButton>
           <chakra.input ref={input} type="file" display="none" aria-label="Choose a file to upload" onChange={event => {
             const file = event.target.files?.[0]
@@ -128,6 +129,7 @@ function ObjectFolder({ account, slug, prefix }: { account: string; slug: string
           <ActionButton loading={upload.isPending} loadingText="Uploading..." disabled={files.isPending} onClick={() => input.current?.click()} bg="var(--foreground)" color="var(--background)">Upload file</ActionButton>
         </Flex>}
       </Flex>
+      {user && <Flex gap="8px" mb="20px"><ActionButton asChild><PageLink to={objectFolderLocation(account, slug)} aria-current={!deleted ? 'page' : undefined}>Files</PageLink></ActionButton><ActionButton asChild><PageLink to={objectFolderLocation(account, slug, '', '', '', true)} aria-current={deleted ? 'page' : undefined}>Deleted files</PageLink></ActionButton></Flex>}
       <Box as="nav" aria-label="Folder path" fontSize="13px" color="var(--muted)" mb="20px" overflowWrap="anywhere">
         <PageLink to={location('', '')} aria-current={!prefix ? 'page' : undefined}>All files</PageLink>
         {crumbs.map((crumb, index) => <Fragment key={crumb.prefix}><Text as="span" mx="8px" aria-hidden="true">/</Text><PageLink to={location(crumb.prefix, '')} aria-current={index === crumbs.length - 1 ? 'page' : undefined}>{crumb.name}</PageLink></Fragment>)}
@@ -150,7 +152,7 @@ function ObjectFolder({ account, slug, prefix }: { account: string; slug: string
       {downloadError && !selected && <Text role="alert" mb="16px" fontSize="13px" color="fg.error">{downloadError}</Text>}
       {!user ? <RequestState title="Sign in to view files"><ActionButton asChild mt="20px"><PageLink to="/login" state={{ from: location(prefix, nameFilter, cursor) }}>Sign in</PageLink></ActionButton></RequestState> : <>
         <ObjectNameFilter key={nameFilter} initialFilter={nameFilter} onFilter={value => { navigate(location(prefix, value)); setNotice('') }} />
-        {files.isPending ? <RequestState loading title="Loading files..." /> : files.isError ? <RequestState title={storageErrorTitle(files.error, 'Unable to load files')} message={fileErrorMessage(files.error, 'list')} onRetry={() => { void files.refetch() }} /> : !files.data.objects.length && !files.data.folders.length ? <RequestState title={nameFilter ? 'No matching files or folders' : cursor ? 'No more files' : prefix ? 'This folder is empty' : 'No files yet'} message={nameFilter ? 'Try another filename prefix.' : 'Upload a file to get started.'} /> : <>
+        {files.isPending ? <RequestState loading title="Loading files..." /> : files.isError ? <RequestState title={storageErrorTitle(files.error, 'Unable to load files')} message={fileErrorMessage(files.error, 'list')} onRetry={() => { void files.refetch() }} /> : !files.data.objects.length && !files.data.folders.length ? <RequestState title={deleted ? 'No deleted files' : nameFilter ? 'No matching files or folders' : cursor ? 'No more files' : prefix ? 'This folder is empty' : 'No files yet'} message={deleted ? 'Deleted files can be restored while their versions are still retained.' : nameFilter ? 'Try another filename prefix.' : 'Upload a file to get started.'} /> : <>
           <Box as="ul" listStyleType="none" m="0" p="0" border="1px solid color-mix(in srgb, var(--border) 60%, transparent)" borderRadius="8px" overflow="hidden">
             {files.data.folders.map(folder => <Box as="li" key={folder} _notFirst={{ borderTop: '1px solid var(--border)' }}>
               <PageLink to={location(folder, '')} display="flex" alignItems="center" gap="12px" p="16px" fontSize="13px" _hover={{ bg: 'var(--surface)' }} aria-label={`Open folder ${folder}`}><ObjectFileIcon kind="folder" /><Text flex="1" minW="0" overflowWrap="anywhere">{folder.slice(prefix.length, -1)}</Text><Text fontSize="12px" color="var(--muted)">Folder</Text></PageLink>
@@ -159,7 +161,7 @@ function ObjectFolder({ account, slug, prefix }: { account: string; slug: string
               <Flex align="center" gap="12px" p="12px 16px" _hover={{ bg: 'var(--surface)' }}>
                 <Button variant="plain" minW="0" h="auto" p="0" flex="1" gap="12px" justifyContent="flex-start" fontWeight="500" fontSize="13px" color="var(--foreground)" textAlign="left" whiteSpace="normal" aria-label={`Open ${file.key}`} onClick={event => { previewTrigger.current = event.currentTarget; setDownloadError(''); setSelected(file) }} _hover={{ textDecoration: 'underline' }}><ObjectFileIcon kind={objectFileKind(file)} /><Text minW="0" overflowWrap="anywhere">{file.key.slice(prefix.length)}</Text></Button>
                 <Text fontSize="12px" color="var(--muted)" whiteSpace="nowrap">{formatFileSize(file.sizeBytes)}</Text>
-                <ActionButton aria-label={`Download ${file.key}`} title="Download" p="7px" borderColor="transparent" loading={downloading === file.key} disabled={downloading !== null} onClick={() => { void handleDownload(file.key) }}><ObjectFileIcon kind="download" /></ActionButton>
+                {!deleted && <ActionButton aria-label={`Download ${file.key}`} title="Download" p="7px" borderColor="transparent" loading={downloading === file.key} disabled={downloading !== null} onClick={() => { void handleDownload(file.key, file.versionId) }}><ObjectFileIcon kind="download" /></ActionButton>}
               </Flex>
             </Box>)}
           </Box>
@@ -169,7 +171,7 @@ function ObjectFolder({ account, slug, prefix }: { account: string; slug: string
           {files.data?.nextCursor && <ActionButton asChild><PageLink to={location(prefix, nameFilter, files.data.nextCursor)}>Next page</PageLink></ActionButton>}
         </Flex>}
       </>}
-      {selected && <ObjectFileViewer key={selected.id} account={account} slug={slug} file={selected} downloading={downloading !== null} downloadError={downloadError} onDownload={() => { void handleDownload(selected.key) }} onDeleted={() => { setNotice(`Deleted ${selected.key}.`); setSelected(null) }} onClose={() => setSelected(null)} returnFocus={() => previewTrigger.current} />}
+      {selected && <ObjectFileViewer key={selected.id} account={account} slug={slug} file={selected} downloading={downloading !== null} downloadError={downloadError} onDownload={version => { void handleDownload(version.key, version.versionId) }} onRestored={() => { setNotice(`Restored ${selected.key} as a new version.`); setSelected(null) }} onDeleted={() => { setNotice(`Deleted ${selected.key}.`); setSelected(null) }} onClose={() => setSelected(null)} returnFocus={() => previewTrigger.current} />}
     </Box>
   )
 }

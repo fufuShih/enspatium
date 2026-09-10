@@ -26,6 +26,8 @@ export const CreateSpaceBodySchema = Type.Object({
 
 export const UpdateSpaceBodySchema = Type.Object(
   {
+    objectVersionLimit: Type.Optional(Type.Integer({ minimum: 1, maximum: 1000 })),
+    objectRetentionDays: Type.Optional(Type.Integer({ minimum: 1, maximum: 36500 })),
     name: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
     visibility: Type.Optional(
       Type.Union([Type.Literal('public'), Type.Literal('private')]),
@@ -52,6 +54,8 @@ export const UpdateSpaceMemberBodySchema = Type.Object({
 })
 
 export const SpaceResponseSchema = Type.Object({
+  objectVersionLimit: Type.Integer({ minimum: 1, maximum: 1000 }),
+  objectRetentionDays: Type.Integer({ minimum: 1, maximum: 36500 }),
   id: Type.String({ format: 'uuid' }),
   namespaceId: Type.String({ format: 'uuid' }),
   createdByUserId: Type.Union([
