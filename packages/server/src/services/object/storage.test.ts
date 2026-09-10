@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { once } from 'node:events'
 import { mkdtemp, readFile, rm, rename, stat, symlink, mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -13,6 +14,7 @@ import {
   normalizeObjectKey,
   normalizeObjectPrefix,
   ObjectStorageError,
+  openObjectFile,
   readObjectFile,
   writeObjectFile,
 } from './storage.js'
@@ -39,6 +41,27 @@ afterEach(async () => {
 })
 
 describe('Object storage', () => {
+  it('reads only the requested bytes and closes the file after completion or cancellation', async () => {
+    const root = await createTemporaryRoot()
+    await writeObjectFile(root, spaceId, 'media.bin', Readable.from([Buffer.alloc(1024 * 1024, 42)]))
+    const { file, sizeBytes } = await openObjectFile(root, spaceId, 'media.bin')
+    expect(sizeBytes).toBe(1024 * 1024)
+    const stream = file.createReadStream({ start: 100, end: 199 })
+    const chunks: Buffer[] = []
+    for await (const chunk of stream) chunks.push(chunk as Buffer)
+    expect(Buffer.concat(chunks)).toEqual(Buffer.alloc(100, 42))
+    expect(stream.bytesRead).toBe(100)
+    expect(file.fd).toBe(-1)
+
+    const aborted = await openObjectFile(root, spaceId, 'media.bin')
+    const cancelled = aborted.file.createReadStream({ start: 100 })
+    const closed = once(cancelled, 'close')
+    cancelled.once('data', () => cancelled.destroy())
+    await closed
+    expect(cancelled.bytesRead).toBeLessThan(sizeBytes - 100)
+    expect(aborted.file.fd).toBe(-1)
+  })
+
   it('does not recreate a missing Space on upload and works after restoration', async () => {
     const root = await createTemporaryRoot()
     const target = join(root, spaceId)

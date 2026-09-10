@@ -199,6 +199,12 @@ export async function readObjectFile(
   spaceId: string,
   key: string,
 ): Promise<Readable> {
+  const { file } = await openObjectFile(dataRoot, spaceId, key)
+  return file.createReadStream()
+}
+
+/** Caller must close the file or transfer ownership to an auto-closing stream. */
+export async function openObjectFile(dataRoot: string, spaceId: string, key: string) {
   const target = await prepareObjectPath(dataRoot, spaceId, key)
 
   try {
@@ -212,7 +218,7 @@ export async function readObjectFile(
       )
     }
 
-    return handle.createReadStream()
+    return { file: handle, sizeBytes: fileStat.size }
   } catch (error) {
     if (error instanceof ObjectStorageError) {
       throw error

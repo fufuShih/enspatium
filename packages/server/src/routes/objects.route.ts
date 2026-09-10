@@ -4,12 +4,13 @@ import { Readable } from 'node:stream'
 
 import {
   browseObjects,
-  downloadObject,
+  openObjectDownload,
   getObjectStorageUsage,
   listObjects,
   ObjectServiceError,
 } from '../services/object/object.js'
 import { maximumObjectSizeBytes } from '../services/object/storage.js'
+import { sendObjectContent } from './object-content.js'
 import { deleteObject, getObjectHead, listObjectVersions, restoreObjectVersion, uploadObject } from '../services/object/versions.js'
 import {
   getCurrentUserId,
@@ -144,34 +145,28 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
     },
   )
 
-  app.get(
-    '/namespaces/:namespaceSlug/spaces/:spaceSlug/objects/*',
-    {
+  // Explicit HEAD handlers preserve Content-Length without draining a file stream.
+  for (const method of ['GET', 'HEAD'] as const) {
+    app.route({
+      method,
+      url: '/namespaces/:namespaceSlug/spaces/:spaceSlug/objects/*',
+      exposeHeadRoute: false,
+      config: { swagger: { exposeHeadRoute: true } },
       schema: {
         operationId: 'downloadObject',
         tags: ['objects'],
         security: [{}, { session: [] }],
         params: ObjectKeyParamsSchema,
       },
-    },
-    async (request, reply) => {
-      const download = await downloadObject(
-        app.db,
-        app.config.DATA_ROOT,
-        getCurrentUserId(request),
-        request.params.namespaceSlug,
-        request.params.spaceSlug,
-        request.params['*'],
-      )
-
-      return reply
-        .header('content-type', download.object.contentType)
-        .header('content-length', download.object.sizeBytes)
-        .header('etag', `"${download.object.checksumSha256}"`)
-        .header('x-content-sha256', download.object.checksumSha256)
-        .send(download.stream)
-    },
-  )
+      handler: async (request, reply) => {
+        const download = await openObjectDownload(
+          app.db, app.config.DATA_ROOT, getCurrentUserId(request),
+          request.params.namespaceSlug, request.params.spaceSlug, request.params['*'],
+        )
+        return sendObjectContent(request, reply, download)
+      },
+    })
+  }
 
   app.delete(
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/objects/*',
@@ -215,16 +210,19 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
   }, async (request, reply) => reply.code(201).send(await restoreObjectVersion(app.db, app.config.DATA_ROOT,
     requireCurrentUserId(request), request.params.namespaceSlug, request.params.spaceSlug, request.query)))
 
-  app.get('/namespaces/:namespaceSlug/spaces/:spaceSlug/object-versions/content', {
-    schema: { operationId: 'downloadObjectVersion', tags: ['objects'], params: ObjectSpaceParamsSchema,
-      querystring: ObjectVersionQuerySchema },
-  }, async (request, reply) => {
-    const download = await downloadObject(app.db, app.config.DATA_ROOT, requireCurrentUserId(request),
-      request.params.namespaceSlug, request.params.spaceSlug, request.query.key, request.query.versionId)
-    return reply.header('content-type', download.object.contentType)
-      .header('content-length', download.object.sizeBytes)
-      .header('etag', `"${download.object.checksumSha256}"`)
-      .header('cache-control', 'private, no-store')
-      .header('x-content-sha256', download.object.checksumSha256).send(download.stream)
-  })
+  for (const method of ['GET', 'HEAD'] as const) {
+    app.route({
+      method,
+      url: '/namespaces/:namespaceSlug/spaces/:spaceSlug/object-versions/content',
+      exposeHeadRoute: false,
+      config: { swagger: { exposeHeadRoute: true } },
+      schema: { operationId: 'downloadObjectVersion', tags: ['objects'], params: ObjectSpaceParamsSchema,
+        querystring: ObjectVersionQuerySchema },
+      handler: async (request, reply) => {
+        const download = await openObjectDownload(app.db, app.config.DATA_ROOT, requireCurrentUserId(request),
+          request.params.namespaceSlug, request.params.spaceSlug, request.query.key, request.query.versionId)
+        return sendObjectContent(request, reply, download)
+      },
+    })
+  }
 }

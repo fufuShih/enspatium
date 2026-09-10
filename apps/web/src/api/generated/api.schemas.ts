@@ -904,3 +904,12 @@ key: string;
 versionId: string;
 };
 
+export type HeadObjectVersionContentParams = {
+/**
+ * @minLength 1
+ * @maxLength 1024
+ */
+key: string;
+versionId: string;
+};
+

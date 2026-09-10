@@ -31,6 +31,7 @@ import type {
   GetObjectHead200,
   GetObjectHeadParams,
   GetObjectStorageUsage200,
+  HeadObjectVersionContentParams,
   ListObjectVersions200,
   ListObjectVersionsParams,
   ListObjects200Item,
@@ -554,6 +555,9 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
   return `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/objects/${encodeURIComponent(String(objectKey))}`
 }
 
+/**
+ * Stream object content. Supports single byte ranges (start-end, start-, -suffix). Unsupported, malformed and multiple ranges return the full 200 response. If-Range requires the exact strong ETag; other validators return 200. HEAD uses the same authorization and full-content headers without a body, ignoring Range. Every request rechecks access and version availability.
+ */
 export const downloadObject = async (namespaceSlug: string,
     spaceSlug: string,
     objectKey: string, options?: RequestInit): Promise<Blob> => {
@@ -571,8 +575,8 @@ export const downloadObject = async (namespaceSlug: string,
   if (!res.ok) {
     const errorBody = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
-    const data  = errorBody ? JSON.parse(errorBody) : {}
+    const err: globalThis.Error & {info?: Blob, status?: number} = new globalThis.Error();
+    const data : Blob = errorBody ? JSON.parse(errorBody) : {}
     err.info = data;
     err.status = res.status;
     throw err;
@@ -595,7 +599,7 @@ export const getDownloadObjectQueryKey = (namespaceSlug: string,
     }
 
 
-export const getDownloadObjectQueryOptions = <TData = Awaited<ReturnType<typeof downloadObject>>, TError = globalThis.Error & { info?: unknown; status?: number }>(namespaceSlug: string,
+export const getDownloadObjectQueryOptions = <TData = Awaited<ReturnType<typeof downloadObject>>, TError = globalThis.Error & { info?: void; status?: number }>(namespaceSlug: string,
     spaceSlug: string,
     objectKey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadObject>>, TError, TData>>, fetch?: RequestInit}
 ) => {
@@ -616,10 +620,10 @@ const {query: queryOptions, fetch: fetchOptions} = options ?? {};
 }
 
 export type DownloadObjectQueryResult = NonNullable<Awaited<ReturnType<typeof downloadObject>>>
-export type DownloadObjectQueryError = globalThis.Error & { info?: unknown; status?: number }
+export type DownloadObjectQueryError = globalThis.Error & { info?: void; status?: number }
 
 
-export function useDownloadObject<TData = Awaited<ReturnType<typeof downloadObject>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+export function useDownloadObject<TData = Awaited<ReturnType<typeof downloadObject>>, TError = globalThis.Error & { info?: void; status?: number }>(
  namespaceSlug: string,
     spaceSlug: string,
     objectKey: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadObject>>, TError, TData>> & Pick<
@@ -631,7 +635,7 @@ export function useDownloadObject<TData = Awaited<ReturnType<typeof downloadObje
       >, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useDownloadObject<TData = Awaited<ReturnType<typeof downloadObject>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+export function useDownloadObject<TData = Awaited<ReturnType<typeof downloadObject>>, TError = globalThis.Error & { info?: void; status?: number }>(
  namespaceSlug: string,
     spaceSlug: string,
     objectKey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadObject>>, TError, TData>> & Pick<
@@ -643,14 +647,14 @@ export function useDownloadObject<TData = Awaited<ReturnType<typeof downloadObje
       >, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useDownloadObject<TData = Awaited<ReturnType<typeof downloadObject>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+export function useDownloadObject<TData = Awaited<ReturnType<typeof downloadObject>>, TError = globalThis.Error & { info?: void; status?: number }>(
  namespaceSlug: string,
     spaceSlug: string,
     objectKey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadObject>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useDownloadObject<TData = Awaited<ReturnType<typeof downloadObject>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+export function useDownloadObject<TData = Awaited<ReturnType<typeof downloadObject>>, TError = globalThis.Error & { info?: void; status?: number }>(
  namespaceSlug: string,
     spaceSlug: string,
     objectKey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadObject>>, TError, TData>>, fetch?: RequestInit}
@@ -669,7 +673,96 @@ export function useDownloadObject<TData = Awaited<ReturnType<typeof downloadObje
 
 
 
-export const getDeleteObjectUrl = (namespaceSlug: string,
+export const getHeadObjectContentUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    objectKey: string,) => {
+
+
+
+
+  return `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/objects/${encodeURIComponent(String(objectKey))}`
+}
+
+/**
+ * Return full-content headers without reading a response body. Uses the same authorization and version availability checks as GET; ignores Range.
+ */
+export const headObjectContent = async (namespaceSlug: string,
+    spaceSlug: string,
+    objectKey: string, options?: RequestInit): Promise<void> => {
+
+  const res = await fetch(getHeadObjectContentUrl(namespaceSlug,spaceSlug,objectKey),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'HEAD'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: void = body ? JSON.parse(body) : undefined
+  return data
+}
+
+
+
+
+
+export const getHeadObjectContentMutationKey = () => ['headObjectContent'] as const;
+
+export const getHeadObjectContentMutationOptions = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof headObjectContent>>, TError,HeadObjectContentMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof headObjectContent>>, TError,HeadObjectContentMutationVariables, TContext> => {
+
+const mutationKey = getHeadObjectContentMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof headObjectContent>>, HeadObjectContentMutationVariables> = (props) => {
+          const {namespaceSlug,spaceSlug,objectKey} = props ?? {};
+
+          return  headObjectContent(namespaceSlug,spaceSlug,objectKey,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type HeadObjectContentMutationResult = NonNullable<Awaited<ReturnType<typeof headObjectContent>>>
+
+    export type HeadObjectContentMutationError = globalThis.Error & { info?: unknown; status?: number }
+    export type HeadObjectContentMutationVariables = {namespaceSlug: string;spaceSlug: string;objectKey: string}
+
+    export const useHeadObjectContent = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof headObjectContent>>, TError,HeadObjectContentMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof headObjectContent>>,
+        TError,
+        HeadObjectContentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getHeadObjectContentMutationOptions(options), queryClient);
+    }
+    export const getDeleteObjectUrl = (namespaceSlug: string,
     spaceSlug: string,
     objectKey: string,
     params?: DeleteObjectParams,) => {
@@ -1138,6 +1231,9 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
   return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-versions/content?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-versions/content`
 }
 
+/**
+ * Stream object content. Supports single byte ranges (start-end, start-, -suffix). Unsupported, malformed and multiple ranges return the full 200 response. If-Range requires the exact strong ETag; other validators return 200. HEAD uses the same authorization and full-content headers without a body, ignoring Range. Every request rechecks access and version availability.
+ */
 export const downloadObjectVersion = async (namespaceSlug: string,
     spaceSlug: string,
     params: DownloadObjectVersionParams, options?: RequestInit): Promise<Blob> => {
@@ -1155,8 +1251,8 @@ export const downloadObjectVersion = async (namespaceSlug: string,
   if (!res.ok) {
     const errorBody = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
-    const data  = errorBody ? JSON.parse(errorBody) : {}
+    const err: globalThis.Error & {info?: Blob, status?: number} = new globalThis.Error();
+    const data : Blob = errorBody ? JSON.parse(errorBody) : {}
     err.info = data;
     err.status = res.status;
     throw err;
@@ -1179,7 +1275,7 @@ export const getDownloadObjectVersionQueryKey = (namespaceSlug: string,
     }
 
 
-export const getDownloadObjectVersionQueryOptions = <TData = Awaited<ReturnType<typeof downloadObjectVersion>>, TError = globalThis.Error & { info?: unknown; status?: number }>(namespaceSlug: string,
+export const getDownloadObjectVersionQueryOptions = <TData = Awaited<ReturnType<typeof downloadObjectVersion>>, TError = globalThis.Error & { info?: void; status?: number }>(namespaceSlug: string,
     spaceSlug: string,
     params: DownloadObjectVersionParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadObjectVersion>>, TError, TData>>, fetch?: RequestInit}
 ) => {
@@ -1200,10 +1296,10 @@ const {query: queryOptions, fetch: fetchOptions} = options ?? {};
 }
 
 export type DownloadObjectVersionQueryResult = NonNullable<Awaited<ReturnType<typeof downloadObjectVersion>>>
-export type DownloadObjectVersionQueryError = globalThis.Error & { info?: unknown; status?: number }
+export type DownloadObjectVersionQueryError = globalThis.Error & { info?: void; status?: number }
 
 
-export function useDownloadObjectVersion<TData = Awaited<ReturnType<typeof downloadObjectVersion>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+export function useDownloadObjectVersion<TData = Awaited<ReturnType<typeof downloadObjectVersion>>, TError = globalThis.Error & { info?: void; status?: number }>(
  namespaceSlug: string,
     spaceSlug: string,
     params: DownloadObjectVersionParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadObjectVersion>>, TError, TData>> & Pick<
@@ -1215,7 +1311,7 @@ export function useDownloadObjectVersion<TData = Awaited<ReturnType<typeof downl
       >, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useDownloadObjectVersion<TData = Awaited<ReturnType<typeof downloadObjectVersion>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+export function useDownloadObjectVersion<TData = Awaited<ReturnType<typeof downloadObjectVersion>>, TError = globalThis.Error & { info?: void; status?: number }>(
  namespaceSlug: string,
     spaceSlug: string,
     params: DownloadObjectVersionParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadObjectVersion>>, TError, TData>> & Pick<
@@ -1227,14 +1323,14 @@ export function useDownloadObjectVersion<TData = Awaited<ReturnType<typeof downl
       >, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useDownloadObjectVersion<TData = Awaited<ReturnType<typeof downloadObjectVersion>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+export function useDownloadObjectVersion<TData = Awaited<ReturnType<typeof downloadObjectVersion>>, TError = globalThis.Error & { info?: void; status?: number }>(
  namespaceSlug: string,
     spaceSlug: string,
     params: DownloadObjectVersionParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadObjectVersion>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useDownloadObjectVersion<TData = Awaited<ReturnType<typeof downloadObjectVersion>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+export function useDownloadObjectVersion<TData = Awaited<ReturnType<typeof downloadObjectVersion>>, TError = globalThis.Error & { info?: void; status?: number }>(
  namespaceSlug: string,
     spaceSlug: string,
     params: DownloadObjectVersionParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadObjectVersion>>, TError, TData>>, fetch?: RequestInit}
@@ -1247,3 +1343,105 @@ export function useDownloadObjectVersion<TData = Awaited<ReturnType<typeof downl
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
+export const getHeadObjectVersionContentUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    params: HeadObjectVersionContentParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-versions/content?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-versions/content`
+}
+
+/**
+ * Return full-content headers without reading a response body. Uses the same authorization and version availability checks as GET; ignores Range.
+ */
+export const headObjectVersionContent = async (namespaceSlug: string,
+    spaceSlug: string,
+    params: HeadObjectVersionContentParams, options?: RequestInit): Promise<void> => {
+
+  const res = await fetch(getHeadObjectVersionContentUrl(namespaceSlug,spaceSlug,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'HEAD'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: void = body ? JSON.parse(body) : undefined
+  return data
+}
+
+
+
+
+
+export const getHeadObjectVersionContentMutationKey = () => ['headObjectVersionContent'] as const;
+
+export const getHeadObjectVersionContentMutationOptions = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof headObjectVersionContent>>, TError,HeadObjectVersionContentMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof headObjectVersionContent>>, TError,HeadObjectVersionContentMutationVariables, TContext> => {
+
+const mutationKey = getHeadObjectVersionContentMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof headObjectVersionContent>>, HeadObjectVersionContentMutationVariables> = (props) => {
+          const {namespaceSlug,spaceSlug,params} = props ?? {};
+
+          return  headObjectVersionContent(namespaceSlug,spaceSlug,params,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type HeadObjectVersionContentMutationResult = NonNullable<Awaited<ReturnType<typeof headObjectVersionContent>>>
+
+    export type HeadObjectVersionContentMutationError = globalThis.Error & { info?: unknown; status?: number }
+    export type HeadObjectVersionContentMutationVariables = {namespaceSlug: string;spaceSlug: string;params: HeadObjectVersionContentParams}
+
+    export const useHeadObjectVersionContent = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof headObjectVersionContent>>, TError,HeadObjectVersionContentMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof headObjectVersionContent>>,
+        TError,
+        HeadObjectVersionContentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getHeadObjectVersionContentMutationOptions(options), queryClient);
+    }

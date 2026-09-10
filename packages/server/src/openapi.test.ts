@@ -26,8 +26,22 @@ it('exports the current REST contract without configuration or a database', asyn
     expect(document.paths['/auth/login'].post.security).toEqual([])
     const objects = document.paths['/namespaces/{namespaceSlug}/spaces/{spaceSlug}/objects/{objectKey}']
     expect(objects.put.requestBody.content['application/octet-stream'].schema).toEqual({ type: 'string', format: 'binary' })
-    expect(objects.get.responses['200'].content['application/octet-stream'].schema).toEqual({ type: 'string', format: 'binary' })
+    for (const operation of [objects.get, document.paths['/namespaces/{namespaceSlug}/spaces/{spaceSlug}/object-versions/content'].get]) {
+      for (const status of ['200', '206']) {
+        expect(operation.responses[status].content['application/octet-stream'].schema).toMatchObject({ type: 'string', format: 'binary' })
+        expect(operation.responses[status].headers['accept-ranges'].schema.enum).toEqual(['bytes'])
+      }
+      expect(operation.responses['416'].content).toBeUndefined()
+      expect(operation.responses['416'].headers['content-range']).toBeDefined()
+      expect(operation.parameters).toEqual(expect.arrayContaining([
+        expect.objectContaining({ name: 'range', in: 'header', required: false }),
+        expect.objectContaining({ name: 'if-range', in: 'header', required: false }),
+      ]))
+    }
     expect(objects.get.parameters.some((parameter: { name: string }) => parameter.name === 'objectKey')).toBe(true)
+    expect(objects.head.operationId).toBe('headObjectContent')
+    expect(objects.head.responses['200'].content).toBeUndefined()
+    expect(document.paths['/namespaces/{namespaceSlug}/spaces/{spaceSlug}/object-versions/content'].head.operationId).toBe('headObjectVersionContent')
   } finally {
     await app.close()
   }

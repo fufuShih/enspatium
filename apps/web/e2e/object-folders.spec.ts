@@ -29,7 +29,7 @@ test('browse folders, upload into the current path, preview, download and delete
   await expect(page.getByRole('heading', { name: 'This folder is empty', exact: true })).toBeVisible()
   const key = 'docs/nested/中文 %_/uploaded.txt'
   await page.getByLabel('Choose a file to upload', { exact: true }).setInputFiles({ name: 'uploaded.txt', mimeType: 'text/plain', buffer: Buffer.from('Uploaded in the nested folder') })
-  await expect(page.getByRole('status')).toContainText('Uploaded uploaded.txt.')
+  await expect(page.getByRole('status').filter({ hasText: 'Uploaded uploaded.txt.' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Open ' + key, exact: true })).toBeVisible()
   expect((await page.request.get(endpoint + encodeURIComponent(key))).status()).toBe(200)
   expect((await page.request.get(endpoint + 'uploaded.txt')).status()).toBe(404)

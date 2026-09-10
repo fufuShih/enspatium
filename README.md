@@ -129,6 +129,18 @@ The normal backend entry point starts one cleanup sweep after listening, then re
 
 Cleanup durably marks expired versions before removing bytes, hides them from history/download/restore, and locks the Space while deleting content and updating metadata/audit. Capacity is released only after successful metadata removal. Failed or interrupted purges retain their marker and quota charge for retry, even if the policy is subsequently relaxed. Missing mounts or inaccessible storage block cleanup and preserve records. The cleanup touches only version records with known storage locators; unrelated/orphan files are not automatically deleted.
 
+## Object streaming
+
+Both the current-content URL (`/namespaces/:namespaceSlug/spaces/:spaceSlug/objects/:objectKey`) and the version-content URL (`/namespaces/:namespaceSlug/spaces/:spaceSlug/object-versions/content?key=...&versionId=...`) support GET and HEAD. No new configuration or migration is required for streaming.
+
+- GET supports a single byte range: `bytes=0-1023`, `bytes=1024-`, or `bytes=-1024`. It streams only those bytes from disk and returns `206`, `Content-Range`, `Content-Length`, and `Accept-Ranges: bytes`.
+- A valid but unsatisfiable range returns an empty `416` with `Content-Range: bytes */size`. Requests without Range, unsupported units, malformed ranges and multiple ranges return full content with `200`.
+- HEAD returns the full content's headers without creating a file read stream; it ignores Range.
+- `If-Range` accepts the exact strong ETag returned by the server. A mismatch, weak tag or HTTP-date returns full content with `200`. The server does not publish Last-Modified because separate revisions can share the same second. `X-Content-SHA256` always describes the entire object, including on partial responses.
+- Every request checks permissions and version availability before disclosing content metadata. Public current content permits anonymous reads; the version-content endpoint still requires sign-in. Responses use `Cache-Control: private, no-store`. Disconnecting closes the file stream. Missing content/storage retains the existing errors; a stored size mismatch returns `409 OBJECT_CONTENT_CORRUPT`.
+
+Use a version-content URL as the future audio/video element's `src` to keep successive ranges on the same immutable revision. Let the browser stream from that same-origin URL with session cookies; the generated Blob download functions are for explicit downloads. Media App UI and browser playback/seek validation are the next step. Range API behavior is covered by the Vitest integration suite, including a real socket cancellation; the protocol follows [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#section-14).
+
 ## API generation
 
 After changing backend route schemas, run from the repository root:

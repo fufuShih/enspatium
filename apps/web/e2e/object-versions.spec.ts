@@ -22,7 +22,7 @@ test('upload versions, preview and download history, restore, delete and recover
     await page.getByLabel('Choose a file to upload', { exact: true }).setInputFiles({
       name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from(contents),
     })
-    await expect(page.getByRole('status')).toContainText('Uploaded notes.txt.')
+    await expect(page.getByRole('status').filter({ hasText: 'Uploaded notes.txt.' })).toBeVisible()
   }
   await upload('First version')
   await upload('Second version')

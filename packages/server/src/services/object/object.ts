@@ -16,7 +16,7 @@ import {
   normalizeObjectKey,
   normalizeObjectPrefix,
   ObjectStorageError,
-  readObjectFile,
+  openObjectFile,
 } from './storage.js'
 
 const defaultContentType = 'application/octet-stream'
@@ -197,6 +197,15 @@ export async function downloadObject(
   inputKey: string,
   versionId?: string,
 ): Promise<DownloadedObject> {
+  const { object, file } = await openObjectDownload(db, dataRoot, actorUserId, namespaceSlug, spaceSlug, inputKey, versionId)
+  return { object, stream: file.createReadStream() }
+}
+
+/** Resolve authorization and the immutable version before opening its content. */
+export async function openObjectDownload(
+  db: Kysely<Database>, dataRoot: string, actorUserId: string | undefined,
+  namespaceSlug: string, spaceSlug: string, inputKey: string, versionId?: string,
+) {
   const key = validateObjectKey(inputKey)
   const space = await getReadableObjectSpace(
     db,
@@ -214,13 +223,19 @@ export async function downloadObject(
     .where('purge_started_at', 'is', null).executeTakeFirst()
   if (!version || version.is_deleted || !version.storage_key) throw new ObjectServiceError('NOT_FOUND', 404, 'object content was not found')
   try {
+    const { file, sizeBytes } = await openObjectFile(dataRoot, space.id, version.storage_key)
+    if (sizeBytes !== Number(version.size_bytes)) {
+      await file.close()
+      throw new ObjectServiceError('OBJECT_CONTENT_CORRUPT', 409, 'Stored object size does not match its metadata.')
+    }
     return {
       object: toPublicSpaceObject({ ...object, content_type: version.content_type, size_bytes: version.size_bytes,
         checksum_sha256: version.checksum_sha256, created_by_user_id: version.created_by_user_id,
         updated_at: version.created_at, current_version_id: version.id, revision: version.revision, is_deleted: false }),
-      stream: await readObjectFile(dataRoot, space.id, version.storage_key),
+      file,
     }
   } catch (error) {
+    if (error instanceof ObjectServiceError) throw error
     if (error instanceof ObjectStorageError && error.code === 'NOT_FOUND') {
       throw new ObjectServiceError('OBJECT_CONTENT_MISSING', 404, 'Object metadata exists, but its stored content is missing.', error)
     }
