@@ -1,7 +1,8 @@
 import { spacePath } from './spaceApi.ts'
 
-export function objectFolderLocation(account: string, slug: string, prefix = '', filter = '', cursor = '', deleted = false) {
+export function objectFolderLocation(account: string, slug: string, prefix = '', filter = '', cursor = '', deleted = false, media = false) {
   const params = new URLSearchParams()
+  if (media) params.set('view', 'files')
   if (prefix) params.set('path', prefix)
   if (filter) params.set('filter', filter)
   if (cursor) params.set('cursor', cursor)

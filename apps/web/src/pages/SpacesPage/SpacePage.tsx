@@ -1,5 +1,5 @@
 import { Box, Flex, Text } from '@chakra-ui/react'
-import { useLocation, useParams } from 'react-router'
+import { useLocation, useParams, useSearchParams } from 'react-router'
 import { lazy, Suspense } from 'react'
 import { getGetSpaceQueryKey, useGetSpace } from '../../api/generated/spaces'
 import { ActionButton, PageContainer, PageHeading, PageLink } from '../../components/ui/Primitives'
@@ -13,10 +13,12 @@ import ObjectFileList from './ObjectFileList'
 import SpaceSettings from './SpaceSettings'
 
 const GitBrowser = lazy(() => import('./GitBrowser'))
+const MediaBrowser = lazy(() => import('./MediaBrowser'))
 
 export default function SpacePage({ settings = false }: { settings?: boolean }) {
   const { account = '', spaceSlug = '' } = useParams()
   const location = useLocation()
+  const [search, setSearch] = useSearchParams()
   const { user, isLoading, error: sessionError } = useAuth()
   const query = useGetSpace(account, spaceSlug, { query: {
     enabled: Boolean(account && spaceSlug) && !isLoading,
@@ -36,7 +38,7 @@ export default function SpacePage({ settings = false }: { settings?: boolean }) 
   if (settings && !space.canManage) return <PageContainer><RequestState title="Access denied" message="Only a Space owner can manage settings."><PageLink to={spacePath(account, spaceSlug)} display="block" mt="20px">Back to Space</PageLink></RequestState></PageContainer>
   const details = [
     ['Owner', account],
-    ['Type', space.type === 'git' ? 'Git repository' : 'Object storage'],
+    ['Type', space.app === 'media' ? 'Media' : space.type === 'git' ? 'Git repository' : 'Object storage'],
     ['Visibility', space.visibility === 'public' ? 'Public' : 'Private'],
     ['Created', new Date(space.createdAt).toLocaleString('en-US')],
     ['Updated', new Date(space.updatedAt).toLocaleString('en-US')],
@@ -52,7 +54,13 @@ export default function SpacePage({ settings = false }: { settings?: boolean }) 
         {space.canManage && <ActionButton asChild ml="auto"><PageLink to={spacePath(account, space.slug) + (settings ? '' : '/settings')}>{settings ? 'Back to Space' : 'Settings'}</PageLink></ActionButton>}
       </Flex>
       {settings ? <SpaceSettings key={`${space.id}:${user?.id}`} account={account} space={space} /> : <>
-      {space.type === 'object' && <ObjectFileList key={`${space.id}:${user?.id ?? 'anonymous'}`} account={account} slug={space.slug} />}
+      {space.app === 'media' && <Flex as="nav" aria-label="Space views" gap="8px" mb="24px">
+        <ActionButton aria-current={search.get('view') !== 'files' ? 'page' : undefined} onClick={() => setSearch({})}>Media</ActionButton>
+        {user && <ActionButton aria-current={search.get('view') === 'files' ? 'page' : undefined} onClick={() => setSearch({ view: 'files' })}>Files</ActionButton>}
+      </Flex>}
+      {space.type === 'object' && (space.app === 'media' && search.get('view') !== 'files'
+        ? <Suspense fallback={<RequestState loading title="Loading media..." />}><MediaBrowser key={`${space.id}:${user?.id ?? 'anonymous'}`} account={account} slug={space.slug} /></Suspense>
+        : <ObjectFileList key={`${space.id}:${user?.id ?? 'anonymous'}`} account={account} slug={space.slug} media={space.app === 'media'} />)}
       {space.type === 'git' && <Suspense fallback={<RequestState loading title="Loading repository..." />}><GitBrowser key={`${space.id}:${user?.id ?? 'anonymous'}`} account={account} slug={space.slug} /></Suspense>}
       <Box as="section" aria-label="Space details" mt="32px" border="1px solid color-mix(in srgb, var(--border) 60%, transparent)" borderRadius="8px" p={{ base: '20px', md: '28px' }}>
         <Box as="dl" display="grid" gridTemplateColumns={{ base: '1fr', sm: '120px minmax(0, 1fr)' }} columnGap="24px" rowGap="12px" fontSize="13px" m="0">

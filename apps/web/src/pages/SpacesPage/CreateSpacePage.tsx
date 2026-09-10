@@ -45,7 +45,8 @@ export default function CreateSpacePage() {
     try {
       const space = await create.mutateAsync({ namespaceSlug: owner.slug, data: {
         name: name.trim(), slug,
-        type: form.get('type') === 'object' ? 'object' : 'git',
+        type: form.get('type') === 'git' ? 'git' : 'object',
+        app: form.get('type') === 'media' ? 'media' : null,
         visibility: form.get('visibility') === 'public' ? 'public' : 'private',
       } })
       await cacheCreatedSpace(client, owner.slug, user.id, space)
@@ -76,7 +77,7 @@ export default function CreateSpacePage() {
           <Flex gap="16px" mt="20px">
             <Box flex="1" minW="0">
               <chakra.label htmlFor="space-type" display="block" fontSize="13px" mb="8px">Type</chakra.label>
-              <SelectInput id="space-type" name="type"><option value="git">Git repository</option><option value="object">Object storage</option></SelectInput>
+              <SelectInput id="space-type" name="type"><option value="git">Git repository</option><option value="object">Object storage</option><option value="media">Media</option></SelectInput>
             </Box>
             <Box flex="1" minW="0">
               <chakra.label htmlFor="space-visibility" display="block" fontSize="13px" mb="8px">Visibility</chakra.label>
