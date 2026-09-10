@@ -16,6 +16,7 @@ export const SpaceMemberParamsSchema = Type.Object({
 })
 
 export const CreateSpaceBodySchema = Type.Object({
+  app: Type.Optional(Type.Union([Type.Literal('media'), Type.Null()])),
   name: Type.String({ minLength: 1, maxLength: 100 }),
   slug: Type.String({ minLength: 1, maxLength: 100 }),
   type: Type.Union([Type.Literal('git'), Type.Literal('object')]),
@@ -54,6 +55,7 @@ export const UpdateSpaceMemberBodySchema = Type.Object({
 })
 
 export const SpaceResponseSchema = Type.Object({
+  app: Type.Union([Type.Literal('media'), Type.Null()]),
   objectVersionLimit: Type.Integer({ minimum: 1, maximum: 1000 }),
   objectRetentionDays: Type.Integer({ minimum: 1, maximum: 36500 }),
   id: Type.String({ format: 'uuid' }),

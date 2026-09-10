@@ -42,6 +42,19 @@ export const SpaceObjectListResponseSchema = Type.Array(
   SpaceObjectResponseSchema,
 )
 
+export const MediaKindSchema = Type.Union([Type.Literal('audio'), Type.Literal('video'), Type.Literal('image')])
+export const MediaQuerySchema = Type.Object({
+  kind: Type.Optional(MediaKindSchema),
+  search: Type.Optional(Type.String({ maxLength: 128 })),
+  cursor: Type.Optional(Type.String({ maxLength: 1024 })),
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
+})
+export const MediaResponseSchema = Type.Object({
+  canUpload: Type.Boolean(),
+  objects: Type.Array(Type.Object({ ...SpaceObjectResponseSchema.properties, kind: MediaKindSchema })),
+  nextCursor: Type.Union([Type.String(), Type.Null()]),
+})
+
 export const ObjectFolderQuerySchema = Type.Object({
   prefix: Type.Optional(Type.String({ maxLength: 1024 })),
   filter: Type.Optional(Type.String({ maxLength: 1024 })),

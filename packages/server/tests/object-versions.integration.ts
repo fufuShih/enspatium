@@ -8,7 +8,7 @@ import { writeObjectFile } from '../src/services/object/storage.js'
 import { Readable } from 'node:stream'
 import type { PublicSpaceObject, ObjectVersionPage } from '../src/db/object.types.js'
 import type { PublicNamespace } from '../src/db/namespace.types.js'
-import type { PublicSpace } from '../src/db/space.types.js'
+import { createSpaceStorage } from '../src/services/space/storage.js'
 import type { PublicUser } from '../src/db/user.types.js'
 
 test('legacy objects become immutable first versions; writes, history, recovery and quota stay consistent', async ({ onTestFinished }) => {
@@ -23,7 +23,11 @@ test('legacy objects become immutable first versions; writes, history, recovery 
   const namespaces = await owner.request<PublicNamespace[]>('GET', '/namespaces')
   const namespace = namespaces.find(n => n.kind === 'personal')!.slug
   const base = `/namespaces/${namespace}/spaces/versions`
-  const space = await owner.request<PublicSpace>('POST', `/namespaces/${namespace}/spaces`, 201, { name: 'Versions', slug: 'versions', type: 'object', visibility: 'public' })
+  // Seed the old schema directly; the current create API requires later columns.
+  const space = await app.db.insertInto('spaces').values({ name: 'Versions', slug: 'versions', type: 'object', visibility: 'public',
+    namespace_id: namespaces.find(n => n.slug === namespace)!.id, created_by_user_id: user.id }).returningAll().executeTakeFirstOrThrow()
+  await app.db.insertInto('space_members').values({ space_id: space.id, user_id: user.id, role: 'owner' }).execute()
+  await createSpaceStorage(join(root, 'data'), space.id, 'object')
   const key = 'docs/中文 %_#.txt'
   const content = 'Legacy bytes'
   const stored = await writeObjectFile(join(root, 'data'), space.id, key, Readable.from(content))

@@ -11,6 +11,7 @@ import {
 } from '../services/object/object.js'
 import { maximumObjectSizeBytes } from '../services/object/storage.js'
 import { sendObjectContent } from './object-content.js'
+import { listMedia, requireMediaSpace } from '../services/object/media.js'
 import { deleteObject, getObjectHead, listObjectVersions, restoreObjectVersion, uploadObject } from '../services/object/versions.js'
 import {
   getCurrentUserId,
@@ -27,6 +28,7 @@ import {
   SpaceObjectResponseSchema,
   ObjectHeadQuerySchema, ObjectWriteQuerySchema, ObjectVersionsQuerySchema,
   ObjectVersionQuerySchema, RestoreObjectVersionQuerySchema, ObjectVersionsResponseSchema,
+  MediaQuerySchema, MediaResponseSchema,
 } from './types/objects.types.js'
 
 export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
@@ -34,6 +36,31 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.addContentTypeParser('*', (_request, payload, done) => {
     done(null, payload)
   })
+
+  app.get('/namespaces/:namespaceSlug/spaces/:spaceSlug/media', {
+    schema: { operationId: 'listMedia', tags: ['objects'], security: [{}, { session: [] }],
+      params: ObjectSpaceParamsSchema, querystring: MediaQuerySchema, response: { 200: MediaResponseSchema } },
+  }, async (request, reply) => {
+    reply.header('cache-control', 'private, no-store')
+    return listMedia(app.db, app.config.DATA_ROOT, getCurrentUserId(request),
+      request.params.namespaceSlug, request.params.spaceSlug, request.query)
+  })
+
+  for (const method of ['GET', 'HEAD'] as const) {
+    app.route({ method, url: '/namespaces/:namespaceSlug/spaces/:spaceSlug/media/content', exposeHeadRoute: false,
+      config: { swagger: { exposeHeadRoute: true } },
+      schema: { operationId: 'downloadMedia', tags: ['objects'], security: [{}, { session: [] }],
+        params: ObjectSpaceParamsSchema, querystring: ObjectVersionQuerySchema },
+      handler: async (request, reply) => {
+        const { namespaceSlug, spaceSlug } = request.params
+        const userId = getCurrentUserId(request)
+        await requireMediaSpace(app.db, userId, namespaceSlug, spaceSlug)
+        const content = await openObjectDownload(app.db, app.config.DATA_ROOT, userId,
+          namespaceSlug, spaceSlug, request.query.key, request.query.versionId)
+        return sendObjectContent(request, reply, content)
+      },
+    })
+  }
 
   app.get(
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/storage',

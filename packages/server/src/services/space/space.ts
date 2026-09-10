@@ -59,6 +59,9 @@ export async function createSpace(
   const visibility = input.visibility ?? 'private'
 
   validateSpace(name, slug, input.type, visibility)
+  if (input.app != null && (input.app !== 'media' || input.type !== 'object')) {
+    throw new SpaceServiceError('INVALID_INPUT', 400, 'Media requires an Object Space.')
+  }
 
   const namespace = await requireNamespaceOwner(
     db,
@@ -78,6 +81,7 @@ export async function createSpace(
           name,
           slug,
           type: input.type,
+          app: input.app ?? null,
           visibility,
         })
         .returningAll()
@@ -101,6 +105,7 @@ export async function createSpace(
           name: createdSpace.name,
           slug: createdSpace.slug,
           type: createdSpace.type,
+          app: createdSpace.app,
           visibility: createdSpace.visibility,
         },
       })
@@ -1367,6 +1372,7 @@ function validateSlug(slug: string, subject: 'namespace' | 'space'): void {
 
 function toPublicSpace(space: Space): PublicSpace {
   return {
+    app: space.app ?? null,
     objectVersionLimit: space.object_version_limit ?? 3,
     objectRetentionDays: space.object_retention_days ?? 7,
     id: space.id,

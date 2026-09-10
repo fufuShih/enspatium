@@ -212,6 +212,13 @@ export type ListNamespaceMembers200Item = {
   joinedAt: string;
 };
 
+export type CreateSpaceBodyApp = typeof CreateSpaceBodyApp[keyof typeof CreateSpaceBodyApp] | null;
+
+
+export const CreateSpaceBodyApp = {
+  media: 'media',
+} as const;
+
 export const CreateSpaceBodyType = {  git: 'git',
   object: 'object',
 } as const
@@ -219,6 +226,7 @@ export const CreateSpaceBodyVisibility = {  public: 'public',
   private: 'private',
 } as const
 export type CreateSpaceBody = {
+  app?: CreateSpaceBodyApp;
   /**
      * @minLength 1
      * @maxLength 100
@@ -233,6 +241,13 @@ export type CreateSpaceBody = {
   visibility?: typeof CreateSpaceBodyVisibility[keyof typeof CreateSpaceBodyVisibility];
 };
 
+export type CreateSpace201App = typeof CreateSpace201App[keyof typeof CreateSpace201App] | null;
+
+
+export const CreateSpace201App = {
+  media: 'media',
+} as const;
+
 export const CreateSpace201Type = {  git: 'git',
   object: 'object',
 } as const
@@ -240,6 +255,7 @@ export const CreateSpace201Visibility = {  public: 'public',
   private: 'private',
 } as const
 export type CreateSpace201 = {
+  app: CreateSpace201App;
   /**
      * @minimum 1
      * @maximum 1000
@@ -261,6 +277,13 @@ export type CreateSpace201 = {
   updatedAt: string;
 };
 
+export type ListSpaces200ItemApp = typeof ListSpaces200ItemApp[keyof typeof ListSpaces200ItemApp] | null;
+
+
+export const ListSpaces200ItemApp = {
+  media: 'media',
+} as const;
+
 export const ListSpaces200ItemType = {  git: 'git',
   object: 'object',
 } as const
@@ -268,6 +291,7 @@ export const ListSpaces200ItemVisibility = {  public: 'public',
   private: 'private',
 } as const
 export type ListSpaces200Item = {
+  app: ListSpaces200ItemApp;
   /**
      * @minimum 1
      * @maximum 1000
@@ -289,6 +313,13 @@ export type ListSpaces200Item = {
   updatedAt: string;
 };
 
+export type GetSpace200App = typeof GetSpace200App[keyof typeof GetSpace200App] | null;
+
+
+export const GetSpace200App = {
+  media: 'media',
+} as const;
+
 export const GetSpace200Type = {  git: 'git',
   object: 'object',
 } as const
@@ -296,6 +327,7 @@ export const GetSpace200Visibility = {  public: 'public',
   private: 'private',
 } as const
 export type GetSpace200 = {
+  app: GetSpace200App;
   /**
      * @minimum 1
      * @maximum 1000
@@ -341,6 +373,13 @@ export type UpdateSpaceBody = {
   visibility?: typeof UpdateSpaceBodyVisibility[keyof typeof UpdateSpaceBodyVisibility];
 };
 
+export type UpdateSpace200App = typeof UpdateSpace200App[keyof typeof UpdateSpace200App] | null;
+
+
+export const UpdateSpace200App = {
+  media: 'media',
+} as const;
+
 export const UpdateSpace200Type = {  git: 'git',
   object: 'object',
 } as const
@@ -348,6 +387,7 @@ export const UpdateSpace200Visibility = {  public: 'public',
   private: 'private',
 } as const
 export type UpdateSpace200 = {
+  app: UpdateSpace200App;
   /**
      * @minimum 1
      * @maximum 1000
@@ -664,6 +704,74 @@ export type ListSpaceAuditEvents200Item = {
   action: typeof ListSpaceAuditEvents200ItemAction[keyof typeof ListSpaceAuditEvents200ItemAction];
   metadata: ListSpaceAuditEvents200ItemMetadata;
   createdAt: string;
+};
+
+export type ListMediaParams = {
+kind?: typeof ListMediaKind[keyof typeof ListMediaKind];
+/**
+ * @maxLength 128
+ */
+search?: string;
+/**
+ * @maxLength 1024
+ */
+cursor?: string;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export const ListMediaKind = {  audio: 'audio',
+  video: 'video',
+  image: 'image',
+} as const
+export const ListMedia200ObjectsItemKind = {  audio: 'audio',
+  video: 'video',
+  image: 'image',
+} as const
+export type ListMedia200ObjectsItem = {
+  id: string;
+  spaceId: string;
+  createdByUserId: string | null;
+  key: string;
+  contentType: string;
+  /** @minimum 0 */
+  sizeBytes: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  checksumSha256: string;
+  createdAt: string;
+  updatedAt: string;
+  versionId: string;
+  /** @minimum 1 */
+  revision: number;
+  isDeleted: boolean;
+  kind: typeof ListMedia200ObjectsItemKind[keyof typeof ListMedia200ObjectsItemKind];
+};
+
+export type ListMedia200 = {
+  canUpload: boolean;
+  objects: ListMedia200ObjectsItem[];
+  nextCursor: string | null;
+};
+
+export type DownloadMediaParams = {
+/**
+ * @minLength 1
+ * @maxLength 1024
+ */
+key: string;
+versionId: string;
+};
+
+export type HeadMediaContentParams = {
+/**
+ * @minLength 1
+ * @maxLength 1024
+ */
+key: string;
+versionId: string;
 };
 
 export type GetObjectStorageUsage200 = {

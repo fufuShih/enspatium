@@ -1051,6 +1051,19 @@
                   "type"
                 ],
                 "properties": {
+                  "app": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "media"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "name": {
                     "minLength": 1,
                     "maxLength": 100,
@@ -1118,6 +1131,7 @@
                 "schema": {
                   "type": "object",
                   "required": [
+                    "app",
                     "objectVersionLimit",
                     "objectRetentionDays",
                     "id",
@@ -1131,6 +1145,19 @@
                     "updatedAt"
                   ],
                   "properties": {
+                    "app": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "media"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "objectVersionLimit": {
                       "minimum": 1,
                       "maximum": 1000,
@@ -1238,6 +1265,7 @@
                   "items": {
                     "type": "object",
                     "required": [
+                      "app",
                       "objectVersionLimit",
                       "objectRetentionDays",
                       "id",
@@ -1251,6 +1279,19 @@
                       "updatedAt"
                     ],
                     "properties": {
+                      "app": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "media"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
                       "objectVersionLimit": {
                         "minimum": 1,
                         "maximum": 1000,
@@ -1375,6 +1416,7 @@
                 "schema": {
                   "type": "object",
                   "required": [
+                    "app",
                     "objectVersionLimit",
                     "objectRetentionDays",
                     "id",
@@ -1390,6 +1432,19 @@
                     "canManage"
                   ],
                   "properties": {
+                    "app": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "media"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "objectVersionLimit": {
                       "minimum": 1,
                       "maximum": 1000,
@@ -1556,6 +1611,7 @@
                 "schema": {
                   "type": "object",
                   "required": [
+                    "app",
                     "objectVersionLimit",
                     "objectRetentionDays",
                     "id",
@@ -1569,6 +1625,19 @@
                     "updatedAt"
                   ],
                   "properties": {
+                    "app": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "media"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "objectVersionLimit": {
                       "minimum": 1,
                       "maximum": 1000,
@@ -3191,6 +3260,532 @@
                     }
                   }
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/media": {
+      "get": {
+        "operationId": "listMedia",
+        "tags": [
+          "objects"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "audio"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "video"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "image"
+                  ]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "kind",
+            "required": false
+          },
+          {
+            "schema": {
+              "maxLength": 128,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "search",
+            "required": false
+          },
+          {
+            "schema": {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "cursor",
+            "required": false
+          },
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "security": [
+          {},
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "canUpload",
+                    "objects",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "canUpload": {
+                      "type": "boolean"
+                    },
+                    "objects": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "spaceId",
+                          "createdByUserId",
+                          "key",
+                          "contentType",
+                          "sizeBytes",
+                          "checksumSha256",
+                          "createdAt",
+                          "updatedAt",
+                          "versionId",
+                          "revision",
+                          "isDeleted",
+                          "kind"
+                        ],
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "spaceId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "createdByUserId": {
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "contentType": {
+                            "type": "string"
+                          },
+                          "sizeBytes": {
+                            "minimum": 0,
+                            "type": "integer"
+                          },
+                          "checksumSha256": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "versionId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "revision": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "isDeleted": {
+                            "type": "boolean"
+                          },
+                          "kind": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "audio"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "video"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "image"
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/media/content": {
+      "get": {
+        "operationId": "downloadMedia",
+        "tags": [
+          "objects"
+        ],
+        "description": "Stream object content. Supports single byte ranges (start-end, start-, -suffix). Unsupported, malformed and multiple ranges return the full 200 response. If-Range requires the exact strong ETag; other validators return 200. HEAD uses the same authorization and full-content headers without a body, ignoring Range. Every request rechecks access and version availability.",
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "key",
+            "required": true
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "versionId",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "range",
+            "required": false,
+            "description": "Single byte range, for example bytes=0-1023."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "if-range",
+            "required": false,
+            "description": "Strong ETag from a previous response. HTTP-date validators fall back to full content."
+          }
+        ],
+        "security": [
+          {},
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Full content",
+            "headers": {
+              "accept-ranges": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "bytes"
+                  ]
+                }
+              },
+              "content-length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "etag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Strong SHA-256 entity tag for the full content."
+              },
+              "cache-control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-content-sha256": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Checksum of the full object, including for partial responses."
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary",
+                  "description": "Full content"
+                }
+              }
+            }
+          },
+          "206": {
+            "description": "Partial content",
+            "headers": {
+              "accept-ranges": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "bytes"
+                  ]
+                }
+              },
+              "content-length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "etag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Strong SHA-256 entity tag for the full content."
+              },
+              "cache-control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-content-sha256": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Checksum of the full object, including for partial responses."
+              },
+              "content-range": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "bytes start-end/size"
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary",
+                  "description": "Partial content"
+                }
+              }
+            }
+          },
+          "416": {
+            "description": "Unsatisfiable range; empty body",
+            "headers": {
+              "accept-ranges": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "bytes"
+                  ]
+                }
+              },
+              "content-length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "etag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Strong SHA-256 entity tag for the full content."
+              },
+              "cache-control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-content-sha256": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Checksum of the full object, including for partial responses."
+              },
+              "content-range": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "bytes */size"
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "operationId": "headMediaContent",
+        "tags": [
+          "objects"
+        ],
+        "description": "Return full-content headers without reading a response body. Uses the same authorization and version availability checks as GET; ignores Range.",
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "key",
+            "required": true
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "versionId",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "security": [
+          {},
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Full-content headers; no body",
+            "headers": {
+              "accept-ranges": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "bytes"
+                  ]
+                }
+              },
+              "content-length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "etag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Strong SHA-256 entity tag for the full content."
+              },
+              "cache-control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-content-sha256": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Checksum of the full object, including for partial responses."
               }
             }
           }
