@@ -1,6 +1,7 @@
 import { Box, Button, Menu, Portal, Text } from '@chakra-ui/react'
 import { useNavigate } from 'react-router'
 import { useState } from 'react'
+import { useTheme } from 'next-themes'
 import { useAuth } from '../context/auth'
 import { authErrorMessage } from '../context/session'
 import { accessTokensPath } from '../pages/UserPage/tokenApi'
@@ -8,6 +9,8 @@ import { namespacePath } from '../pages/UserPage/namespaces'
 
 export default function UserMenu() {
   const { user, signOut } = useAuth()
+  const { resolvedTheme, setTheme } = useTheme()
+  const darkTheme = resolvedTheme === 'dark'
   const navigate = useNavigate()
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
@@ -35,6 +38,7 @@ export default function UserMenu() {
       onSelect={({ value }) => {
         if (value === 'profile') navigate(namespacePath(user.namespace))
         if (value === 'access-tokens') navigate(accessTokensPath)
+        if (value === 'theme') setTheme(darkTheme ? 'light' : 'dark')
         if (value === 'sign-out') {
           void handleSignOut()
         }
@@ -94,6 +98,21 @@ export default function UserMenu() {
             <Menu.Separator borderColor="var(--border)" />
             <Menu.Item value="profile" closeOnSelect disabled={pending} px="3" py="2.5" borderRadius="md" _highlighted={{ bg: 'var(--surface)' }}>Profile</Menu.Item>
             <Menu.Item value="access-tokens" closeOnSelect disabled={pending} px="3" py="2.5" borderRadius="md" _highlighted={{ bg: 'var(--surface)' }}>Access tokens</Menu.Item>
+            <Menu.Item
+              value="theme"
+              aria-label={`Switch to ${darkTheme ? 'light' : 'dark'} theme`}
+              disabled={pending}
+              mt="4"
+              px="3"
+              py="2.5"
+              borderRadius="md"
+              _highlighted={{ bg: 'var(--surface)' }}
+            >
+              <Text flex="1">Theme</Text>
+              <Text fontSize="xs" color="var(--muted)">{darkTheme ? 'Dark' : 'Light'}</Text>
+              <Box as="span" aria-hidden="true" fontSize="md" color="var(--muted)">{darkTheme ? '☾' : '☀'}</Box>
+            </Menu.Item>
+            <Menu.Separator borderColor="var(--border)" my="1.5" />
             <Menu.Item
               value="sign-out"
               disabled={pending}
