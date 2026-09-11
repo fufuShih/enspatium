@@ -30,11 +30,11 @@ export default function MediaPlayer({ account, slug, file }: { account: string; 
     }
   }
   return <>
-    <Box bg="#080b0a" borderRadius="10px" overflow="hidden">
+    <Box bg="var(--background)" borderRadius="10px" overflow="hidden">
       {largePhoto ? <Text p="24px" fontSize="13px">Photo previews support files up to 10 MiB. Download this photo to view it.</Text> : file.kind === 'image' ?
         <chakra.img src={source} alt={file.key} w="full" maxH="52vh" objectFit="contain" onError={() => { void failed() }} /> : file.kind === 'audio' ?
-        <Box bgImage="radial-gradient(ellipse at top, #304c42, #101d19)" p={{ base: '24px', md: '40px' }}>
-          <Box mx="auto" mb="28px" display="grid" placeItems="center" w="96px" h="96px" borderRadius="full" border="1px solid #ffffff25" bg="#ffffff08" color="#a0dec2"><MediaIcon kind="audio" /></Box>
+        <Box bgImage="radial-gradient(ellipse at top, var(--surface-strong), var(--background))" p={{ base: '24px', md: '40px' }}>
+          <Box mx="auto" mb="28px" display="grid" placeItems="center" w="96px" h="96px" borderRadius="full" border="1px solid var(--border)" bg="var(--surface)" color="var(--accent-ink)"><MediaIcon kind="audio" /></Box>
           <chakra.audio ref={(node: HTMLAudioElement | null) => { player.current = node }} src={source} controls preload="metadata" w="full" aria-label={`Play ${file.key}`} onError={() => { void failed() }} />
         </Box> :
         <chakra.video ref={(node: HTMLVideoElement | null) => { player.current = node }} src={source} controls playsInline preload="metadata" w="full" maxH="52vh" aria-label={`Play ${file.key}`} onError={() => { void failed() }} />}

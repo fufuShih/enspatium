@@ -1,16 +1,16 @@
 :root {
-  /* Cosmic — space-led with a trace of beeswax in the lightest steps */
-  --color-cosmic-50: #f7f7f3;
-  --color-cosmic-100: #ebe9dd;
-  --color-cosmic-200: #d5d3c2;
-  --color-cosmic-300: #b6bcc0;
-  --color-cosmic-400: #919aa4;
-  --color-cosmic-500: #707a86;
-  --color-cosmic-600: #566270;
-  --color-cosmic-700: #3f4c5b;
-  --color-cosmic-800: #2a3747;
-  --color-cosmic-900: #192635;
-  --color-cosmic-950: #0c1722;
+  /* One green palette, from soft white to charcoal, shared by both themes. */
+  --color-cosmic-50: #eef2f0;
+  --color-cosmic-100: #dce9e1;
+  --color-cosmic-200: #a6dfbe;
+  --color-cosmic-300: #83cfa7;
+  --color-cosmic-400: #709c82;
+  --color-cosmic-500: #50765e;
+  --color-cosmic-600: #3b5544;
+  --color-cosmic-700: #2c3830;
+  --color-cosmic-800: #1e2a23;
+  --color-cosmic-900: #141b17;
+  --color-cosmic-950: #0b0f0d;
 
   /* Light theme */
   --background: var(--color-cosmic-50);
@@ -26,14 +26,15 @@
   color-scheme: light;
 }
 
-:root.dark {
+:root.dark,
+[data-theme='dark'] {
   --background: var(--color-cosmic-950);
   --foreground: var(--color-cosmic-50);
   --surface: var(--color-cosmic-900);
   --surface-strong: var(--color-cosmic-800);
-  --muted: var(--color-cosmic-300);
+  --muted: var(--color-cosmic-400);
   --border: var(--color-cosmic-700);
-  --accent: var(--color-cosmic-200);
+  --accent: var(--color-cosmic-300);
   --accent-ink: var(--color-cosmic-200);
   --accent-contrast: var(--color-cosmic-950);
 
@@ -46,9 +47,9 @@
     --foreground: var(--color-cosmic-50);
     --surface: var(--color-cosmic-900);
     --surface-strong: var(--color-cosmic-800);
-    --muted: var(--color-cosmic-300);
+    --muted: var(--color-cosmic-400);
     --border: var(--color-cosmic-700);
-    --accent: var(--color-cosmic-200);
+    --accent: var(--color-cosmic-300);
     --accent-ink: var(--color-cosmic-200);
     --accent-contrast: var(--color-cosmic-950);
 

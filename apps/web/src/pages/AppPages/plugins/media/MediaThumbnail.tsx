@@ -13,13 +13,13 @@ export function MediaIcon({ kind }: { kind?: string }) {
 export default function MediaThumbnail({ account, slug, file }: { account: string; slug: string; file: ListMedia200ObjectsItem }) {
   const [failed, setFailed] = useState(false)
   const source = mediaIntegration.contentUrl(account, slug, { key: file.key, versionId: file.versionId })
-  return <Box position="relative" aspectRatio="16 / 10" overflow="hidden" borderRadius="10px" bg={file.kind === 'audio' ? '#283c38' : '#252c30'}>
-    <Box position="absolute" inset="0" display="grid" placeItems="center" color={file.kind === 'audio' ? '#93d9bc' : '#a6b4c0'} bgImage={file.kind === 'audio' ? 'radial-gradient(circle at 25% 20%, #41665c, transparent 75%)' : 'radial-gradient(circle at 75% 20%, #3b4c56, transparent 75%)'}>
-      <Box display="grid" placeItems="center" w="56px" h="56px" borderRadius="full" bg="#ffffff0a" border="1px solid #ffffff16"><MediaIcon kind={file.kind} /></Box>
+  return <Box position="relative" aspectRatio="16 / 10" overflow="hidden" borderRadius="10px" bg="var(--surface-strong)">
+    <Box position="absolute" inset="0" display="grid" placeItems="center" color={file.kind === 'audio' ? 'var(--accent-ink)' : 'var(--muted)'} bgImage="radial-gradient(circle at 25% 20%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 75%)">
+      <Box display="grid" placeItems="center" w="56px" h="56px" borderRadius="full" bg="var(--surface)" border="1px solid var(--border)"><MediaIcon kind={file.kind} /></Box>
     </Box>
     {!failed && file.kind === 'image' && file.sizeBytes <= imagePreviewLimit && <chakra.img src={source} alt="" loading="lazy" decoding="async" position="absolute" inset="0" w="full" h="full" objectFit="cover" onError={() => setFailed(true)} />}
     {!failed && file.kind === 'video' && <VideoThumbnail source={source} onError={() => setFailed(true)} />}
-    <Box position="absolute" right="10px" bottom="10px" display="grid" placeItems="center" w="28px" h="28px" borderRadius="full" bg="#111c" color="white" aria-hidden="true">{file.kind === 'image' ? '↗' : '▶'}</Box>
+    <Box position="absolute" right="10px" bottom="10px" display="grid" placeItems="center" w="28px" h="28px" borderRadius="full" bg="color-mix(in srgb, var(--background) 80%, transparent)" color="var(--foreground)" aria-hidden="true">{file.kind === 'image' ? '↗' : '▶'}</Box>
   </Box>
 }
 
