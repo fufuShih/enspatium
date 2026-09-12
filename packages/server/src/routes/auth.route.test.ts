@@ -27,7 +27,7 @@ const sessionUser = { ...user, isAdmin: false }
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(authenticateUser).mockResolvedValue(sessionUser)
+  vi.mocked(authenticateUser).mockResolvedValue({ ...sessionUser, sessionVersion: 0 })
   vi.mocked(createUser).mockResolvedValue(user)
   vi.mocked(getUser).mockResolvedValue(user)
   vi.mocked(getSessionUser).mockResolvedValue(sessionUser)

@@ -11,6 +11,10 @@ export const userRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.post(
     '/users',
     {
+      config: { rateLimit: { max: () => app.config.REGISTRATION_RATE_LIMIT, timeWindow: '1 minute' } },
+      onRequest: async () => {
+        if (app.config?.REGISTRATION_ENABLED === false) throw Object.assign(new Error('Registration is closed. Contact the site administrator.'), { statusCode: 403, code: 'REGISTRATION_CLOSED' })
+      },
       schema: {
         operationId: 'createUser',
         tags: ['users'],

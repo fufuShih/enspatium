@@ -438,6 +438,35 @@
         }
       }
     },
+    "/auth/settings": {
+      "get": {
+        "operationId": "getAuthSettings",
+        "tags": [
+          "auth"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "registrationEnabled"
+                  ],
+                  "properties": {
+                    "registrationEnabled": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/login": {
       "post": {
         "operationId": "login",
@@ -3882,6 +3911,24 @@
                           {
                             "type": "string",
                             "enum": [
+                              "user.created"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "user.disabled"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "user.enabled"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
                               "space.created"
                             ]
                           },
@@ -6771,6 +6818,255 @@
                       "type": "string"
                     },
                     "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "operationId": "listAdminUsers",
+        "tags": [
+          "admin"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "search",
+            "required": false
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "cursor",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "users",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "email",
+                          "displayName",
+                          "isAdmin",
+                          "isDisabled",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "displayName": {
+                            "type": "string"
+                          },
+                          "isAdmin": {
+                            "type": "boolean"
+                          },
+                          "isDisabled": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createAdminManagedUser",
+        "tags": [
+          "admin"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password",
+                  "displayName"
+                ],
+                "properties": {
+                  "email": {
+                    "minLength": 1,
+                    "maxLength": 320,
+                    "type": "string"
+                  },
+                  "password": {
+                    "minLength": 8,
+                    "maxLength": 1024,
+                    "type": "string"
+                  },
+                  "displayName": {
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "email",
+                    "displayName",
+                    "isAdmin",
+                    "isDisabled",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "isAdmin": {
+                      "type": "boolean"
+                    },
+                    "isDisabled": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{userId}": {
+      "patch": {
+        "operationId": "setUserAccess",
+        "tags": [
+          "admin"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "disabled"
+                ],
+                "properties": {
+                  "disabled": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "userId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "email",
+                    "displayName",
+                    "isAdmin",
+                    "isDisabled",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "isAdmin": {
+                      "type": "boolean"
+                    },
+                    "isDisabled": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
                       "type": "string"
                     }
                   }

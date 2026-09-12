@@ -5,6 +5,7 @@ import { UserServiceError } from '../services/users.js'
 declare module '@fastify/secure-session' {
   interface SessionData {
     userId: string
+    sessionVersion: number
   }
 }
 

@@ -10,13 +10,20 @@ import RequestState from '../../components/RequestState'
 import { ActionButton, PageContainer, PageHeading, SelectInput, TextInput } from '../../components/ui/Primitives'
 import { useAuth } from '../../context/auth'
 import { apiStatus } from '../../context/session'
+import AdminUsers from './AdminUsers'
 
 export default function AdminPage() {
   const { user, isLoading, error } = useAuth()
+  const [tab, setTab] = useState<'storage' | 'users'>('storage')
   if (isLoading || error) return <AuthStatus />
   if (!user) return <Navigate to="/login" replace state={{ from: '/settings/admin' }} />
   if (!user.isAdmin) return <PageContainer><RequestState title="Access denied" message="Site administrator access is required." /></PageContainer>
-  return <StorageCheck key={user.id} />
+  return <PageContainer maxW="880px">
+    <PageHeading>Site administration</PageHeading>
+    <Text mt="10px" mb="28px" fontSize="14px" color="var(--muted)">Manage your Enspatium installation.</Text>
+    <Flex gap="8px" mb="24px"><ActionButton aria-pressed={tab === 'storage'} onClick={() => setTab('storage')}>Storage</ActionButton><ActionButton aria-pressed={tab === 'users'} onClick={() => setTab('users')}>Users</ActionButton></Flex>
+    {tab === 'users' ? <AdminUsers key={user.id} currentUserId={user.id} /> : <StorageCheck key={user.id} />}
+  </PageContainer>
 }
 
 function StorageCheck() {
@@ -55,9 +62,7 @@ function StorageCheck() {
     }
   }
 
-  return <PageContainer maxW="880px">
-    <PageHeading>Site administration</PageHeading>
-    <Text mt="10px" mb="28px" fontSize="14px" color="var(--muted)">Manage your Enspatium installation.</Text>
+  return <>
     <Box as="section" border="1px solid var(--border)" borderRadius="8px" p={{ base: '20px', md: '24px' }}>
       <Heading as="h2" fontSize="18px" fontWeight="500">Storage integrity</Heading>
       <Text mt="8px" fontSize="13px" color="var(--muted)" lineHeight="1.8">Check Git repositories and Object versions for missing or changed content. Checks report issues without modifying data.</Text>
@@ -96,5 +101,5 @@ function StorageCheck() {
         </Box>)}
       </Box>}
     </Box>}
-  </PageContainer>
+  </>
 }

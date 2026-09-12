@@ -80,6 +80,7 @@ export async function createFixture(t: FixtureLifecycle) {
   // Ignore developer Git credentials, hooks, signing and repository environment.
   for (const key of Object.keys(process.env)) if (key.startsWith('GIT_')) delete process.env[key]
   Object.assign(process.env, { GIT_CONFIG_GLOBAL: emptyGitConfig, GIT_CONFIG_NOSYSTEM: '1', GIT_TERMINAL_PROMPT: '0' })
+  Object.assign(process.env, { REGISTRATION_ENABLED: 'true', TRUST_PROXY: 'false', LOGIN_RATE_LIMIT: '10000', LOGIN_ACCOUNT_RATE_LIMIT: '10000', REGISTRATION_RATE_LIMIT: '10000', GIT_AUTH_RATE_LIMIT: '10000' })
   const baseGitEnvironment = { ...process.env }
   try { await execFileAsync('git', ['--version'], { timeout: 5_000, windowsHide: true }) } catch {
     throw new Error('Git CLI must be installed and available on PATH.')

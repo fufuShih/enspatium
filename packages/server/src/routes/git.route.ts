@@ -32,6 +32,8 @@ const gitAuthenticationChallenge =
   'Basic realm="Enspatium Git", charset="UTF-8"'
 
 export const gitRoutes: FastifyPluginAsyncTypebox = async (app) => {
+  const throttle = app.rateLimit?.({ max: () => app.config.GIT_AUTH_RATE_LIMIT, timeWindow: '1 minute' })
+  if (throttle) app.addHook('onRequest', throttle)
   app.addContentTypeParser(
     [
       'application/x-git-upload-pack-request',

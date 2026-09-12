@@ -32,6 +32,7 @@ export const tokenRoutes: FastifyPluginAsyncTypebox = async (app) => {
         app.db,
         requireCurrentUserId(request),
         request.body,
+        request.session.get('sessionVersion') ?? 0,
       )
 
       return reply.code(201).send(token)

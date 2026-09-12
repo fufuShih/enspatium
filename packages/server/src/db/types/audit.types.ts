@@ -6,6 +6,9 @@ import type {
 } from 'kysely'
 
 export const auditActions = [
+  'user.created',
+  'user.disabled',
+  'user.enabled',
   'space.created',
   'space.updated',
   'space.deleted',

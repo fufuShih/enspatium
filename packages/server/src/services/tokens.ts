@@ -49,36 +49,44 @@ export async function createPersonalAccessToken(
   db: Kysely<Database>,
   userId: string,
   input: CreatePersonalAccessTokenInput,
+  expectedSessionVersion?: number,
 ): Promise<CreatedPersonalAccessToken> {
   const normalized = validateCreatePersonalAccessToken(input)
   const token = generatePersonalAccessToken()
 
   try {
-    const createdToken = await db
-      .insertInto('personal_access_tokens')
-      .values({
-        user_id: userId,
-        name: normalized.name,
-        token_hash: hashPersonalAccessToken(token),
-        scopes: normalized.scopes,
-        expires_at: normalized.expiresAt,
-      })
-      .returning([
-        'id',
-        'name',
-        'scopes',
-        'expires_at',
-        'last_used_at',
-        'revoked_at',
-        'created_at',
-      ])
-      .executeTakeFirstOrThrow()
+    const createdToken = await db.transaction().execute(async tx => {
+      // Serialize token issuance with suspension. A request admitted before
+      // suspension must not mint a usable token after the user is re-enabled.
+      const user = await tx.selectFrom('users').select(['is_disabled', 'session_version']).where('id', '=', userId).forUpdate().executeTakeFirst()
+      if (!user || user.is_disabled || (expectedSessionVersion !== undefined && expectedSessionVersion !== user.session_version)) throw invalidToken()
+      return tx
+        .insertInto('personal_access_tokens')
+        .values({
+          user_id: userId,
+          name: normalized.name,
+          token_hash: hashPersonalAccessToken(token),
+          scopes: normalized.scopes,
+          expires_at: normalized.expiresAt,
+        })
+        .returning([
+          'id',
+          'name',
+          'scopes',
+          'expires_at',
+          'last_used_at',
+          'revoked_at',
+          'created_at',
+        ])
+        .executeTakeFirstOrThrow()
+    })
 
     return {
       ...toPublicPersonalAccessToken(createdToken),
       token,
     }
   } catch (error) {
+    if (error instanceof TokenServiceError) throw error
     throw new TokenServiceError(
       'INTERNAL',
       500,
@@ -190,6 +198,9 @@ export async function authenticatePersonalAccessToken(
   ) {
     throw invalidToken()
   }
+
+  const user = await db.selectFrom('users').select('is_disabled').where('id', '=', token.user_id).executeTakeFirst()
+  if (!user || user.is_disabled) throw invalidToken()
 
   if (!token.scopes.includes(requiredScope)) {
     throw new TokenServiceError(

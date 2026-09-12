@@ -106,6 +106,10 @@ export type GetUser200 = {
   updatedAt: string;
 };
 
+export type GetAuthSettings200 = {
+  registrationEnabled: boolean;
+};
+
 export type LoginBody = {
   /**
      * @minLength 1
@@ -766,7 +770,10 @@ export type ListSpaceAuditEventsParams = {
 limit?: number;
 };
 
-export const ListSpaceAuditEvents200ItemAction = {  spacecreated: 'space.created',
+export const ListSpaceAuditEvents200ItemAction = {  usercreated: 'user.created',
+  userdisabled: 'user.disabled',
+  userenabled: 'user.enabled',
+  spacecreated: 'space.created',
   spaceupdated: 'space.updated',
   spacedeleted: 'space.deleted',
   gitpushed: 'git.pushed',
@@ -1232,5 +1239,67 @@ export type CheckStorageIntegrity409 = {
   code: string;
   error: string;
   message: string;
+};
+
+export type ListAdminUsersParams = {
+/**
+ * @maxLength 100
+ */
+search?: string;
+cursor?: string;
+};
+
+export type ListAdminUsers200UsersItem = {
+  id: string;
+  email: string;
+  displayName: string;
+  isAdmin: boolean;
+  isDisabled: boolean;
+  createdAt: string;
+};
+
+export type ListAdminUsers200 = {
+  users: ListAdminUsers200UsersItem[];
+  nextCursor: string | null;
+};
+
+export type CreateAdminManagedUserBody = {
+  /**
+     * @minLength 1
+     * @maxLength 320
+     */
+  email: string;
+  /**
+     * @minLength 8
+     * @maxLength 1024
+     */
+  password: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  displayName: string;
+};
+
+export type CreateAdminManagedUser201 = {
+  id: string;
+  email: string;
+  displayName: string;
+  isAdmin: boolean;
+  isDisabled: boolean;
+  createdAt: string;
+};
+
+export type SetUserAccessBody = {
+  disabled: boolean;
+};
+
+export type SetUserAccess200 = {
+  id: string;
+  email: string;
+  displayName: string;
+  isAdmin: boolean;
+  isDisabled: boolean;
+  createdAt: string;
 };
 

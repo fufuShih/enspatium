@@ -4,6 +4,8 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router'
 import { useCreateUser } from '../../api/generated/users'
+import { useGetAuthSettings } from '../../api/generated/auth'
+import RequestState from '../../components/RequestState'
 import AuthStatus from '../../components/AuthStatus'
 import { PageContainer, PageHeading, PageLink, TextInput } from '../../components/ui/Primitives'
 import { useAuth } from '../../context/auth'
@@ -16,6 +18,7 @@ function AuthInput(props: InputProps) {
 
 export default function AuthPage({ register = false }: { register?: boolean }) {
   const { user, isLoading, signIn } = useAuth()
+  const settings = useGetAuthSettings({ query: { retry: false } })
   const createUser = useCreateUser({ mutation: { gcTime: 0, retry: false } })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -27,6 +30,9 @@ export default function AuthPage({ register = false }: { register?: boolean }) {
 
   if (isLoading) return <AuthStatus />
   if (user) return <Navigate to={returnTo ?? namespacePath(user.namespace)} replace />
+  if (register && settings.isPending) return <PageContainer><RequestState loading title="Loading registration..." /></PageContainer>
+  if (register && settings.isError) return <PageContainer><RequestState title="Unable to load registration" onRetry={() => { void settings.refetch() }} /></PageContainer>
+  if (register && !settings.data?.registrationEnabled) return <PageContainer><RequestState title="Registration is closed" message="Contact the site administrator to request an account."><PageLink display="inline-block" mt="20px" to="/login">Sign in</PageLink></RequestState></PageContainer>
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -94,10 +100,10 @@ export default function AuthPage({ register = false }: { register?: boolean }) {
           </chakra.fieldset>
         </form>
       </Box>
-      <Text mt="24px" fontSize="13px" lineHeight="1.8" color="var(--muted)" textAlign="center">
+      {(register || settings.data?.registrationEnabled) && <Text mt="24px" fontSize="13px" lineHeight="1.8" color="var(--muted)" textAlign="center">
         {register ? 'Already have an account? ' : "Don't have an account? "}
         <PageLink to={register ? '/login' : '/register'} state={{ from: returnTo }} color="var(--foreground)" fontWeight="500" textDecoration="underline" textUnderlineOffset="3px" textDecorationColor="var(--border)">{register ? 'Sign in' : 'Create account'}</PageLink>
-      </Text>
+      </Text>}
     </PageContainer>
   )
 }

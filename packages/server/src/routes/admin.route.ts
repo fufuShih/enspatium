@@ -6,6 +6,7 @@ import {
   AdminErrorSchema,
 } from './types/admin.types.js'
 import { checkStorage } from '../services/storage-check/index.js'
+import { requireSiteAdmin } from '../services/admin-users.js'
 
 export const adminRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.post(
@@ -29,16 +30,7 @@ export const adminRoutes: FastifyPluginAsyncTypebox = async (app) => {
         reply.header('cache-control', 'private, no-store')
         const userId = requireCurrentUserId(request)
         // Always read the current role; a stale session cannot retain revoked admin access.
-        const user = await app.db
-          .selectFrom('users')
-          .select('is_admin')
-          .where('id', '=', userId)
-          .executeTakeFirst()
-        if (!user?.is_admin)
-          throw Object.assign(
-            new Error('Site administrator access is required.'),
-            { statusCode: 403, code: 'FORBIDDEN' },
-          )
+        await requireSiteAdmin(app.db, userId)
       },
     },
     async (request) => checkStorage(app.db, app.config.DATA_ROOT, request.body),

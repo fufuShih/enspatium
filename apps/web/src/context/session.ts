@@ -21,6 +21,7 @@ export function apiCode(error: unknown): string | undefined {
 
 export function authErrorMessage(error: unknown, action: 'login' | 'register' | 'logout') {
   const status = apiStatus(error)
+  if (apiCode(error) === 'REGISTRATION_CLOSED') return 'Registration is closed. Contact the site administrator.'
   if (action === 'login' && status === 401) return 'Incorrect email or password.'
   if (action === 'register' && status === 409) return 'An account with this email already exists. Please sign in.'
   if (status === 400) return 'Please check your details and try again.'

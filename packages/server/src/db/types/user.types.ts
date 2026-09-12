@@ -11,6 +11,8 @@ export interface UserTable {
   password_hash: string
   display_name: string
   is_admin: Generated<boolean>
+  is_disabled: Generated<boolean>
+  session_version: Generated<number>
   created_at: Generated<Date>
   updated_at: Generated<Date>
 }

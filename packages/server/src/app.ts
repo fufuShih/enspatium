@@ -1,5 +1,6 @@
 import helmet from '@fastify/helmet'
 import secureSession from '@fastify/secure-session'
+import rateLimit from '@fastify/rate-limit'
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
 import Fastify from 'fastify'
 
@@ -8,13 +9,24 @@ import { dbPlugin } from './db/index.js'
 import { registerOpenApi } from './openapi.js'
 import { registerRoutes } from './routes/index.js'
 import { initializeStorage } from './services/space/storage.js'
+import { registerSessionAccess } from './services/session-access.js'
 
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7
 
 export async function buildApp() {
-  const app = Fastify({ logger: true }).withTypeProvider<TypeBoxTypeProvider>()
+  const proxy = { enabled: false }
+  const app = Fastify({
+    logger: { redact: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'] },
+    // Trust exactly the adjacent reverse proxy, only when explicitly configured.
+    trustProxy: (_address, hop) => proxy.enabled && hop === 0,
+  }).withTypeProvider<TypeBoxTypeProvider>()
 
   await app.register(configPlugin)
+  proxy.enabled = app.config.TRUST_PROXY
+  await app.register(rateLimit, {
+    global: false,
+    errorResponseBuilder: () => ({ statusCode: 429, code: 'RATE_LIMITED', error: 'Too Many Requests', message: 'Too many attempts. Please try again later.' }),
+  })
   await initializeStorage(app.config.DATA_ROOT)
   await app.register(dbPlugin)
   await app.register(secureSession, {
@@ -30,6 +42,7 @@ export async function buildApp() {
     },
   })
   await app.register(helmet)
+  registerSessionAccess(app)
   await registerOpenApi(app)
   await registerRoutes(app)
 

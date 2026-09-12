@@ -5,13 +5,22 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
-  useMutation
+  useMutation,
+  useQuery
 } from '@tanstack/react-query';
 import type {
+  DataTag,
+  DefinedInitialDataOptions,
+  DefinedUseQueryResult,
   MutationFunction,
   QueryClient,
+  QueryFunction,
+  QueryKey,
+  UndefinedInitialDataOptions,
   UseMutationOptions,
-  UseMutationResult
+  UseMutationResult,
+  UseQueryOptions,
+  UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
@@ -19,13 +28,34 @@ import type {
   CheckStorageIntegrity401,
   CheckStorageIntegrity403,
   CheckStorageIntegrity409,
-  CheckStorageIntegrityBody
+  CheckStorageIntegrityBody,
+  CreateAdminManagedUser201,
+  CreateAdminManagedUserBody,
+  ListAdminUsers200,
+  ListAdminUsersParams,
+  SetUserAccess200,
+  SetUserAccessBody
 } from './api.schemas';
 
 
 
 
 
+
+const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
+  const result = { queryKey } as T & { queryKey: K };
+  for (const key of Object.keys(query)) {
+    // The explicit queryKey always wins, matching the previous
+    // `{ ...query, queryKey }` spread where it was set last.
+    if (key === 'queryKey') continue;
+    Object.defineProperty(result, key, {
+      enumerable: true,
+      configurable: true,
+      get: () => (query as Record<string, unknown>)[key],
+    });
+  }
+  return result;
+};
 
 export const getCheckStorageIntegrityUrl = () => {
 
@@ -117,4 +147,297 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
         TContext
       > => {
       return useMutation(getCheckStorageIntegrityMutationOptions(options), queryClient);
+    }
+    export const getListAdminUsersUrl = (params?: ListAdminUsersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/users?${stringifiedParams}` : `/api/admin/users`
+}
+
+export const listAdminUsers = async (params?: ListAdminUsersParams, options?: RequestInit): Promise<ListAdminUsers200> => {
+
+  const res = await fetch(getListAdminUsersUrl(params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: ListAdminUsers200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getListAdminUsersQueryKey = (params?: ListAdminUsersParams,) => {
+    return [
+    `/api/admin/users`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAdminUsersQueryOptions = <TData = Awaited<ReturnType<typeof listAdminUsers>>, TError = globalThis.Error & { info?: unknown; status?: number }>(params?: ListAdminUsersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminUsersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminUsers>>> = ({ signal }) => listAdminUsers(params, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListAdminUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminUsers>>>
+export type ListAdminUsersQueryError = globalThis.Error & { info?: unknown; status?: number }
+
+
+export function useListAdminUsers<TData = Awaited<ReturnType<typeof listAdminUsers>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ params: undefined |  ListAdminUsersParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAdminUsers>>,
+          TError,
+          Awaited<ReturnType<typeof listAdminUsers>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAdminUsers<TData = Awaited<ReturnType<typeof listAdminUsers>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ params?: ListAdminUsersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAdminUsers>>,
+          TError,
+          Awaited<ReturnType<typeof listAdminUsers>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAdminUsers<TData = Awaited<ReturnType<typeof listAdminUsers>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ params?: ListAdminUsersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListAdminUsers<TData = Awaited<ReturnType<typeof listAdminUsers>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ params?: ListAdminUsersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListAdminUsersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getCreateAdminManagedUserUrl = () => {
+
+
+
+
+  return `/api/admin/users`
+}
+
+export const createAdminManagedUser = async (createAdminManagedUserBody: CreateAdminManagedUserBody, options?: RequestInit): Promise<CreateAdminManagedUser201> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+const res = await fetch(getCreateAdminManagedUserUrl(),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createAdminManagedUserBody)
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: CreateAdminManagedUser201 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getCreateAdminManagedUserMutationKey = () => ['createAdminManagedUser'] as const;
+
+export const getCreateAdminManagedUserMutationOptions = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminManagedUser>>, TError,CreateAdminManagedUserMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminManagedUser>>, TError,CreateAdminManagedUserMutationVariables, TContext> => {
+
+const mutationKey = getCreateAdminManagedUserMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminManagedUser>>, CreateAdminManagedUserMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminManagedUser(data,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminManagedUserMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminManagedUser>>>
+    export type CreateAdminManagedUserMutationBody = CreateAdminManagedUserBody
+    export type CreateAdminManagedUserMutationError = globalThis.Error & { info?: unknown; status?: number }
+    export type CreateAdminManagedUserMutationVariables = {data: CreateAdminManagedUserBody}
+
+    export const useCreateAdminManagedUser = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminManagedUser>>, TError,CreateAdminManagedUserMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminManagedUser>>,
+        TError,
+        CreateAdminManagedUserMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateAdminManagedUserMutationOptions(options), queryClient);
+    }
+    export const getSetUserAccessUrl = (userId: string,) => {
+
+
+
+
+  return `/api/admin/users/${encodeURIComponent(String(userId))}`
+}
+
+export const setUserAccess = async (userId: string,
+    setUserAccessBody: SetUserAccessBody, options?: RequestInit): Promise<SetUserAccess200> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+const res = await fetch(getSetUserAccessUrl(userId),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(setUserAccessBody)
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: SetUserAccess200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getSetUserAccessMutationKey = () => ['setUserAccess'] as const;
+
+export const getSetUserAccessMutationOptions = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setUserAccess>>, TError,SetUserAccessMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof setUserAccess>>, TError,SetUserAccessMutationVariables, TContext> => {
+
+const mutationKey = getSetUserAccessMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setUserAccess>>, SetUserAccessMutationVariables> = (props) => {
+          const {userId,data} = props ?? {};
+
+          return  setUserAccess(userId,data,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetUserAccessMutationResult = NonNullable<Awaited<ReturnType<typeof setUserAccess>>>
+    export type SetUserAccessMutationBody = SetUserAccessBody
+    export type SetUserAccessMutationError = globalThis.Error & { info?: unknown; status?: number }
+    export type SetUserAccessMutationVariables = {userId: string;data: SetUserAccessBody}
+
+    export const useSetUserAccess = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setUserAccess>>, TError,SetUserAccessMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof setUserAccess>>,
+        TError,
+        SetUserAccessMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSetUserAccessMutationOptions(options), queryClient);
     }

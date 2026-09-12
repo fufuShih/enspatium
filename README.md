@@ -80,6 +80,8 @@ For a visible browser, run `pnpm --filter @enspatium/web exec playwright test --
 
 ## Authentication
 
+Production defaults to closed registration. Site administrators can create, search, disable and enable accounts at **Site administration → Users**. Disabling preserves user content while invalidating sessions and revoking Git tokens; enabling requires a fresh sign-in and new tokens. Migration `0017_account_access` is required. See [deployment access management](deploy/README.md) for initial admin setup, proxy configuration and authentication rate limits. Development registration remains enabled unless `REGISTRATION_ENABLED=false`.
+
 Start PostgreSQL and configure the root `.env` using `.env.example` (including `DATABASE_URL` and a random 32-byte hex `SESSION_KEY`). Apply migrations with `pnpm --filter @enspatium/server db:migrate`, then run `pnpm dev` and `pnpm --filter @enspatium/web dev` in separate terminals.
 
 Open `/register` to create an account, then sign in at `/login`. Authentication uses the generated API client and the backend's HttpOnly session cookie. Refreshing the page restores the user through `/auth/me`; the profile URL uses the personal namespace returned by `/namespaces`. The user menu signs out through `/auth/logout`.

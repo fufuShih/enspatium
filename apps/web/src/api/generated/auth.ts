@@ -24,6 +24,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  GetAuthSettings200,
   GetCurrentUser200,
   Login200,
   LoginBody
@@ -48,6 +49,115 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetAuthSettingsUrl = () => {
+
+
+
+
+  return `/api/auth/settings`
+}
+
+export const getAuthSettings = async ( options?: RequestInit): Promise<GetAuthSettings200> => {
+
+  const res = await fetch(getGetAuthSettingsUrl(),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: GetAuthSettings200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getGetAuthSettingsQueryKey = () => {
+    return [
+    `/api/auth/settings`
+    ] as const;
+    }
+
+
+export const getGetAuthSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getAuthSettings>>, TError = globalThis.Error & { info?: unknown; status?: number }>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthSettings>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAuthSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAuthSettings>>> = ({ signal }) => getAuthSettings({ signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAuthSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAuthSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getAuthSettings>>>
+export type GetAuthSettingsQueryError = globalThis.Error & { info?: unknown; status?: number }
+
+
+export function useGetAuthSettings<TData = Awaited<ReturnType<typeof getAuthSettings>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthSettings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAuthSettings>>,
+          TError,
+          Awaited<ReturnType<typeof getAuthSettings>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAuthSettings<TData = Awaited<ReturnType<typeof getAuthSettings>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthSettings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAuthSettings>>,
+          TError,
+          Awaited<ReturnType<typeof getAuthSettings>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAuthSettings<TData = Awaited<ReturnType<typeof getAuthSettings>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthSettings>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetAuthSettings<TData = Awaited<ReturnType<typeof getAuthSettings>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthSettings>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAuthSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
 
 export const getLoginUrl = () => {
 

@@ -1,5 +1,7 @@
 import * as argon2 from 'argon2'
-import type { Kysely } from 'kysely'
+import { sql, type Kysely } from 'kysely'
+import { requireSiteAdmin } from './admin-users.js'
+import { createAuditEvent } from './audit/audit.js'
 
 import type { Database } from '../db/index.js'
 import type {
@@ -31,6 +33,7 @@ type PublicUserRow = Pick<
 export async function createUser(
   db: Kysely<Database>,
   input: CreateUserInput,
+  options?: { actorId?: string; bootstrapAdmin?: true },
 ): Promise<PublicUser> {
   const displayName = input.displayName.trim()
   const email = input.email.trim().toLowerCase()
@@ -52,12 +55,20 @@ export async function createUser(
 
   try {
     const user = await db.transaction().execute(async (transaction) => {
+      if (options?.actorId || options?.bootstrapAdmin) {
+        await sql`SELECT pg_advisory_xact_lock(173529, 1)`.execute(transaction)
+        if (options.actorId) await requireSiteAdmin(transaction, options.actorId)
+        if (options.bootstrapAdmin && await transaction.selectFrom('users').select('id').where('is_admin', '=', true).executeTakeFirst()) {
+          throw new UserServiceError('CONFLICT', 409, 'An administrator already exists.')
+        }
+      }
       const createdUser = await transaction
         .insertInto('users')
         .values({
           display_name: displayName,
           email,
           password_hash: passwordHash,
+          ...(options?.bootstrapAdmin ? { is_admin: true } : {}),
         })
         .returning([
           'id',
@@ -73,12 +84,17 @@ export async function createUser(
         createdUser.id,
         createdUser.display_name,
       )
+      if (options?.actorId || options?.bootstrapAdmin) await createAuditEvent(transaction, {
+        actorUserId: options.actorId ?? createdUser.id, namespaceId: null, spaceId: null,
+        action: 'user.created', metadata: { userId: createdUser.id, bootstrap: Boolean(options.bootstrapAdmin) },
+      })
 
       return createdUser
     })
 
     return toPublicUser(user)
   } catch (error) {
+    if (error instanceof UserServiceError) throw error
     if (isUniqueViolation(error)) {
       throw new UserServiceError('CONFLICT', 409, 'email already exists')
     }
@@ -135,7 +151,7 @@ export async function authenticateUser(
   db: Kysely<Database>,
   emailInput: string,
   password: string,
-): Promise<SessionUser> {
+): Promise<SessionUser & { sessionVersion: number }> {
   const email = emailInput.trim().toLowerCase()
 
   if (!email || !password) {
@@ -159,7 +175,7 @@ export async function authenticateUser(
     )
   }
 
-  if (!user) {
+  if (!user || user.is_disabled) {
     throw invalidCredentials()
   }
 
@@ -180,7 +196,7 @@ export async function authenticateUser(
     throw invalidCredentials()
   }
 
-  return toSessionUser(user)
+  return { ...toSessionUser(user), sessionVersion: user.session_version }
 }
 
 export async function hashPassword(password: string): Promise<string> {

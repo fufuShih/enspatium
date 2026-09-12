@@ -14,6 +14,9 @@ export const AuditQuerySchema = Type.Object({
 })
 
 export const AuditActionSchema = Type.Union([
+  Type.Literal('user.created'),
+  Type.Literal('user.disabled'),
+  Type.Literal('user.enabled'),
   Type.Literal('space.created'),
   Type.Literal('space.updated'),
   Type.Literal('space.deleted'),

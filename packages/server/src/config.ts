@@ -25,6 +25,12 @@ const configSchema = Type.Object({
     pattern: '^[0-9a-fA-F]{64}$',
   }),
   SESSION_SECURE: Type.Boolean({ default: false }),
+  REGISTRATION_ENABLED: Type.Optional(Type.Boolean()),
+  TRUST_PROXY: Type.Boolean({ default: false }),
+  LOGIN_RATE_LIMIT: Type.Integer({ default: 20, minimum: 1, maximum: 10000 }),
+  LOGIN_ACCOUNT_RATE_LIMIT: Type.Integer({ default: 10, minimum: 1, maximum: 10000 }),
+  REGISTRATION_RATE_LIMIT: Type.Integer({ default: 5, minimum: 1, maximum: 10000 }),
+  GIT_AUTH_RATE_LIMIT: Type.Integer({ default: 300, minimum: 1, maximum: 10000 }),
 })
 
 export type AppConfig = Static<typeof configSchema>
@@ -43,6 +49,7 @@ const configPluginCallback: FastifyPluginAsync = async (app) => {
     dotenv: { path: envPath },
   })
   validateProductionConfig(app.config)
+  app.config.REGISTRATION_ENABLED ??= app.config.NODE_ENV !== 'production'
 }
 
 export function validateProductionConfig(config: Pick<AppConfig, 'NODE_ENV' | 'SESSION_SECURE' | 'SESSION_KEY'>) {
