@@ -4,6 +4,8 @@ This deployment runs one backend process, PostgreSQL and Caddy. It builds the re
 
 ## Initial installation
 
+The root `compose.yaml` is the default entry point (Docker Compose 2.20+). Commands below retain `-f deploy/compose.yaml` for compatibility with the backup and upgrade tools; from the repository root, you can omit that flag to use the same services, build context, project name and volumes. Always pass `--env-file deploy/.env` so the development environment is not used. See [Docker Hub publishing](DOCKER_HUB.md) to build and distribute release images.
+
 Use a Linux host with Docker Engine and the Compose plugin, or Docker Desktop with Linux containers for local verification. Install from a reviewed Git commit. Point your hostname at the host and allow inbound TCP 80 and 443 before requesting a public certificate.
 
 1. Copy `deploy/.env.example` to `deploy/.env`.

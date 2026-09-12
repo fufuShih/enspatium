@@ -1,0 +1,6 @@
+# Root entry point. Requires Docker Compose 2.20 or later.
+# Run with --env-file deploy/.env to use the deployment environment.
+name: enspatium
+
+include:
+  - ./deploy/compose.yaml

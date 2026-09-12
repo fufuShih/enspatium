@@ -26,6 +26,17 @@ pnpm dev
 
 The server exposes `GET http://127.0.0.1:3000/health`.
 
+## Docker deployment
+
+The root `compose.yaml` includes the deployment configuration and requires Docker Compose 2.20 or later. On first setup, copy `deploy/.env.example` to `deploy/.env`, generate independent `POSTGRES_PASSWORD` and `SESSION_KEY` values, and set your HTTPS hostname as described in [Deployment](deploy/README.md). Keep the development `.env` separate; pass the deployment env file explicitly.
+
+```powershell
+docker compose --env-file deploy/.env build server web
+docker compose --env-file deploy/.env up -d --no-build --pull never --wait
+```
+
+To publish images, set `ENSPATIUM_IMAGE_PREFIX=yourname/` and a release tag in `deploy/.env`. Follow [Docker Hub publishing](deploy/DOCKER_HUB.md) for repository creation, login, push and installation from published images.
+
 ## Unit tests
 
 Both frontend and backend tests use Vitest. Run them together from the repository root:

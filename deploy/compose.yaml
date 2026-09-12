@@ -7,7 +7,7 @@ x-logging: &logging
     max-file: "3"
 
 x-server: &server
-  image: enspatium-server:${ENSPATIUM_IMAGE_TAG:-local}
+  image: ${ENSPATIUM_IMAGE_PREFIX:-}enspatium-server:${ENSPATIUM_IMAGE_TAG:-local}
   init: true
   logging: *logging
   environment:
@@ -78,7 +78,7 @@ services:
       retries: 4
 
   web:
-    image: enspatium-web:${ENSPATIUM_IMAGE_TAG:-local}
+    image: ${ENSPATIUM_IMAGE_PREFIX:-}enspatium-web:${ENSPATIUM_IMAGE_TAG:-local}
     build:
       context: ..
       target: web
