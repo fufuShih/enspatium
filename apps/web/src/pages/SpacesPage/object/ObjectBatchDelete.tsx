@@ -1,22 +1,10 @@
 import { Box, Dialog, Flex, Portal, Text, chakra } from '@chakra-ui/react'
 import { useRef } from 'react'
 import { ActionButton } from '../../../components/ui/Primitives'
-import type { DeleteTarget } from './objectDeletion'
 import type { ObjectDeletions } from './useObjectDeletions'
 
-export function ObjectSelectionCheckbox({ label, checked, mixed = false, disabled, onChange }: {
-  label: string; checked: boolean; mixed?: boolean; disabled: boolean; onChange: (checked: boolean) => void
-}) {
-  return <Box as="label" display="inline-flex" alignItems="center" justifyContent="center" minW="28px" minH="32px" flexShrink="0" cursor={disabled ? 'not-allowed' : 'pointer'}>
-    <chakra.input type="checkbox" aria-label={label} checked={checked} disabled={disabled}
-      ref={(element: HTMLInputElement | null) => { if (element) element.indeterminate = mixed }} onChange={event => onChange(event.target.checked)}
-      w="16px" h="16px" accentColor="var(--foreground)" cursor="inherit" />
-  </Box>
-}
-
-export default function ObjectBatchDelete({ deletions, selected, count, disabled, onSelectAll, onClear }: {
-  deletions: ObjectDeletions; selected: DeleteTarget[]; count: number; disabled: boolean
-  onSelectAll: (checked: boolean) => void; onClear: () => void
+export default function ObjectBatchDelete({ deletions, disabled, onClear }: {
+  deletions: ObjectDeletions; disabled: boolean; onClear: () => void
 }) {
   const cancelButton = useRef<HTMLButtonElement>(null)
   const locked = disabled || deletions.busy || Boolean(deletions.confirmation)
@@ -26,14 +14,6 @@ export default function ObjectBatchDelete({ deletions, selected, count, disabled
   const retryable = deletions.items.some(item => item.retryable && (item.status === 'failed' || item.status === 'stopped'))
   const statusLabel = { queued: 'Waiting', deleting: 'Deleting', deleted: 'Deleted', failed: 'Failed', stopped: 'Stopped' }
   return <>
-    {count > 0 && <Flex align="center" gap="8px" wrap="wrap" mb="12px" minH="40px">
-      <ObjectSelectionCheckbox label="Select all files on this page" checked={selected.length === count} mixed={selected.length > 0 && selected.length < count} disabled={locked} onChange={onSelectAll} />
-      <Text fontSize="12px" color="var(--muted)" flex="1">{selected.length ? `${selected.length} selected` : 'Select files'}</Text>
-      {selected.length > 0 && <>
-        <ActionButton disabled={locked} onClick={onClear}>Clear selection</ActionButton>
-        <ActionButton disabled={locked} color="fg.error" onClick={() => deletions.ask(selected)}>Delete selected</ActionButton>
-      </>}
-    </Flex>}
     {deletions.items.length > 0 && <Box as="section" aria-label="Deletion results" mb="20px" border="1px solid var(--border)" borderRadius="8px" overflow="hidden">
       <Flex p="12px 16px" gap="12px" wrap="wrap" justify="space-between" align="center" bg="var(--surface)">
         <Text role="status" fontSize="13px">{complete} of {deletions.items.length} files deleted{failed ? ` · ${failed} failed` : ''}{stopped ? ` · ${stopped} stopped` : ''}</Text>

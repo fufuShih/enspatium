@@ -10,3 +10,22 @@ export function objectMoveKey(key: string, mode: 'rename' | 'move', value: strin
   if (target.length > 1024 || target.split('/').some(segment => !newObjectFolder('', segment))) return null
   return target
 }
+
+export type MoveTarget = { id: string; key: string; versionId: string }
+export type MoveItem = MoveTarget & {
+  newKey: string
+  status: 'queued' | 'moving' | 'moved' | 'failed' | 'stopped'
+  retryable: boolean
+  message?: string
+}
+
+export function planObjectMoves(targets: MoveTarget[], folder: string): MoveItem[] | null {
+  if (!targets.length) return null
+  const items: MoveItem[] = []
+  for (const { id, key, versionId } of targets) {
+    const newKey = objectMoveKey(key, 'move', folder)
+    if (!newKey || newKey === key || items.some(item => item.newKey === newKey)) return null
+    items.push({ id, key, versionId, newKey, status: 'queued', retryable: true })
+  }
+  return items
+}

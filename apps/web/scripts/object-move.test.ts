@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest'
 import { moveObject } from '../src/api/generated/objects.ts'
-import { objectMoveKey } from '../src/pages/SpacesPage/object/objectMoveApi.ts'
+import { objectMoveKey, planObjectMoves } from '../src/pages/SpacesPage/object/objectMoveApi.ts'
 
 test('renaming keeps the parent; moving keeps the filename and supports root or nested destinations', () => {
   expect(objectMoveKey('docs/book.pdf', 'rename', '中文 #%.pdf')).toBe('docs/中文 #%.pdf')
@@ -26,4 +26,23 @@ test('the generated move client preserves source identity, version and literal d
     return Response.json({ key: params.newKey, id: params.objectId, versionId: params.expectedVersion })
   })
   expect(await moveObject('owner', 'files', params)).toMatchObject({ key: params.newKey })
+})
+
+test('batch plans snapshot identity and version, preserve filenames, and reject invalid or unchanged destinations', () => {
+  const targets = [
+    { id: 'a', key: 'docs/中文 #%.txt', versionId: 'v1' },
+    { id: 'b', key: 'docs/book.pdf', versionId: 'v2' },
+  ]
+  const plan = planObjectMoves(targets, 'archive/new/')!
+  targets[0]!.versionId = 'newer'
+  expect(plan.map(({ id, key, newKey, versionId }) => ({ id, key, newKey, versionId }))).toEqual([
+    { id: 'a', key: 'docs/中文 #%.txt', newKey: 'archive/new/中文 #%.txt', versionId: 'v1' },
+    { id: 'b', key: 'docs/book.pdf', newKey: 'archive/new/book.pdf', versionId: 'v2' },
+  ])
+  expect(planObjectMoves(targets, '')?.map(item => item.newKey)).toEqual(['中文 #%.txt', 'book.pdf'])
+  for (const folder of ['docs', 'docs/', '../bad', '/absolute', 'a//b', 'a'.repeat(1024)]) {
+    expect(planObjectMoves(targets, folder), folder).toBeNull()
+  }
+  expect(planObjectMoves([], 'archive')).toBeNull()
+  expect(planObjectMoves([{ id: 'a', key: 'a/book.pdf', versionId: 'v1' }, { id: 'b', key: 'b/book.pdf', versionId: 'v2' }], 'archive')).toBeNull()
 })
