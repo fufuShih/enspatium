@@ -53,7 +53,7 @@ export default function MediaPage({ space: { account, slug, name } }: AppPagePro
   }
   function closePlayer() { setSelectedId(null); trigger.current?.focus() }
 
-  return <Box as="section" aria-label="Media library" minH="100dvh" data-theme="dark" bg="var(--background)" color="var(--foreground)" css={{ '& :is(button, a, input):focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '4px' } }} onKeyDown={event => { if (event.key === 'Escape' && selected) { event.preventDefault(); closePlayer() } }}>
+  return <Box as="section" aria-label="Media library" minH="100dvh" bg="var(--background)" color="var(--foreground)" css={{ '& :is(button, a, input):focus-visible': { outline: '2px solid var(--accent-ink)', outlineOffset: '4px' } }} onKeyDown={event => { if (event.key === 'Escape' && selected) { event.preventDefault(); closePlayer() } }}>
     <Flex maxW="1560px" mx="auto" align="center" gap="24px" p={{ base: '20px', md: '22px 32px' }} borderBottom="1px solid color-mix(in srgb, var(--border) 60%, transparent)">
       <Flex align="center" gap="10px" flexShrink="0" minW={{ md: '164px' }}><Box w="12px" h="12px" bg="var(--accent)" borderRadius="full" boxShadow="0 0 0 5px color-mix(in srgb, var(--accent) 8%, transparent)" /><Text fontSize="15px" fontWeight="600" letterSpacing="-.02em">Media</Text></Flex>
       <Text fontSize="13px" color="var(--muted)" lineClamp={1} flex="1">{name}</Text>

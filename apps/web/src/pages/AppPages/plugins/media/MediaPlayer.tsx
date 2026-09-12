@@ -40,7 +40,7 @@ export default function MediaPlayer({ account, slug, file }: { account: string; 
         <chakra.video ref={(node: HTMLVideoElement | null) => { player.current = node }} src={source} controls playsInline preload="metadata" w="full" maxH="52vh" aria-label={`Play ${file.key}`} onError={() => { void failed() }} />}
     </Box>
     <Heading as="h3" fontSize="17px" mt="18px" overflowWrap="anywhere">{file.key.split('/').at(-1)}</Heading>
-    {failure && <Text role="alert" mt="12px" fontSize="13px" color="#ffb4ab">{failure} Reload the library and try again, or download the file.</Text>}
+    {failure && <Text role="alert" mt="12px" fontSize="13px" color="fg.error">{failure} Reload the library and try again, or download the file.</Text>}
     <ActionButton asChild mt="16px"><chakra.a href={source} download={file.key.split('/').at(-1)}>Download</chakra.a></ActionButton>
   </>
 }

@@ -9,7 +9,7 @@ Space cards still open file management; **Open app** opens an App Page in a new 
 - `plugins/media/index.ts` configures the built-in Media plugin.
 - `plugins/media/MediaPage.tsx` is its view; `integration.ts` connects Space loading, media lists and streaming to the generated APIs.
 
-Media uses a dark library layout with category navigation on the left and thumbnail cards on the right. Mobile categories become a horizontal row. Selecting a card expands a player above the grid without entering fullscreen; Close or Escape stops playback and returns focus to the card. Photos load lazily, nearby video cards request a browser preview, and music uses a cover icon. Missing previews fall back to type icons. `MediaThumbnail.tsx` and `MediaPlayer.tsx` keep preview and playback behavior separate.
+Media follows the site's light/dark theme, with category navigation on the left and thumbnail cards on the right. Mobile categories become a horizontal row. Selecting a card expands a player above the grid without entering fullscreen; Close or Escape stops playback and returns focus to the card. Photos load lazily, nearby video cards request a browser preview, and music uses a cover icon. Missing previews fall back to type icons. `MediaThumbnail.tsx` and `MediaPlayer.tsx` keep preview and playback behavior separate.
 
 Plugins are local TypeScript/React modules built with the frontend. A plugin declares `type`, `label`, `builtIn`, `view` and `integration`. Creation offers **Media (built-in)** and **Ebook library (built-in)**.
 
