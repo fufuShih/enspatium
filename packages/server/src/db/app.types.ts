@@ -1,7 +1,7 @@
 import type { Generated, Selectable } from 'kysely'
 import type { SpaceType } from './space.types.js'
 
-export interface AppTable {
+export interface AppTypeTable {
   type: string
   name: string
   kind: 'builtin' | 'custom'
@@ -10,4 +10,4 @@ export interface AppTable {
   created_at: Generated<Date>
 }
 
-export type App = Selectable<AppTable>
+export type AppType = Selectable<AppTypeTable>

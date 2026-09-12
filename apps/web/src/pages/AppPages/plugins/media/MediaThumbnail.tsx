@@ -1,6 +1,6 @@
 import { Box, chakra } from '@chakra-ui/react'
 import { useEffect, useRef, useState } from 'react'
-import type { ListMedia200ObjectsItem } from '../../../../api/generated/api.schemas'
+import type { ListAppObjects200ObjectsItem } from '../../../../api/generated/api.schemas'
 import { imagePreviewLimit } from '../../../SpacesPage/objectPreview'
 import { mediaIntegration } from './integration'
 
@@ -10,7 +10,7 @@ export function MediaIcon({ kind }: { kind?: string }) {
   </chakra.svg>
 }
 
-export default function MediaThumbnail({ account, slug, file }: { account: string; slug: string; file: ListMedia200ObjectsItem }) {
+export default function MediaThumbnail({ account, slug, file }: { account: string; slug: string; file: ListAppObjects200ObjectsItem }) {
   const [failed, setFailed] = useState(false)
   const source = mediaIntegration.contentUrl(account, slug, { key: file.key, versionId: file.versionId })
   return <Box position="relative" aspectRatio="16 / 10" overflow="hidden" borderRadius="10px" bg="var(--surface-strong)">

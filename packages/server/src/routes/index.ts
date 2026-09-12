@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 
 import { auditRoutes } from './audit.route.js'
+import { appObjectRoutes } from './app-objects.route.js'
 import { appRoutes } from './apps.route.js'
 import { authRoutes } from './auth.route.js'
 import { gitRoutes } from './git.route.js'
@@ -23,4 +24,5 @@ export async function registerRoutes(app: FastifyInstance) {
   await app.register(spaceRoutes)
   await app.register(auditRoutes)
   await app.register(objectRoutes)
+  await app.register(appObjectRoutes)
 }

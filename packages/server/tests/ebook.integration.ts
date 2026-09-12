@@ -1,0 +1,92 @@
+import { expect, test } from 'vitest'
+import { createFixture } from './fixture.js'
+import type { PublicSpaceObject } from '../src/db/object.types.js'
+import type { PublicSpace } from '../src/db/space.types.js'
+import type { listAppObjects } from '../src/services/app-objects.js'
+
+test('Ebook library filters before pagination and preserves Space access and version rules', async ({ onTestFinished }) => {
+  const { app, session } = await createFixture({ after: cleanup => onTestFinished(cleanup), diagnostic: message => console.info(message) })
+  const owner = session()
+  const credentials = { email: 'books@example.com', password: 'Books-test-1234' }
+  await owner.request('POST', '/users', 201, { ...credentials, displayName: 'Book owner' })
+  await owner.request('POST', '/auth/login', 200, credentials)
+  const login = await app.inject({ method: 'POST', url: '/auth/login', payload: credentials })
+  const cookies = login.headers['set-cookie']
+  const cookie = (Array.isArray(cookies) ? cookies : [String(cookies)]).map(value => value.split(';')[0]).join('; ')
+  await owner.request('POST', '/namespaces', 201, { name: 'Book team', slug: 'book-team' })
+  const ns = '/namespaces/book-team/spaces'
+  const base = ns + '/library'
+  const space = await owner.request<PublicSpace>('POST', ns, 201, { name: 'Library', slug: 'library', type: 'object', app: 'ebook' })
+  await owner.request('POST', ns, 400, { name: 'Wrong', slug: 'wrong', type: 'git', app: 'ebook' })
+  await owner.request('POST', ns, 201, { name: 'Files', slug: 'files', type: 'object' })
+  await owner.request('GET', ns + '/files/ebook', 404)
+  await owner.request('GET', base + '/ebooks', 404) // App types use their exact registered name.
+  const list = (query = '') => owner.request<Awaited<ReturnType<typeof listAppObjects>>>('GET', base + '/ebook' + query)
+  expect(await list()).toEqual({ objects: [], nextCursor: null, canUpload: true })
+  async function upload(key: string, contentType: string, content = 'book bytes') {
+    const response = await app.inject({ method: 'PUT', url: base + '/objects/' + encodeURIComponent(key), headers: { cookie, 'content-type': contentType }, payload: content })
+    expect(response.statusCode, response.body).toBe(201)
+    return response.json<PublicSpaceObject>()
+  }
+  for (let index = 0; index < 101; index++) await upload(`a-${index}.txt`, 'text/plain')
+  const html = await upload('a-spoof.pdf', 'text/html', '<script>alert(1)</script>')
+  const first = await upload('books/100%_story.EPUB', 'application/octet-stream', 'first bytes')
+  await upload('books/100XXstory.epub', 'application/epub+zip')
+  const pdf = await upload('guides/guide.pdf', 'application/pdf')
+  await upload('guides/other.PDF', 'application/octet-stream')
+  const page = await list('?limit=2')
+  expect(page.objects.map(book => book.kind)).toEqual(['epub', 'epub'])
+  expect(page.nextCursor).toBe('books/100XXstory.epub')
+  const second = await list('?limit=2&cursor=' + encodeURIComponent(page.nextCursor!))
+  expect(second.objects.map(book => book.kind)).toEqual(['pdf', 'pdf'])
+  expect(second.nextCursor).toBeNull()
+  expect((await list('?kind=pdf')).objects).toHaveLength(2)
+  expect((await list('?search=' + encodeURIComponent('100%_'))).objects.map(book => book.key)).toEqual([first.key])
+  expect((await list('?search=guides')).objects).toHaveLength(0)
+  for (const query of ['?kind=audio', '?limit=0', '?limit=101']) await owner.request('GET', base + '/ebook' + query, 400)
+  const contentUrl = (book: PublicSpaceObject) => base + '/ebook/content?' + new URLSearchParams({ key: book.key, versionId: book.versionId })
+  const bookUrl = (book: PublicSpaceObject) => base + '/ebook/' + book.id
+  // Direct book URLs work independently of a shelf's filter or pagination.
+  expect(await owner.request('GET', bookUrl(pdf))).toMatchObject({ id: pdf.id, kind: 'pdf', versionId: pdf.versionId })
+  await owner.request('GET', bookUrl(html), 404)
+  await owner.request('GET', base + '/ebook/not-a-book-id', 400)
+  await owner.request('GET', base + '/ebook/00000000-0000-4000-8000-000000000000', 404)
+  await owner.request('POST', ns, 201, { name: 'Other library', slug: 'other-library', type: 'object', app: 'ebook' })
+  await owner.request('GET', ns + '/other-library/ebook/' + first.id, 404)
+  const guest = session()
+  await guest.request('GET', '/apps/ebook/spaces/' + space.id, 401)
+  await guest.request('GET', base + '/ebook', 401)
+  await guest.request('GET', bookUrl(first), 401)
+  const other = session()
+  const otherCredentials = { email: 'other-books@example.com', password: credentials.password }
+  await other.request('POST', '/users', 201, { ...otherCredentials, displayName: 'Other reader' })
+  await other.request('POST', '/auth/login', 200, otherCredentials)
+  await other.request('GET', base + '/ebook', 403)
+  await other.request('GET', contentUrl(first), 403)
+  await other.request('GET', bookUrl(first), 403)
+  await owner.request('PATCH', base, 200, { visibility: 'public' })
+  expect(await guest.request('GET', '/apps/ebook/spaces/' + space.id)).toMatchObject({ id: space.id, app: { type: 'ebook' } })
+  expect(await guest.request('GET', base + '/ebook')).toMatchObject({ objects: expect.any(Array) })
+  expect(await guest.request('GET', bookUrl(first))).toMatchObject({ id: first.id, kind: 'epub' })
+  expect((await app.inject(bookUrl(first))).headers['cache-control']).toBe('private, no-store')
+  const range = await app.inject({ url: contentUrl(first), headers: { range: 'bytes=0-4' } })
+  expect(range.statusCode).toBe(206)
+  expect(range.body).toBe('first')
+  expect(range.headers['content-type']).toBe('application/epub+zip')
+  expect(range.headers['cache-control']).toBe('private, no-store')
+  expect((await app.inject({ method: 'HEAD', url: contentUrl(first) })).headers['content-length']).toBe('11')
+  expect((await app.inject(contentUrl(html))).statusCode).toBe(404)
+  const updated = await upload(first.key, 'application/epub+zip', 'second bytes')
+  expect(updated.id).toBe(first.id)
+  expect(await guest.request('GET', bookUrl(first))).toMatchObject({ versionId: updated.versionId })
+  expect((await app.inject(contentUrl(first))).statusCode).toBe(404)
+  expect((await app.inject({ url: contentUrl(first), headers: { cookie } })).body).toBe('first bytes')
+  expect((await app.inject(contentUrl(updated))).body).toBe('second bytes')
+  await owner.request('DELETE', base + '/objects/' + encodeURIComponent(pdf.key), 204)
+  expect((await list('?kind=pdf')).objects).toHaveLength(1)
+  expect((await app.inject(contentUrl(pdf))).statusCode).toBe(404)
+  await owner.request('GET', bookUrl(pdf), 404)
+  await owner.request('PATCH', base, 200, { visibility: 'private' })
+  await guest.request('GET', bookUrl(first), 401)
+  for (const method of ['GET', 'HEAD'] as const) expect((await app.inject({ method, url: contentUrl(updated), headers: { range: 'bytes=0-4' } })).statusCode).toBe(401)
+})

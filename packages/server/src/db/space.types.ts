@@ -17,7 +17,7 @@ export interface SpaceTable {
   name: string
   slug: string
   type: SpaceType
-  app: Generated<string | null>
+  app_type: Generated<string | null>
   visibility: Generated<SpaceVisibility>
   quota_bytes: Generated<string>
   object_version_limit: Generated<number>

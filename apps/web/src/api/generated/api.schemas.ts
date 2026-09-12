@@ -717,74 +717,6 @@ export type ListSpaceAuditEvents200Item = {
   createdAt: string;
 };
 
-export type ListMediaParams = {
-kind?: typeof ListMediaKind[keyof typeof ListMediaKind];
-/**
- * @maxLength 128
- */
-search?: string;
-/**
- * @maxLength 1024
- */
-cursor?: string;
-/**
- * @minimum 1
- * @maximum 100
- */
-limit?: number;
-};
-
-export const ListMediaKind = {  audio: 'audio',
-  video: 'video',
-  image: 'image',
-} as const
-export const ListMedia200ObjectsItemKind = {  audio: 'audio',
-  video: 'video',
-  image: 'image',
-} as const
-export type ListMedia200ObjectsItem = {
-  id: string;
-  spaceId: string;
-  createdByUserId: string | null;
-  key: string;
-  contentType: string;
-  /** @minimum 0 */
-  sizeBytes: number;
-  /** @pattern ^[0-9a-f]{64}$ */
-  checksumSha256: string;
-  createdAt: string;
-  updatedAt: string;
-  versionId: string;
-  /** @minimum 1 */
-  revision: number;
-  isDeleted: boolean;
-  kind: typeof ListMedia200ObjectsItemKind[keyof typeof ListMedia200ObjectsItemKind];
-};
-
-export type ListMedia200 = {
-  canUpload: boolean;
-  objects: ListMedia200ObjectsItem[];
-  nextCursor: string | null;
-};
-
-export type DownloadMediaParams = {
-/**
- * @minLength 1
- * @maxLength 1024
- */
-key: string;
-versionId: string;
-};
-
-export type HeadMediaContentParams = {
-/**
- * @minLength 1
- * @maxLength 1024
- */
-key: string;
-versionId: string;
-};
-
 export type GetObjectStorageUsage200 = {
   /** @minimum 0 */
   usedBytes: number;
@@ -1024,6 +956,89 @@ versionId: string;
 };
 
 export type HeadObjectVersionContentParams = {
+/**
+ * @minLength 1
+ * @maxLength 1024
+ */
+key: string;
+versionId: string;
+};
+
+export type ListAppObjectsParams = {
+/**
+ * @minLength 1
+ * @maxLength 60
+ */
+kind?: string;
+/**
+ * @maxLength 128
+ */
+search?: string;
+/**
+ * @maxLength 1024
+ */
+cursor?: string;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type ListAppObjects200ObjectsItem = {
+  id: string;
+  spaceId: string;
+  createdByUserId: string | null;
+  key: string;
+  contentType: string;
+  /** @minimum 0 */
+  sizeBytes: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  checksumSha256: string;
+  createdAt: string;
+  updatedAt: string;
+  versionId: string;
+  /** @minimum 1 */
+  revision: number;
+  isDeleted: boolean;
+  kind: string;
+};
+
+export type ListAppObjects200 = {
+  canUpload: boolean;
+  objects: ListAppObjects200ObjectsItem[];
+  nextCursor: string | null;
+};
+
+export type GetAppObject200 = {
+  id: string;
+  spaceId: string;
+  createdByUserId: string | null;
+  key: string;
+  contentType: string;
+  /** @minimum 0 */
+  sizeBytes: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  checksumSha256: string;
+  createdAt: string;
+  updatedAt: string;
+  versionId: string;
+  /** @minimum 1 */
+  revision: number;
+  isDeleted: boolean;
+  kind: string;
+};
+
+export type DownloadAppContentParams = {
+/**
+ * @minLength 1
+ * @maxLength 1024
+ */
+key: string;
+versionId: string;
+};
+
+export type HeadAppContentParams = {
 /**
  * @minLength 1
  * @maxLength 1024

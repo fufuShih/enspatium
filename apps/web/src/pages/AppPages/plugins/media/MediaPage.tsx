@@ -1,7 +1,7 @@
 import { Box, Flex, Heading, Text, chakra } from '@chakra-ui/react'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import type { ListMediaParams } from '../../../../api/generated/api.schemas'
+import type { ListAppObjectsParams } from '../../../../api/generated/api.schemas'
 import { ActionButton, TextInput } from '../../../../components/ui/Primitives'
 import RequestState from '../../../../components/RequestState'
 import { useAuth } from '../../../../context/auth'
@@ -25,7 +25,7 @@ export default function MediaPage({ space: { account, slug, name } }: AppPagePro
   const kindValue = search.get('kind')
   const kind = kindValue === 'audio' || kindValue === 'video' || kindValue === 'image' ? kindValue : undefined
   const filter = search.get('search') || ''
-  const params: ListMediaParams = { kind, search: filter, cursor: search.get('after') || undefined, limit: 30 }
+  const params: ListAppObjectsParams = { kind, search: filter, cursor: search.get('after') || undefined, limit: 30 }
   const media = mediaIntegration.useList(account, slug, params, { query: {
     queryKey: [...mediaIntegration.listQueryKey(account, slug, params), user?.id ?? null],
     retry: false, gcTime: 0, staleTime: 0, refetchOnMount: 'always', refetchInterval: 30_000,

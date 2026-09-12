@@ -25,7 +25,7 @@ export async function registerOpenApi(app: FastifyInstance) {
         }
       }
       const operationId = schema.operationId?.replace(/-head$/, '')
-      if (operationId === 'downloadObject' || operationId === 'downloadObjectVersion' || operationId === 'downloadMedia') {
+      if (operationId === 'downloadObject' || operationId === 'downloadObjectVersion' || operationId === 'downloadAppContent') {
         const headers = {
           'accept-ranges': { type: 'string', enum: ['bytes'] },
           'content-length': { type: 'integer', minimum: 0 },
@@ -52,7 +52,7 @@ export async function registerOpenApi(app: FastifyInstance) {
           },
         }
         if (route.method === 'HEAD') {
-          documented.operationId = operationId === 'downloadObject' ? 'headObjectContent' : operationId === 'downloadMedia' ? 'headMediaContent' : 'headObjectVersionContent'
+          documented.operationId = operationId === 'downloadObject' ? 'headObjectContent' : operationId === 'downloadAppContent' ? 'headAppContent' : 'headObjectVersionContent'
           documented.description = 'Return full-content headers without reading a response body. Uses the same authorization and version availability checks as GET; ignores Range.'
           delete documented.headers
           documented.response = { 200: { type: 'null', description: 'Full-content headers; no body', headers } }

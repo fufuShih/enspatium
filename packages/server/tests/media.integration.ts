@@ -5,7 +5,7 @@ import { createFixture } from './fixture.js'
 import type { PublicSpace } from '../src/db/space.types.js'
 import type { PublicSpaceObject } from '../src/db/object.types.js'
 import type { PublicUser } from '../src/db/user.types.js'
-import type { listMedia } from '../src/services/object/media.js'
+import type { listAppObjects } from '../src/services/app-objects.js'
 
 test('Media uses Object storage with filtering before pagination and authorizes current and historical content', async ({ onTestFinished }) => {
   const { app, root, session } = await createFixture({ after: cleanup => onTestFinished(cleanup), diagnostic: message => console.info(message) })
@@ -42,11 +42,14 @@ test('Media uses Object storage with filtering before pagination and authorizes 
     expect(response.statusCode, response.body).toBe(201)
     return response.json<PublicSpaceObject>()
   }
-  const list = (query = '') => owner.request<Awaited<ReturnType<typeof listMedia>>>('GET', base + '/media' + query)
+  const list = (query = '') => owner.request<Awaited<ReturnType<typeof listAppObjects>>>('GET', base + '/media' + query)
   expect(await list()).toMatchObject({ objects: [], canUpload: true, nextCursor: null })
   for (let index = 0; index < 101; index++) await upload(`a-${index}.txt`, 'text/plain')
   await upload('a-script.svg', 'image/svg+xml', '<svg/>')
   const first = await upload('music/100%_song.mp3', 'audio/mpeg', 'first bytes')
+  expect(await owner.request('GET', base + '/media/' + first.id)).toMatchObject({ id: first.id, kind: 'audio' })
+  const notMedia = await upload('not-media.txt', 'text/plain')
+  expect((await app.inject({ url: base + '/media/content?' + new URLSearchParams({ key: notMedia.key, versionId: notMedia.versionId }), headers: { cookie } })).statusCode).toBe(404)
   await upload('music/100XXsong.mp3', 'audio/mpeg')
   const photo = await upload('photos/photo.png', 'image/png')
   await upload('videos/clip.mp4', 'video/mp4')

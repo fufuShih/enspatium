@@ -1,7 +1,8 @@
 import { apiStatus } from '../../context/session.ts'
 import { uploadObject, getObjectHead, getListObjectVersionsQueryKey, getGetObjectHeadQueryKey, getBrowseObjectsQueryKey, getListObjectsQueryKey, getGetObjectStorageUsageQueryKey } from '../../api/generated/objects.ts'
 import type { QueryClient } from '@tanstack/react-query'
-import { getListMediaQueryKey } from '../../api/generated/objects.ts'
+import { getListAppObjectsQueryKey } from '../../api/generated/app-objects.ts'
+import { appPlugins } from '../AppPages/registry.ts'
 import { storageErrorMessage } from './storageErrors.ts'
 
 export const fileSizeLimit = 100 * 1024 * 1024
@@ -37,7 +38,7 @@ export async function uploadFile(account: string, slug: string, file: File, sign
 }
 
 export async function refreshObjectLists(client: QueryClient, account: string, slug: string) {
-  const keys = [getListMediaQueryKey(account, slug), getBrowseObjectsQueryKey(account, slug), getListObjectsQueryKey(account, slug), getGetObjectStorageUsageQueryKey(account, slug), getListObjectVersionsQueryKey(account, slug), getGetObjectHeadQueryKey(account, slug)]
+  const keys = [...appPlugins.map(plugin => getListAppObjectsQueryKey(account, slug, plugin.type)), getBrowseObjectsQueryKey(account, slug), getListObjectsQueryKey(account, slug), getGetObjectStorageUsageQueryKey(account, slug), getListObjectVersionsQueryKey(account, slug), getGetObjectHeadQueryKey(account, slug)]
   await Promise.all(keys.map(queryKey => client.cancelQueries({ queryKey })))
   await Promise.all(keys.map(queryKey => client.invalidateQueries({ queryKey })))
 }

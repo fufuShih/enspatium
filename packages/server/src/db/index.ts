@@ -4,7 +4,7 @@ import { Kysely, PostgresDialect } from 'kysely'
 import { Pool } from 'pg'
 
 import type { AuditEventTable } from './audit.types.js'
-import type { AppTable } from './app.types.js'
+import type { AppTypeTable } from './app.types.js'
 import type {
   NamespaceMemberTable,
   NamespaceTable,
@@ -15,7 +15,7 @@ import type { PersonalAccessTokenTable } from './token.types.js'
 import type { UserTable } from './user.types.js'
 
 export interface Database {
-  apps: AppTable
+  app_types: AppTypeTable
   users: UserTable
   namespaces: NamespaceTable
   namespace_members: NamespaceMemberTable

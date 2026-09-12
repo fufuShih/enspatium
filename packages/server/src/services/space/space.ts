@@ -67,7 +67,7 @@ export async function createSpace(
   )
 
   if (input.app != null) {
-    const app = await db.selectFrom('apps').selectAll().where('type', '=', input.app).executeTakeFirst()
+    const app = await db.selectFrom('app_types').selectAll().where('type', '=', input.app).executeTakeFirst()
     if (!app) throw new SpaceServiceError('INVALID_INPUT', 400, 'App type is not registered.')
     if (app.storage_type !== input.type) throw new SpaceServiceError('INVALID_INPUT', 400, 'App does not support this storage type.')
     if (app.kind === 'custom' && app.owner_user_id !== actorUserId) {
@@ -87,7 +87,7 @@ export async function createSpace(
           name,
           slug,
           type: input.type,
-          app: input.app ?? null,
+          app_type: input.app ?? null,
           visibility,
         })
         .returningAll()
@@ -111,7 +111,7 @@ export async function createSpace(
           name: createdSpace.name,
           slug: createdSpace.slug,
           type: createdSpace.type,
-          app: createdSpace.app,
+          app: createdSpace.app_type,
           visibility: createdSpace.visibility,
         },
       })
@@ -1378,7 +1378,7 @@ function validateSlug(slug: string, subject: 'namespace' | 'space'): void {
 
 function toPublicSpace(space: Space): PublicSpace {
   return {
-    app: space.app ?? null,
+    app: space.app_type ?? null,
     objectVersionLimit: space.object_version_limit ?? 3,
     objectRetentionDays: space.object_retention_days ?? 7,
     id: space.id,

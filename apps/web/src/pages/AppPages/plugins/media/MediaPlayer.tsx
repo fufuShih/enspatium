@@ -1,13 +1,13 @@
 import { Box, Heading, Text, chakra } from '@chakra-ui/react'
 import { useEffect, useRef, useState } from 'react'
-import type { ListMedia200ObjectsItem } from '../../../../api/generated/api.schemas'
+import type { ListAppObjects200ObjectsItem } from '../../../../api/generated/api.schemas'
 import { ActionButton } from '../../../../components/ui/Primitives'
 import { fileErrorMessage } from '../../../SpacesPage/objectFileApi'
 import { imagePreviewLimit } from '../../../SpacesPage/objectPreview'
 import { MediaIcon } from './MediaThumbnail'
 import { mediaIntegration } from './integration'
 
-export default function MediaPlayer({ account, slug, file }: { account: string; slug: string; file: ListMedia200ObjectsItem }) {
+export default function MediaPlayer({ account, slug, file }: { account: string; slug: string; file: ListAppObjects200ObjectsItem }) {
   const source = mediaIntegration.contentUrl(account, slug, { key: file.key, versionId: file.versionId })
   const player = useRef<HTMLMediaElement | null>(null)
   const probe = useRef<AbortController | null>(null)
