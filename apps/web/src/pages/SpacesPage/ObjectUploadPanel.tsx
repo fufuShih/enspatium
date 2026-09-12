@@ -77,7 +77,7 @@ export default function ObjectUploadPanel({ uploads, account, slug, prefix, disa
         </Box>
         <Flex gap="8px">
           {busy ? <ActionButton onClick={uploads.stop}>Stop uploads</ActionButton> : <>
-            {retryable && <ActionButton onClick={() => uploads.retry()}>Retry remaining</ActionButton>}
+            {retryable && <ActionButton disabled={disabled} onClick={() => uploads.retry()}>Retry remaining</ActionButton>}
             <ActionButton onClick={uploads.clear}>Clear list</ActionButton>
           </>}
         </Flex>
@@ -92,7 +92,7 @@ export default function ObjectUploadPanel({ uploads, account, slug, prefix, disa
             <Flex align="center" gap="8px" flexShrink="0">
               {item.status === 'uploading' && <Spinner size="xs" />}
               <Text fontSize="11px" color={item.status === 'failed' ? 'fg.error' : 'var(--muted)'}>{item.status === 'queued' ? 'Waiting' : item.status === 'uploading' ? 'Uploading' : item.status === 'uploaded' ? 'Uploaded' : item.status === 'stopped' ? 'Stopped' : 'Failed'}</Text>
-              {!busy && item.retryable && (item.status === 'failed' || item.status === 'stopped') && <ActionButton p="5px 8px" aria-label={`Retry ${item.path}`} onClick={() => uploads.retry(item.id)}>Retry</ActionButton>}
+              {!busy && item.retryable && (item.status === 'failed' || item.status === 'stopped') && <ActionButton disabled={disabled} p="5px 8px" aria-label={`Retry ${item.path}`} onClick={() => uploads.retry(item.id)}>Retry</ActionButton>}
             </Flex>
           </Flex>
           {item.size !== undefined && <Text mt="3px" fontSize="11px" color="var(--muted)">{formatFileSize(item.size)}</Text>}

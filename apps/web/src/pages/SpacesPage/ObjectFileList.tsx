@@ -16,12 +16,14 @@ import { objectFileKind } from './objectPreview'
 import { storageErrorTitle } from './storageErrors'
 import ObjectUploadPanel from './ObjectUploadPanel'
 import { useObjectUploads, type ObjectUploads } from './useObjectUploads'
+import { useObjectDeletions } from './useObjectDeletions'
+import ObjectBatchDelete, { ObjectSelectionCheckbox } from './ObjectBatchDelete'
 
 export default function ObjectFileList({ account, slug }: { account: string; slug: string }) {
   const [search] = useSearchParams()
   const prefix = search.get('path') || ''
   const uploads = useObjectUploads(account, slug)
-  return <ObjectFolder key={prefix + search.get('deleted')} account={account} slug={slug} prefix={prefix} uploads={uploads} />
+  return <ObjectFolder key={JSON.stringify([prefix, search.get('deleted'), search.get('filter'), search.get('cursor')])} account={account} slug={slug} prefix={prefix} uploads={uploads} />
 }
 
 function ObjectFolder({ account, slug, prefix, uploads }: { account: string; slug: string; prefix: string; uploads: ObjectUploads }) {
@@ -42,12 +44,18 @@ function ObjectFolder({ account, slug, prefix, uploads }: { account: string; slu
   const [downloading, setDownloading] = useState<string | null>(null)
   const [downloadError, setDownloadError] = useState('')
   const [selected, setSelected] = useState<ListObjects200Item | null>(null)
+  const [checked, setChecked] = useState<Record<string, string>>({})
+  const deletions = useObjectDeletions(account, slug)
   const previewTrigger = useRef<HTMLElement | null>(null)
   const params = { limit: fileListLimit, deleted, prefix, filter: nameFilter, ...(cursor ? { cursor } : {}) }
   const files = useBrowseObjects(account, slug, params, { query: {
     enabled: Boolean(user), retry: false,
     queryKey: [...getBrowseObjectsQueryKey(account, slug, params), user?.id ?? null],
   } })
+  const selectable = files.isSuccess && !deleted ? files.data.objects.filter(file => !file.isDeleted) : []
+  const selectedFiles = selectable.filter(file => checked[file.id] === file.versionId)
+  const deleting = deletions.busy || Boolean(deletions.confirmation)
+  const selectionLocked = deleting || uploads.phase !== null || files.isFetching
 
   useEffect(() => () => {
     downloadController.current?.abort()
@@ -111,12 +119,15 @@ function ObjectFolder({ account, slug, prefix, uploads }: { account: string; slu
         <Flex gap="8px" mt="8px" wrap="wrap"><TextInput id="new-folder-name" value={folderName} onChange={event => setFolderName(event.target.value)} required maxLength={255} autoFocus /><ActionButton type="submit">Open folder</ActionButton><ActionButton type="button" onClick={() => setCreatingFolder(false)}>Cancel</ActionButton></Flex>
         <Text mt="10px" fontSize="12px" color="var(--muted)">Upload a file to make this folder appear in the list.</Text>
       </form></Box>}
-      {user && !deleted && !files.isError && <ObjectUploadPanel uploads={uploads} account={account} slug={slug} prefix={prefix} disabled={files.isPending} />}
+      {user && !deleted && !files.isError && <ObjectUploadPanel uploads={uploads} account={account} slug={slug} prefix={prefix} disabled={files.isPending || deleting} />}
       {notice && <Text role="status" mb="16px" fontSize="13px" bg="bg.success" color="fg.success" p="12px 14px" borderRadius="8px" overflowWrap="anywhere">{notice}</Text>}
       {error && <Text role="alert" mb="16px" fontSize="13px" bg="bg.error" color="fg.error" p="12px 14px" borderRadius="8px">{error}</Text>}
       {downloadError && !selected && <Text role="alert" mb="16px" fontSize="13px" color="fg.error">{downloadError}</Text>}
       {!user ? <RequestState title="Sign in to view files"><ActionButton asChild mt="20px"><PageLink to="/login" state={{ from: location(prefix, nameFilter, cursor) }}>Sign in</PageLink></ActionButton></RequestState> : <>
         <ObjectNameFilter key={nameFilter} initialFilter={nameFilter} onFilter={value => { navigate(location(prefix, value)); setNotice('') }} />
+        {!deleted && <ObjectBatchDelete deletions={deletions} selected={selectedFiles} count={selectable.length}
+          disabled={uploads.phase !== null || files.isFetching || files.isError}
+          onClear={() => setChecked({})} onSelectAll={value => setChecked(value ? Object.fromEntries(selectable.map(file => [file.id, file.versionId])) : {})} />}
         {files.isPending ? <RequestState loading title="Loading files..." /> : files.isError ? <RequestState title={storageErrorTitle(files.error, 'Unable to load files')} message={fileErrorMessage(files.error, 'list')} onRetry={() => { void files.refetch() }} /> : !files.data.objects.length && !files.data.folders.length ? <RequestState title={deleted ? 'No deleted files' : nameFilter ? 'No matching files or folders' : cursor ? 'No more files' : prefix ? 'This folder is empty' : 'No files yet'} message={deleted ? 'Deleted files can be restored while their versions are still retained.' : nameFilter ? 'Try another filename prefix.' : 'Upload a file to get started.'} /> : <>
           <Box as="ul" listStyleType="none" m="0" p="0" border="1px solid color-mix(in srgb, var(--border) 60%, transparent)" borderRadius="8px" overflow="hidden">
             {files.data.folders.map(folder => <Box as="li" key={folder} _notFirst={{ borderTop: '1px solid var(--border)' }}>
@@ -124,7 +135,8 @@ function ObjectFolder({ account, slug, prefix, uploads }: { account: string; slu
             </Box>)}
             {files.data.objects.map(file => <Box as="li" key={file.id} _notFirst={{ borderTop: '1px solid color-mix(in srgb, var(--border) 50%, transparent)' }}>
               <Flex align="center" gap="12px" p="12px 16px" _hover={{ bg: 'var(--surface)' }}>
-                <Button variant="plain" minW="0" h="auto" p="0" flex="1" gap="12px" justifyContent="flex-start" fontWeight="500" fontSize="13px" color="var(--foreground)" textAlign="left" whiteSpace="normal" aria-label={`Open ${file.key}`} onClick={event => { previewTrigger.current = event.currentTarget; setDownloadError(''); setSelected(file) }} _hover={{ textDecoration: 'underline' }}><ObjectFileIcon kind={objectFileKind(file)} /><Text minW="0" overflowWrap="anywhere">{file.key.slice(prefix.length)}</Text></Button>
+                {!deleted && <ObjectSelectionCheckbox label={`Select ${file.key}`} checked={checked[file.id] === file.versionId} disabled={selectionLocked} onChange={value => setChecked(current => ({ ...current, [file.id]: value ? file.versionId : '' }))} />}
+                <Button disabled={deleting} variant="plain" minW="0" h="auto" p="0" flex="1" gap="12px" justifyContent="flex-start" fontWeight="500" fontSize="13px" color="var(--foreground)" textAlign="left" whiteSpace="normal" aria-label={`Open ${file.key}`} onClick={event => { previewTrigger.current = event.currentTarget; setDownloadError(''); setSelected(file) }} _hover={{ textDecoration: 'underline' }}><ObjectFileIcon kind={objectFileKind(file)} /><Text minW="0" overflowWrap="anywhere">{file.key.slice(prefix.length)}</Text></Button>
                 <Text fontSize="12px" color="var(--muted)" whiteSpace="nowrap">{formatFileSize(file.sizeBytes)}</Text>
                 {!deleted && <ActionButton aria-label={`Download ${file.key}`} title="Download" p="7px" borderColor="transparent" loading={downloading === file.key} disabled={downloading !== null} onClick={() => { void handleDownload(file.key, file.versionId) }}><ObjectFileIcon kind="download" /></ActionButton>}
               </Flex>
