@@ -4,7 +4,7 @@ import type {
   AuditEvent,
   CreateAuditEventInput,
   PublicAuditEvent,
-} from '../../db/audit.types.js'
+} from '../../db/types/audit.types.js'
 import type { Database } from '../../db/index.js'
 
 export const defaultAuditEventLimit = 50

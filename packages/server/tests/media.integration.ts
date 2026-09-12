@@ -2,9 +2,9 @@ import { test, expect } from 'vitest'
 import { rename } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createFixture } from './fixture.js'
-import type { PublicSpace } from '../src/db/space.types.js'
-import type { PublicSpaceObject } from '../src/db/object.types.js'
-import type { PublicUser } from '../src/db/user.types.js'
+import type { PublicSpace } from '../src/db/types/space.types.js'
+import type { PublicSpaceObject } from '../src/db/types/object.types.js'
+import type { PublicUser } from '../src/db/types/user.types.js'
 import type { listAppObjects } from '../src/services/app-objects.js'
 
 test('Media uses Object storage with filtering before pagination and authorizes current and historical content', async ({ onTestFinished }) => {

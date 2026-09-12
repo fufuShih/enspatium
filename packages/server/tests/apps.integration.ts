@@ -2,12 +2,12 @@ import { test, expect, vi } from 'vitest'
 import { sql } from 'kysely'
 import { createFixture } from './fixture.js'
 import { migrateDatabase } from '../src/db/migrations.js'
-import type { PublicSpace } from '../src/db/space.types.js'
-import type { PublicUser } from '../src/db/user.types.js'
-import type { PublicNamespace } from '../src/db/namespace.types.js'
+import type { PublicSpace } from '../src/db/types/space.types.js'
+import type { PublicUser } from '../src/db/types/user.types.js'
+import type { PublicNamespace } from '../src/db/types/namespace.types.js'
 import * as plugins from '../src/apps/registry.js'
 import type { ObjectAppPlugin } from '../src/apps/types.js'
-import type { PublicSpaceObject } from '../src/db/object.types.js'
+import type { PublicSpaceObject } from '../src/db/types/object.types.js'
 
 test('app registry preserves existing Spaces and resolves registered built-in and custom types with Space permissions', async ({ onTestFinished }) => {
   const { app, schema, session } = await createFixture({

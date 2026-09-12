@@ -4,8 +4,8 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { test, expect, vi } from 'vitest'
 import { createFixture } from './fixture.js'
-import type { PublicSpace } from '../src/db/space.types.js'
-import type { PublicUser } from '../src/db/user.types.js'
+import type { PublicSpace } from '../src/db/types/space.types.js'
+import type { PublicUser } from '../src/db/types/user.types.js'
 import * as repository from '../src/services/git/repository.js'
 
 test('ZIP archives resolve a commit once, stream with read access, and release canceled transfers', async ({ onTestFinished }) => {

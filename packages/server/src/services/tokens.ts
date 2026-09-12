@@ -11,7 +11,7 @@ import {
   type PersonalAccessTokenScope,
   type PublicPersonalAccessToken,
   type TokenServiceErrorCode,
-} from '../db/token.types.js'
+} from '../db/types/token.types.js'
 
 const tokenPattern = /^ensp_[A-Za-z0-9_-]{43}$/
 const allowedScopes = new Set<string>(personalAccessTokenScopes)

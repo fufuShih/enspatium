@@ -8,7 +8,7 @@ import type {
   SessionUser,
   User,
   UserServiceErrorCode,
-} from '../db/user.types.js'
+} from '../db/types/user.types.js'
 import { createPersonalNamespace } from './namespaces.js'
 
 export class UserServiceError extends Error {

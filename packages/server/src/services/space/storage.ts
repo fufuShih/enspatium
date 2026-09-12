@@ -5,7 +5,7 @@ import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
-import type { SpaceType } from '../../db/space.types.js'
+import type { SpaceType } from '../../db/types/space.types.js'
 
 const execFileAsync = promisify(execFile)
 const repositoryRoot = fileURLToPath(new URL('../../../../../', import.meta.url))

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CreatePersonalAccessTokenInput } from '../db/token.types.js'
+import type { CreatePersonalAccessTokenInput } from '../db/types/token.types.js'
 import {
   TokenServiceError,
   generatePersonalAccessToken,

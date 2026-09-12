@@ -6,7 +6,7 @@ import type {
   ObjectStorageUsage,
   PublicSpaceObject,
   SpaceObject,
-} from '../../db/object.types.js'
+} from '../../db/types/object.types.js'
 import { requireSpaceStorage, SpaceStorageUnavailable } from '../space/storage.js'
 import {
   getReadableObjectSpace,

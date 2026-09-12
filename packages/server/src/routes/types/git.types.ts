@@ -1,6 +1,6 @@
 import { Type } from '@sinclair/typebox'
 
-import type { PublicSpace } from '../../db/space.types.js'
+import type { PublicSpace } from '../../db/types/space.types.js'
 
 export interface GitAccess {
   space: Pick<PublicSpace, 'id' | 'namespaceId'>

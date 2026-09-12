@@ -12,7 +12,7 @@ import type {
   SpaceType,
   UpdateSpaceMemberInput,
   UpdateSpaceInput,
-} from '../../db/space.types.js'
+} from '../../db/types/space.types.js'
 import { createAuditEvent } from '../audit/audit.js'
 import {
   getGitCommit,

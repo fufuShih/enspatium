@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { createFixture } from './fixture.js'
-import type { PublicSpaceObject } from '../src/db/object.types.js'
-import type { PublicSpace } from '../src/db/space.types.js'
+import type { PublicSpaceObject } from '../src/db/types/object.types.js'
+import type { PublicSpace } from '../src/db/types/space.types.js'
 import type { listAppObjects } from '../src/services/app-objects.js'
 
 test('Ebook library filters before pagination and preserves Space access and version rules', async ({ onTestFinished }) => {

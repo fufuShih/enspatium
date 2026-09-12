@@ -8,7 +8,7 @@ import type {
   NamespaceServiceErrorCode,
   PublicNamespace,
   PublicNamespaceMember,
-} from '../db/namespace.types.js'
+} from '../db/types/namespace.types.js'
 
 export class NamespaceServiceError extends Error {
   constructor(

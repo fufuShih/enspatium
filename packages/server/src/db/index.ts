@@ -3,16 +3,16 @@ import fastifyPlugin from 'fastify-plugin'
 import { Kysely, PostgresDialect } from 'kysely'
 import { Pool } from 'pg'
 
-import type { AuditEventTable } from './audit.types.js'
-import type { AppTypeTable } from './app.types.js'
+import type { AuditEventTable } from './types/audit.types.js'
+import type { AppTypeTable } from './types/app.types.js'
 import type {
   NamespaceMemberTable,
   NamespaceTable,
-} from './namespace.types.js'
-import type { SpaceObjectTable, SpaceObjectVersionTable } from './object.types.js'
-import type { SpaceMemberTable, SpaceTable } from './space.types.js'
-import type { PersonalAccessTokenTable } from './token.types.js'
-import type { UserTable } from './user.types.js'
+} from './types/namespace.types.js'
+import type { SpaceObjectTable, SpaceObjectVersionTable } from './types/object.types.js'
+import type { SpaceMemberTable, SpaceTable } from './types/space.types.js'
+import type { PersonalAccessTokenTable } from './types/token.types.js'
+import type { UserTable } from './types/user.types.js'
 
 export interface Database {
   app_types: AppTypeTable

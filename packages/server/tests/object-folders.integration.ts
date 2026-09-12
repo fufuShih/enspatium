@@ -2,9 +2,9 @@ import { test, expect } from 'vitest'
 import { join } from 'node:path'
 import { rename } from 'node:fs/promises'
 import { createFixture } from './fixture.js'
-import type { PublicUser } from '../src/db/user.types.js'
-import type { PublicNamespace } from '../src/db/namespace.types.js'
-import type { PublicSpace } from '../src/db/space.types.js'
+import type { PublicUser } from '../src/db/types/user.types.js'
+import type { PublicNamespace } from '../src/db/types/namespace.types.js'
+import type { PublicSpace } from '../src/db/types/space.types.js'
 import type { ObjectFolderPage } from '../src/services/object/object.js'
 
 test('object folders group before pagination, preserve key boundaries and enforce access', async ({ onTestFinished }) => {

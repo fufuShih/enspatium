@@ -3,8 +3,8 @@ import { request as httpRequest } from 'node:http'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createFixture } from './fixture.js'
-import type { PublicSpace } from '../src/db/space.types.js'
-import type { PublicUser } from '../src/db/user.types.js'
+import type { PublicSpace } from '../src/db/types/space.types.js'
+import type { PublicUser } from '../src/db/types/user.types.js'
 import * as repository from '../src/services/git/repository.js'
 
 test('Git raw streams preserve bytes and revisions, check access, and stop on disconnect', async ({ onTestFinished }) => {

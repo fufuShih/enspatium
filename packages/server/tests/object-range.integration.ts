@@ -4,9 +4,9 @@ import { writeFile, rename } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createFixture } from './fixture.js'
 import * as storage from '../src/services/object/storage.js'
-import type { PublicNamespace } from '../src/db/namespace.types.js'
-import type { PublicSpace } from '../src/db/space.types.js'
-import type { PublicSpaceObject } from '../src/db/object.types.js'
+import type { PublicNamespace } from '../src/db/types/namespace.types.js'
+import type { PublicSpace } from '../src/db/types/space.types.js'
+import type { PublicSpaceObject } from '../src/db/types/object.types.js'
 
 test('object streaming supports ranges, conditional reads, HEAD, immutable versions and cancellation with authorization on every request', async ({ onTestFinished }) => {
   const { app, origin, root, session } = await createFixture({ after: cleanup => onTestFinished(cleanup), diagnostic: message => console.info(message) })

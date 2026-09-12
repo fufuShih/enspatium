@@ -6,9 +6,9 @@ import { createFixture } from './fixture.js'
 import { migrateDatabase } from '../src/db/migrations.js'
 import { writeObjectFile } from '../src/services/object/storage.js'
 import { Readable } from 'node:stream'
-import type { PublicSpaceObject, ObjectVersionPage } from '../src/db/object.types.js'
+import type { PublicSpaceObject, ObjectVersionPage } from '../src/db/types/object.types.js'
 import { createSpaceStorage } from '../src/services/space/storage.js'
-import type { PublicUser } from '../src/db/user.types.js'
+import type { PublicUser } from '../src/db/types/user.types.js'
 
 test('legacy objects become immutable first versions; writes, history, recovery and quota stay consistent', async ({ onTestFinished }) => {
   const { app, origin, root, schema, session } = await createFixture({

@@ -1,6 +1,6 @@
 import type { Kysely } from 'kysely'
 import type { Database } from '../db/index.js'
-import type { AppType } from '../db/app.types.js'
+import type { AppType } from '../db/types/app.types.js'
 import { getSpaceBySlug, SpaceServiceError } from './space/space.js'
 
 function publicApp(app: AppType) {

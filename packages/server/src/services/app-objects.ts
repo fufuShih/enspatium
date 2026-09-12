@@ -1,6 +1,6 @@
 import { sql, type Kysely } from 'kysely'
 import type { Database } from '../db/index.js'
-import type { SpaceObject } from '../db/object.types.js'
+import type { SpaceObject } from '../db/types/object.types.js'
 import { getObjectAppPlugin } from '../apps/registry.js'
 import type { ObjectAppKind, ObjectAppPlugin } from '../apps/types.js'
 import { getSpaceBySlug, getWritableObjectSpace, SpaceServiceError } from './space/space.js'

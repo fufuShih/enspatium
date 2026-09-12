@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Kysely } from 'kysely'
 import type { Database } from '../../db/index.js'
-import type { ObjectVersionPage, PublicSpaceObject, SpaceObject } from '../../db/object.types.js'
+import type { ObjectVersionPage, PublicSpaceObject, SpaceObject } from '../../db/types/object.types.js'
 import { createAuditEvent } from '../audit/audit.js'
 import { getReadableObjectSpace, getWritableObjectSpace } from '../space/space.js'
 import { requireSpaceStorage } from '../space/storage.js'

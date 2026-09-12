@@ -1,4 +1,4 @@
-import type { SpaceType } from '../../db/space.types.js'
+import type { SpaceType } from '../../db/types/space.types.js'
 
 export type CheckOptions = { spaceId?: string; deep?: boolean }
 export type CheckIssue = {
