@@ -12,6 +12,7 @@ import {
 import { maximumObjectSizeBytes } from '../services/object/storage.js'
 import { sendObjectContent } from './object-content.js'
 import { deleteObject, getObjectHead, listObjectVersions, restoreObjectVersion, uploadObject } from '../services/object/versions.js'
+import { moveObject } from '../services/object/move.js'
 import {
   getCurrentUserId,
   requireCurrentUserId,
@@ -27,6 +28,7 @@ import {
   SpaceObjectResponseSchema,
   ObjectHeadQuerySchema, ObjectWriteQuerySchema, ObjectVersionsQuerySchema,
   ObjectVersionQuerySchema, RestoreObjectVersionQuerySchema, ObjectVersionsResponseSchema,
+  MoveObjectQuerySchema,
 } from './types/objects.types.js'
 
 export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
@@ -198,6 +200,12 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
     schema: { operationId: 'getObjectHead', tags: ['objects'], params: ObjectSpaceParamsSchema,
       querystring: ObjectHeadQuerySchema, response: { 200: Type.Union([SpaceObjectResponseSchema, Type.Null()]) } },
   }, request => getObjectHead(app.db, requireCurrentUserId(request), request.params.namespaceSlug, request.params.spaceSlug, request.query.key))
+
+  app.post('/namespaces/:namespaceSlug/spaces/:spaceSlug/object-move', {
+    schema: { operationId: 'moveObject', tags: ['objects'], params: ObjectSpaceParamsSchema,
+      description: 'Rename or move one active file within this Space. Preserves object ID, content versions and storage locators. Requires the source key and current version; rejects destination collisions, including deleted files. Repeating the same successful request is a no-op.',
+      querystring: MoveObjectQuerySchema, response: { 200: SpaceObjectResponseSchema } },
+  }, request => moveObject(app.db, app.config.DATA_ROOT, requireCurrentUserId(request), request.params.namespaceSlug, request.params.spaceSlug, request.query))
 
   app.get('/namespaces/:namespaceSlug/spaces/:spaceSlug/object-versions', {
     schema: { operationId: 'listObjectVersions', tags: ['objects'], params: ObjectSpaceParamsSchema,

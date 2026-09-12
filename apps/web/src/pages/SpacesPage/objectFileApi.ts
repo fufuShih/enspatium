@@ -14,7 +14,7 @@ export function formatFileSize(bytes: number) {
   return `${(bytes / unit).toLocaleString('en-US', { maximumFractionDigits: 1 })} ${unit === 1024 ? 'KiB' : 'MiB'}`
 }
 
-export function fileErrorMessage(error: unknown, action: 'upload' | 'download' | 'list' | 'preview' | 'delete' | 'restore') {
+export function fileErrorMessage(error: unknown, action: 'upload' | 'download' | 'list' | 'preview' | 'delete' | 'restore' | 'move') {
   if (apiCode(error) === 'UPLOAD_VERSION_CHANGED') return 'This file changed after the upload attempt. Review its versions before uploading it again.'
   if (apiCode(error) === 'STORAGE_BUSY') return 'Storage is being checked. Wait for the check to finish, then retry.'
   const storageMessage = storageErrorMessage(error)
@@ -22,7 +22,7 @@ export function fileErrorMessage(error: unknown, action: 'upload' | 'download' |
   switch (apiStatus(error)) {
     case 400: return action === 'list' ? 'This folder path or filename filter is not supported. Try another name.' : 'This filename is not supported. Rename the file and try again.'
     case 401: return 'Your session has expired. Please sign in again.'
-    case 403: return action === 'upload' || action === 'delete' || action === 'restore' ? `You need write access to ${action} files.` : 'You do not have permission to access these files.'
+    case 403: return action === 'upload' || action === 'delete' || action === 'restore' || action === 'move' ? `You need write access to ${action} files.` : 'You do not have permission to access these files.'
     case 404: return 'This file or Space is no longer available. Refresh the list and try again.'
     case 409: return 'This file has changed, or its name conflicts with a file or folder. Refresh and try again.'
     case 413: return 'The file exceeds the 100 MiB limit or the available storage space.'

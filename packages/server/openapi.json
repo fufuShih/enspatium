@@ -3918,6 +3918,12 @@
                           {
                             "type": "string",
                             "enum": [
+                              "object.moved"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
                               "object.version_purged"
                             ]
                           }
@@ -4939,6 +4945,155 @@
                       "type": "null"
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/object-move": {
+      "post": {
+        "operationId": "moveObject",
+        "tags": [
+          "objects"
+        ],
+        "description": "Rename or move one active file within this Space. Preserves object ID, content versions and storage locators. Requires the source key and current version; rejects destination collisions, including deleted files. Repeating the same successful request is a no-op.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "objectId",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "key",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "newKey",
+            "required": true
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "expectedVersion",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "spaceId",
+                    "createdByUserId",
+                    "key",
+                    "contentType",
+                    "sizeBytes",
+                    "checksumSha256",
+                    "createdAt",
+                    "updatedAt",
+                    "versionId",
+                    "revision",
+                    "isDeleted"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "spaceId": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "createdByUserId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "key": {
+                      "type": "string"
+                    },
+                    "contentType": {
+                      "type": "string"
+                    },
+                    "sizeBytes": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "checksumSha256": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "versionId": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "revision": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "isDeleted": {
+                      "type": "boolean"
+                    }
+                  }
                 }
               }
             }

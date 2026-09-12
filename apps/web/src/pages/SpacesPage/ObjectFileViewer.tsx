@@ -11,12 +11,14 @@ import { decodeObjectText, imagePreviewLimit, objectFileKind, objectPreviewKind,
 import ObjectFileIcon from './ObjectFileIcon'
 import ObjectVersions from './ObjectVersions'
 import { storageErrorTitle } from './storageErrors'
+import ObjectMoveForm from './ObjectMoveForm'
 
 type Preview = { kind: 'loading' } | { kind: 'text'; text: string } | { kind: 'image'; url: string } | { kind: 'unavailable'; message: string } | { kind: 'error'; title: string; message: string }
 
-export default function ObjectFileViewer({ account, slug, file: currentFile, downloading, downloadError, onDownload, onClose, onDeleted, onRestored, returnFocus }: {
+export default function ObjectFileViewer({ account, slug, file: currentFile, downloading, downloadError, onDownload, onClose, onDeleted, onRestored, onMoved, returnFocus }: {
   account: string; slug: string; file: ListObjects200Item; downloading: boolean; downloadError: string
   onDownload: (version: ListObjects200Item) => void; onClose: () => void; onDeleted: () => void; onRestored: () => void; returnFocus: () => HTMLElement | null
+  onMoved: (file: ListObjects200Item, warning: string) => void
 }) {
   const client = useQueryClient()
   const [file, setFile] = useState(currentFile)
@@ -27,6 +29,8 @@ export default function ObjectFileViewer({ account, slug, file: currentFile, dow
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [editing, setEditing] = useState<'rename' | 'move' | null>(null)
+  const [moving, setMoving] = useState(false)
 
   async function handleDelete() {
     setDeleting(true)
@@ -74,19 +78,20 @@ export default function ObjectFileViewer({ account, slug, file: currentFile, dow
     return () => { controller.abort(); if (imageUrl) URL.revokeObjectURL(imageUrl) }
   }, [account, slug, file, attempt, client])
 
-  return <Dialog.Root open onOpenChange={({ open }) => { if (!open && !deleting && !restoring) onClose() }} placement="center" scrollBehavior="inside" finalFocusEl={returnFocus}>
+  return <Dialog.Root open onOpenChange={({ open }) => { if (!open && !deleting && !restoring && !moving) onClose() }} placement="center" scrollBehavior="inside" finalFocusEl={returnFocus}>
     <Portal>
       <Dialog.Backdrop bg="blackAlpha.600" />
       <Dialog.Positioner p={{ base: '12px', md: '24px' }}>
-        <Dialog.Content maxW="900px" w="100%" maxH="calc(100dvh - 48px)" m="0" bg="var(--background)" color="var(--foreground)" border="1px solid var(--border)" borderRadius="12px" overflow="hidden" css={{ '& :is(button, pre):focus-visible': { outline: '2px solid var(--muted)', outlineOffset: '3px' } }}>
+        <Dialog.Content maxW={editing ? '560px' : '900px'} w="100%" maxH="calc(100dvh - 48px)" m="0" bg="var(--background)" color="var(--foreground)" border="1px solid var(--border)" borderRadius="12px" overflow="hidden" css={{ '& :is(button, input, pre):focus-visible': { outline: '2px solid var(--muted)', outlineOffset: '3px' } }}>
           <Dialog.Header p={{ base: '20px', md: '24px' }} borderBottom="1px solid var(--border)">
             <Flex align="start" gap="12px" w="100%">
               <Box pt="2px" color="var(--muted)"><ObjectFileIcon kind={objectFileKind(file)} /></Box>
               <Box minW="0" flex="1"><Dialog.Title fontSize="17px" fontWeight="500" overflowWrap="anywhere">{file.key}</Dialog.Title><Dialog.Description mt="6px" fontSize="12px" color="var(--muted)">Version {file.revision}{file.versionId === currentFile.versionId ? ' · Current' : ' · Historical'}</Dialog.Description></Box>
-              <Dialog.CloseTrigger asChild position="static"><ActionButton aria-label="Close preview" disabled={deleting || restoring} p="6px 10px" fontSize="18px">×</ActionButton></Dialog.CloseTrigger>
+              <Dialog.CloseTrigger asChild position="static"><ActionButton aria-label="Close preview" disabled={deleting || restoring || moving} p="6px 10px" fontSize="18px">×</ActionButton></Dialog.CloseTrigger>
             </Flex>
           </Dialog.Header>
           <Dialog.Body p={{ base: '20px', md: '24px' }} minW="0">
+            {editing ? <ObjectMoveForm key={editing} account={account} slug={slug} file={currentFile} mode={editing} onCancel={() => setEditing(null)} onMoved={onMoved} onBusy={setMoving} /> : <>
             <Box as="dl" display="grid" gridTemplateColumns={{ base: '1fr', sm: 'auto auto auto' }} gap="16px" m="0" mb="24px" fontSize="12px">
               {[['Size', formatFileSize(file.sizeBytes)], ['Content type', file.contentType], ['Last modified', new Date(file.updatedAt).toLocaleString('en-US')]].map(([label, value]) => <Box key={label}><Box as="dt" color="var(--muted)" mb="4px">{label}</Box><Box as="dd" m="0" overflowWrap="anywhere">{value}</Box></Box>)}
             </Box>
@@ -98,13 +103,15 @@ export default function ObjectFileViewer({ account, slug, file: currentFile, dow
             {confirmDelete && <Text mt="16px" fontSize="13px">Move this file to Deleted files? Content can be recovered until retention cleanup permanently removes it.</Text>}
             <ActionButton mt="20px" disabled={restoring || deleting} aria-expanded={showVersions} onClick={() => setShowVersions(value => !value)}>Versions</ActionButton>
             {showVersions && !confirmDelete && <ObjectVersions account={account} slug={slug} fileKey={currentFile.key} selectedId={file.versionId} onSelect={setFile} onRestored={onRestored} onBusy={setRestoring} />}
+            </>}
           </Dialog.Body>
-          <Dialog.Footer p="16px 24px" borderTop="1px solid var(--border)" flexWrap="wrap">
+          {!editing && <Dialog.Footer p="16px 24px" borderTop="1px solid var(--border)" flexWrap="wrap">
             {confirmDelete ? <><ActionButton disabled={deleting || restoring} onClick={() => { setConfirmDelete(false); setDeleteError('') }}>Cancel</ActionButton><ActionButton color="fg.error" loading={deleting} loadingText="Deleting..." onClick={() => { void handleDelete() }}>Confirm delete</ActionButton></> : <>
               <ActionButton color="fg.error" mr="auto" disabled={downloading || restoring || currentFile.isDeleted} onClick={() => setConfirmDelete(true)}>Delete file</ActionButton>
+              {!currentFile.isDeleted && <><ActionButton disabled={downloading || restoring || file.versionId !== currentFile.versionId} onClick={() => setEditing('rename')}>Rename</ActionButton><ActionButton disabled={downloading || restoring || file.versionId !== currentFile.versionId} onClick={() => setEditing('move')}>Move</ActionButton></>}
               <ActionButton loading={downloading} loadingText="Downloading..." disabled={file.isDeleted || restoring} onClick={() => onDownload(file)} gap="8px"><ObjectFileIcon kind="download" />Download</ActionButton>
             </>}
-          </Dialog.Footer>
+          </Dialog.Footer>}
         </Dialog.Content>
       </Dialog.Positioner>
     </Portal>

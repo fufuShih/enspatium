@@ -67,6 +67,12 @@ export const ObjectHeadQuerySchema = Type.Object({ key: Type.String({ minLength:
 export const ObjectWriteQuerySchema = Type.Object({
   expectedVersion: Type.Optional(Type.Union([Type.String({ format: 'uuid' }), Type.Literal('none')])),
 })
+export const MoveObjectQuerySchema = Type.Object({
+  objectId: Type.String({ format: 'uuid' }),
+  key: Type.String({ minLength: 1, maxLength: 1024 }),
+  newKey: Type.String({ minLength: 1, maxLength: 1024 }),
+  expectedVersion: Type.String({ format: 'uuid' }),
+}, { additionalProperties: false })
 export const ObjectVersionsQuerySchema = Type.Object({
   ...ObjectHeadQuerySchema.properties,
   cursor: Type.Optional(Type.Integer({ minimum: 1 })),

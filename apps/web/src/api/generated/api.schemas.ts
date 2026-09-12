@@ -772,6 +772,7 @@ export const ListSpaceAuditEvents200ItemAction = {  spacecreated: 'space.created
   gitpushed: 'git.pushed',
   objectuploaded: 'object.uploaded',
   objectdeleted: 'object.deleted',
+  objectmoved: 'object.moved',
   objectversion_purged: 'object.version_purged',
 } as const
 export type ListSpaceAuditEvents200ItemMetadata = {[key: string]: unknown};
@@ -922,6 +923,39 @@ export type GetObjectHead200 = {
   revision: number;
   isDeleted: boolean;
 } | null;
+
+export type MoveObjectParams = {
+objectId: string;
+/**
+ * @minLength 1
+ * @maxLength 1024
+ */
+key: string;
+/**
+ * @minLength 1
+ * @maxLength 1024
+ */
+newKey: string;
+expectedVersion: string;
+};
+
+export type MoveObject200 = {
+  id: string;
+  spaceId: string;
+  createdByUserId: string | null;
+  key: string;
+  contentType: string;
+  /** @minimum 0 */
+  sizeBytes: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  checksumSha256: string;
+  createdAt: string;
+  updatedAt: string;
+  versionId: string;
+  /** @minimum 1 */
+  revision: number;
+  isDeleted: boolean;
+};
 
 export type ListObjectVersionsParams = {
 /**

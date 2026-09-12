@@ -19,6 +19,7 @@ test('upload versions, preview and download history, restore, delete and recover
   expect(await settings.json()).toMatchObject({ objectVersionLimit: 5, objectRetentionDays: 14 })
   await page.getByRole('link', { name: 'Back to Space', exact: true }).click()
   const upload = async (contents: string) => {
+    await expect(page.getByLabel('Choose a file to upload', { exact: true })).toBeEnabled()
     await page.getByLabel('Choose a file to upload', { exact: true }).setInputFiles({
       name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from(contents),
     })

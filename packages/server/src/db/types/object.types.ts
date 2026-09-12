@@ -68,3 +68,10 @@ export interface ObjectStorageUsage {
   quotaBytes: number
   remainingBytes: number
 }
+
+export interface MoveObjectInput {
+  objectId: string
+  key: string
+  newKey: string
+  expectedVersion: string
+}

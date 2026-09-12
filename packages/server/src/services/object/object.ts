@@ -26,6 +26,8 @@ export const maximumObjectListLimit = 100
 export type ObjectServiceErrorCode =
   | 'INVALID_INPUT'
   | 'CONFLICT'
+  | 'OBJECT_MOVE_CONFLICT'
+  | 'OBJECT_KEY_CONFLICT'
   | 'NOT_FOUND'
   | 'OBJECT_CONTENT_MISSING'
   | 'OBJECT_CONTENT_CORRUPT'

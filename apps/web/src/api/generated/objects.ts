@@ -36,6 +36,8 @@ import type {
   ListObjectVersionsParams,
   ListObjects200Item,
   ListObjectsParams,
+  MoveObject200,
+  MoveObjectParams,
   RestoreObjectVersion201,
   RestoreObjectVersionParams,
   UploadObject201,
@@ -989,7 +991,103 @@ export function useGetObjectHead<TData = Awaited<ReturnType<typeof getObjectHead
 
 
 
-export const getListObjectVersionsUrl = (namespaceSlug: string,
+export const getMoveObjectUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    params: MoveObjectParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-move?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-move`
+}
+
+/**
+ * Rename or move one active file within this Space. Preserves object ID, content versions and storage locators. Requires the source key and current version; rejects destination collisions, including deleted files. Repeating the same successful request is a no-op.
+ */
+export const moveObject = async (namespaceSlug: string,
+    spaceSlug: string,
+    params: MoveObjectParams, options?: RequestInit): Promise<MoveObject200> => {
+
+  const res = await fetch(getMoveObjectUrl(namespaceSlug,spaceSlug,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'POST'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: MoveObject200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getMoveObjectMutationKey = () => ['moveObject'] as const;
+
+export const getMoveObjectMutationOptions = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof moveObject>>, TError,MoveObjectMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof moveObject>>, TError,MoveObjectMutationVariables, TContext> => {
+
+const mutationKey = getMoveObjectMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof moveObject>>, MoveObjectMutationVariables> = (props) => {
+          const {namespaceSlug,spaceSlug,params} = props ?? {};
+
+          return  moveObject(namespaceSlug,spaceSlug,params,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MoveObjectMutationResult = NonNullable<Awaited<ReturnType<typeof moveObject>>>
+
+    export type MoveObjectMutationError = globalThis.Error & { info?: unknown; status?: number }
+    export type MoveObjectMutationVariables = {namespaceSlug: string;spaceSlug: string;params: MoveObjectParams}
+
+    export const useMoveObject = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof moveObject>>, TError,MoveObjectMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof moveObject>>,
+        TError,
+        MoveObjectMutationVariables,
+        TContext
+      > => {
+      return useMutation(getMoveObjectMutationOptions(options), queryClient);
+    }
+    export const getListObjectVersionsUrl = (namespaceSlug: string,
     spaceSlug: string,
     params: ListObjectVersionsParams,) => {
   const normalizedParams = new URLSearchParams();

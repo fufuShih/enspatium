@@ -12,6 +12,7 @@ export const auditActions = [
   'git.pushed',
   'object.uploaded',
   'object.deleted',
+  'object.moved',
   'object.version_purged',
 ] as const
 
