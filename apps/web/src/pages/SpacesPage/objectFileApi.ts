@@ -1,4 +1,4 @@
-import { apiStatus } from '../../context/session.ts'
+import { apiCode, apiStatus } from '../../context/session.ts'
 import { uploadObject, getObjectHead, getListObjectVersionsQueryKey, getGetObjectHeadQueryKey, getBrowseObjectsQueryKey, getListObjectsQueryKey, getGetObjectStorageUsageQueryKey } from '../../api/generated/objects.ts'
 import type { QueryClient } from '@tanstack/react-query'
 import { getListAppObjectsQueryKey } from '../../api/generated/app-objects.ts'
@@ -15,6 +15,8 @@ export function formatFileSize(bytes: number) {
 }
 
 export function fileErrorMessage(error: unknown, action: 'upload' | 'download' | 'list' | 'preview' | 'delete' | 'restore') {
+  if (apiCode(error) === 'UPLOAD_VERSION_CHANGED') return 'This file changed after the upload attempt. Review its versions before uploading it again.'
+  if (apiCode(error) === 'STORAGE_BUSY') return 'Storage is being checked. Wait for the check to finish, then retry.'
   const storageMessage = storageErrorMessage(error)
   if (storageMessage) return storageMessage
   switch (apiStatus(error)) {
@@ -28,10 +30,20 @@ export function fileErrorMessage(error: unknown, action: 'upload' | 'download' |
   }
 }
 
-export async function uploadFile(account: string, slug: string, file: File, signal: AbortSignal, prefix = '') {
-  const key = prefix + file.name
+export type UploadAttempt = { key: string; expectedVersion?: string }
+
+export async function uploadFile(account: string, slug: string, file: File, signal: AbortSignal, prefix = '', attempt?: UploadAttempt) {
+  const key = attempt?.key ?? prefix + file.name
   const current = await getObjectHead(account, slug, { key }, { signal })
-  return uploadObject(account, slug, key, file, { expectedVersion: current?.versionId ?? 'none' }, {
+  const expectedVersion = current?.versionId ?? 'none'
+  // Keep the original precondition on retry, including after a lost response.
+  // A newer head must be reviewed, even if it could be our previous upload.
+  if (attempt?.expectedVersion !== undefined && attempt.expectedVersion !== expectedVersion) {
+    throw Object.assign(new Error('Upload destination changed.'), { status: 409, info: { code: 'UPLOAD_VERSION_CHANGED' } })
+  }
+  if (attempt) attempt.expectedVersion = expectedVersion
+  signal.throwIfAborted()
+  return uploadObject(account, slug, key, file, { expectedVersion }, {
     signal,
     headers: { 'Content-Type': file.type || 'application/octet-stream' },
   })

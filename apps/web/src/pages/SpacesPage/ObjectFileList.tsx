@@ -1,5 +1,5 @@
 import { Box, Button, Flex, Heading, Text, chakra } from '@chakra-ui/react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { downloadObject, downloadObjectVersion, getBrowseObjectsQueryKey, useBrowseObjects } from '../../api/generated/objects'
@@ -7,21 +7,24 @@ import { ActionButton, PageLink, TextInput } from '../../components/ui/Primitive
 import RequestState from '../../components/RequestState'
 import { useAuth } from '../../context/auth'
 import { apiCode, apiStatus } from '../../context/session'
-import { fileErrorMessage, fileListLimit, fileSizeLimit, formatFileSize, refreshObjectLists, uploadFile } from './objectFileApi'
+import { fileErrorMessage, fileListLimit, formatFileSize, refreshObjectLists } from './objectFileApi'
 import { newObjectFolder, objectBreadcrumbs, objectFolderLocation } from './objectFolderApi'
 import type { ListObjects200Item } from '../../api/generated/api.schemas'
 import ObjectFileViewer from './ObjectFileViewer'
 import ObjectFileIcon from './ObjectFileIcon'
 import { objectFileKind } from './objectPreview'
 import { storageErrorTitle } from './storageErrors'
+import ObjectUploadPanel from './ObjectUploadPanel'
+import { useObjectUploads, type ObjectUploads } from './useObjectUploads'
 
 export default function ObjectFileList({ account, slug }: { account: string; slug: string }) {
   const [search] = useSearchParams()
   const prefix = search.get('path') || ''
-  return <ObjectFolder key={prefix + search.get('deleted')} account={account} slug={slug} prefix={prefix} />
+  const uploads = useObjectUploads(account, slug)
+  return <ObjectFolder key={prefix + search.get('deleted')} account={account} slug={slug} prefix={prefix} uploads={uploads} />
 }
 
-function ObjectFolder({ account, slug, prefix }: { account: string; slug: string; prefix: string }) {
+function ObjectFolder({ account, slug, prefix, uploads }: { account: string; slug: string; prefix: string; uploads: ObjectUploads }) {
   const [search] = useSearchParams()
   const navigate = useNavigate()
   const nameFilter = search.get('filter') || ''
@@ -33,8 +36,6 @@ function ObjectFolder({ account, slug, prefix }: { account: string; slug: string
   const [creatingFolder, setCreatingFolder] = useState(false)
   const { user } = useAuth()
   const client = useQueryClient()
-  const input = useRef<HTMLInputElement>(null)
-  const uploadController = useRef<AbortController | null>(null)
   const downloadController = useRef<AbortController | null>(null)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
@@ -47,44 +48,14 @@ function ObjectFolder({ account, slug, prefix }: { account: string; slug: string
     enabled: Boolean(user), retry: false,
     queryKey: [...getBrowseObjectsQueryKey(account, slug, params), user?.id ?? null],
   } })
-  const upload = useMutation({
-    mutationFn: ({ file, signal }: { file: File; signal: AbortSignal }) => uploadFile(account, slug, file, signal, prefix),
-    retry: false, gcTime: 0,
-  })
 
   useEffect(() => () => {
-    uploadController.current?.abort()
     downloadController.current?.abort()
   }, [])
 
   async function refreshSession(failure: unknown) {
     if (apiCode(failure) === 'SPACE_STORAGE_UNAVAILABLE') await refreshObjectLists(client, account, slug)
     if (apiStatus(failure) === 401) await client.invalidateQueries({ queryKey: ['session'] })
-  }
-
-  async function handleUpload(file: File) {
-    if (uploadController.current) return
-    setError('')
-    setNotice('')
-    if (file.size > fileSizeLimit) { setError('Choose a file smaller than or equal to 100 MiB.'); return }
-    const controller = new AbortController()
-    uploadController.current = controller
-    try {
-      await upload.mutateAsync({ file, signal: controller.signal })
-      if (controller.signal.aborted) return
-      setNotice(`Uploaded ${file.name}.`)
-      // Clear filters so the refreshed list can include the new file.
-      navigate(location(prefix, ''), { replace: true })
-      await refreshObjectLists(client, account, slug)
-    } catch (failure) {
-      if (!controller.signal.aborted) {
-        setError(fileErrorMessage(failure, 'upload'))
-        await refreshSession(failure)
-      }
-    } finally {
-      uploadController.current = null
-      upload.reset()
-    }
   }
 
   async function handleDownload(key: string, versionId?: string) {
@@ -120,13 +91,7 @@ function ObjectFolder({ account, slug, prefix }: { account: string; slug: string
       <Flex justify="space-between" align="center" wrap="wrap" gap="16px" mb="20px">
         <Box><Heading as="h2" fontSize="20px" fontWeight="600">{deleted ? 'Deleted files' : 'Files'}</Heading><Text mt="6px" fontSize="12px" color="var(--muted)">{deleted ? 'Deleted content uses storage until retention cleanup removes it.' : 'Up to 100 MiB per file. Upload the same name to create a new version.'}</Text></Box>
         {user && !deleted && !files.isError && <Flex gap="8px">
-          <ActionButton disabled={upload.isPending} onClick={() => { setCreatingFolder(value => !value); setError('') }}>New folder</ActionButton>
-          <chakra.input ref={input} type="file" display="none" aria-label="Choose a file to upload" onChange={event => {
-            const file = event.target.files?.[0]
-            event.target.value = ''
-            if (file) void handleUpload(file)
-          }} />
-          <ActionButton loading={upload.isPending} loadingText="Uploading..." disabled={files.isPending} onClick={() => input.current?.click()} bg="var(--foreground)" color="var(--background)">Upload file</ActionButton>
+          <ActionButton onClick={() => { setCreatingFolder(value => !value); setError('') }}>New folder</ActionButton>
         </Flex>}
       </Flex>
       {user && <Flex gap="8px" mb="20px"><ActionButton asChild><PageLink to={objectFolderLocation(account, slug)} aria-current={!deleted ? 'page' : undefined}>Files</PageLink></ActionButton><ActionButton asChild><PageLink to={objectFolderLocation(account, slug, '', '', '', true)} aria-current={deleted ? 'page' : undefined}>Deleted files</PageLink></ActionButton></Flex>}
@@ -146,7 +111,7 @@ function ObjectFolder({ account, slug, prefix }: { account: string; slug: string
         <Flex gap="8px" mt="8px" wrap="wrap"><TextInput id="new-folder-name" value={folderName} onChange={event => setFolderName(event.target.value)} required maxLength={255} autoFocus /><ActionButton type="submit">Open folder</ActionButton><ActionButton type="button" onClick={() => setCreatingFolder(false)}>Cancel</ActionButton></Flex>
         <Text mt="10px" fontSize="12px" color="var(--muted)">Upload a file to make this folder appear in the list.</Text>
       </form></Box>}
-      {upload.isPending && <Text role="status" mb="16px" fontSize="13px" color="var(--muted)" overflowWrap="anywhere">Uploading {upload.variables?.file.name}...</Text>}
+      {user && !deleted && !files.isError && <ObjectUploadPanel uploads={uploads} account={account} slug={slug} prefix={prefix} disabled={files.isPending} />}
       {notice && <Text role="status" mb="16px" fontSize="13px" bg="bg.success" color="fg.success" p="12px 14px" borderRadius="8px" overflowWrap="anywhere">{notice}</Text>}
       {error && <Text role="alert" mb="16px" fontSize="13px" bg="bg.error" color="fg.error" p="12px 14px" borderRadius="8px">{error}</Text>}
       {downloadError && !selected && <Text role="alert" mb="16px" fontSize="13px" color="fg.error">{downloadError}</Text>}
