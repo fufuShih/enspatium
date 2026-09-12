@@ -54,7 +54,7 @@ Registration currently happens through deployment migrations. A self-service reg
 
 ## Note
 
-Migration 0018 registers `note`. `/app/note/:spaceId` opens a folder sidebar; `/app/note/:spaceId/note/:noteId` opens a Markdown note. Notes are ordinary `.md` Objects with existing permissions, versions and retention. Create notes inside folders with names such as `Journal/Today`; rename, delete and restore through Files.
+Migration 0018 registers `note`. `/app/note/:spaceId` opens a folder sidebar; `/app/note/:spaceId/note/:noteId` opens a Markdown note. Notes are ordinary `.md` Objects with existing permissions, versions and retention. Create notes inside folders with names such as `Journal/Today`. The note actions menu supports rename, move and confirmed deletion after saving any pending edits. Rename/move preserve the note URL and history; deletion returns to the list. All actions check the opened version. Deleted notes can be restored through Files until retention cleanup removes their content.
 
 The CodeMirror editor uses a single live-preview surface: the selected line shows Markdown syntax, while other lines format headings, emphasis, lists, quotes, code and links. HTML is displayed as text; unsupported Markdown remains editable source. Nothing is converted to HTML for storage. Explicit Save or Ctrl/Cmd+S checks the opened version; conflicts retain the draft and offer a download. Navigation warns about unsaved changes. Public readers cannot edit. Notes must be UTF-8 and at most 1 MiB; larger files remain available through Files. Advanced Obsidian features, embedded media, table layouts and wiki links are outside this first version.
 
