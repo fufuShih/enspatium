@@ -460,7 +460,18 @@ export async function getGitFileInfo(dataRoot: string, spaceId: string, inputRef
 export async function openGitFile(dataRoot: string, spaceId: string, inputRef: string | undefined, inputPath: string) {
   const { repositoryPath, objectId, file } = await resolveGitFile(dataRoot, spaceId, inputRef, inputPath)
   // Lazy creation lets HEAD return metadata without starting a content process.
-  return { file, createReadStream: () => streamGitBlob(repositoryPath, objectId, file.size) }
+  return { file, createReadStream: () => streamGitOutput(repositoryPath, ['cat-file', 'blob', objectId], file.size) }
+}
+
+export async function openGitArchive(dataRoot: string, spaceId: string, inputRef: string | undefined, spaceSlug: string) {
+  const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git')
+  const { commitId } = await resolveGitCommit(repositoryPath, inputRef)
+  // The root directory and download name never contain a ref or a user path.
+  const name = `${spaceSlug.replace(/[^a-z0-9-]/gi, '-') || 'repository'}-${commitId.slice(0, 7)}`
+  return {
+    file: { name: name + '.zip', commitId },
+    createReadStream: () => streamGitOutput(repositoryPath, ['archive', '--format=zip', '--prefix=' + name + '/', commitId]),
+  }
 }
 
 async function resolveGitFile(dataRoot: string, spaceId: string, inputRef: string | undefined, inputPath: string) {
@@ -483,9 +494,9 @@ async function resolveGitFile(dataRoot: string, spaceId: string, inputRef: strin
   }
 }
 
-function streamGitBlob(repositoryPath: string, objectId: string, expectedSize: number) {
-  // Only a resolved blob ID reaches cat-file. Never interpret paths as disk paths.
-  const child = spawn('git', ['--git-dir=' + repositoryPath, 'cat-file', 'blob', objectId], {
+function streamGitOutput(repositoryPath: string, args: string[], expectedSize?: number) {
+  // Callers pass resolved object IDs, never unchecked revisions or disk paths.
+  const child = spawn('git', ['--git-dir=' + repositoryPath, ...args], {
     stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true,
   })
   const stream = new PassThrough()
@@ -496,7 +507,7 @@ function streamGitBlob(repositoryPath: string, objectId: string, expectedSize: n
   child.stdout.pipe(stream, { end: false })
   child.once('close', code => {
     if (stream.destroyed) return
-    if (code !== 0 || size !== expectedSize) stream.destroy(new Error('Git content stream was interrupted'))
+    if (code !== 0 || (expectedSize !== undefined && size !== expectedSize)) stream.destroy(new Error('Git content stream was interrupted'))
     else stream.end()
   })
   stream.once('close', () => {

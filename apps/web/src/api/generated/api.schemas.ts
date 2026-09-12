@@ -652,6 +652,22 @@ path: string;
 download?: boolean;
 };
 
+export type DownloadGitSpaceArchiveParams = {
+/**
+ * @minLength 1
+ * @maxLength 255
+ */
+ref?: string;
+};
+
+export type HeadGitSpaceArchiveParams = {
+/**
+ * @minLength 1
+ * @maxLength 255
+ */
+ref?: string;
+};
+
 export type GetGitSpaceReadmeParams = {
 /**
  * @minLength 1

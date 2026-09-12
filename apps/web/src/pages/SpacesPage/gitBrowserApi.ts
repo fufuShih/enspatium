@@ -20,6 +20,14 @@ export function sortGitEntries(entries: GetGitSpaceTree200EntriesItem[]) {
   return [...entries].sort((left, right) => Number(right.type === 'directory') - Number(left.type === 'directory') || left.name.localeCompare(right.name, 'en'))
 }
 
+export function gitArchiveRef(params: URLSearchParams, branch: string, treeCommit?: string) {
+  const view = params.get('view')
+  if (view === 'file' || view === 'commits') {
+    return params.get('commit') || (view === 'commits' ? params.get('snapshot') : '') || (branch ? `refs/heads/${branch}` : undefined)
+  }
+  return treeCommit
+}
+
 export function gitErrorMessage(error: unknown) {
   const storageMessage = storageErrorMessage(error)
   if (storageMessage) return storageMessage

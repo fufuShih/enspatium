@@ -4,12 +4,13 @@ import { useNavigate, useSearchParams } from 'react-router'
 import {
   getGetGitSpaceInfoQueryKey, getGetGitSpaceTreeQueryKey, getGetGitSpaceReadmeQueryKey,
   useGetGitSpaceInfo, useGetGitSpaceTree, useGetGitSpaceReadme,
+  getDownloadGitSpaceArchiveUrl,
 } from '../../api/generated/spaces'
 import { ActionButton, PageLink, SelectInput } from '../../components/ui/Primitives'
 import RequestState from '../../components/RequestState'
 import { useAuth } from '../../context/auth'
 import { apiStatus } from '../../context/session'
-import { defaultGitBranch, gitErrorMessage, gitLocation, sortGitEntries } from './gitBrowserApi'
+import { defaultGitBranch, gitArchiveRef, gitErrorMessage, gitLocation, sortGitEntries } from './gitBrowserApi'
 import { formatFileSize } from './objectFileApi'
 import GitReadme from './GitReadme'
 import GitHistory from './GitHistory'
@@ -51,6 +52,7 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
   if (!ready && !(isHistory && params.get('commit'))) return <RequestState title="Branch not found" message="Choose an existing branch to continue."><ActionButton asChild mt="20px"><PageLink to={gitLocation(account, slug, defaultGitBranch(info.data))}>Back to repository</PageLink></ActionButton></RequestState>
 
   const content = tree
+  const archiveRef = gitArchiveRef(params, branch, tree.isSuccess ? tree.data.commitId : undefined)
   return (
     <Box as="section" aria-label="Repository browser" minW="0">
       <Flex align="center" wrap="wrap" gap="16px" mb="20px">
@@ -62,7 +64,7 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
           <PageLink to={root} aria-current={!path ? 'page' : undefined}>{slug}</PageLink>
           {segments.map((part, index) => <Fragment key={index}><Text as="span" mx="8px" aria-hidden="true">/</Text>{index === segments.length - 1 ? <Text as="span" aria-current="page" color="var(--foreground)">{part}</Text> : <PageLink to={gitLocation(account, slug, branch, segments.slice(0, index + 1).join('/'))}>{part}</PageLink>}</Fragment>)}
         </Box>
-        <Box ml="auto"><GitCloneMenu url={cloneUrl} /></Box>
+        <Box ml="auto"><GitCloneMenu url={cloneUrl} archiveRef={archiveRef} archiveUrl={archiveRef ? getDownloadGitSpaceArchiveUrl(account, slug, { ref: archiveRef }) : undefined} /></Box>
       </Flex>
       <Flex as="nav" aria-label="Repository views" gap="24px" mb="24px" borderBottom="1px solid var(--border)" fontSize="13px">
         <PageLink to={root} pb="12px" borderBottom={!isHistory ? '2px solid var(--foreground)' : '2px solid transparent'} color={!isHistory ? 'var(--foreground)' : 'var(--muted)'} aria-current={!isHistory ? 'page' : undefined}>Files</PageLink>

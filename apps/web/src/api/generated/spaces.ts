@@ -28,6 +28,7 @@ import type {
   AddSpaceMemberBody,
   CreateSpace201,
   CreateSpaceBody,
+  DownloadGitSpaceArchiveParams,
   GetGitSpaceCommit200,
   GetGitSpaceCommitParams,
   GetGitSpaceDiff200,
@@ -44,6 +45,7 @@ import type {
   GetGitSpaceTree200,
   GetGitSpaceTreeParams,
   GetSpace200,
+  HeadGitSpaceArchiveParams,
   HeadGitSpaceRawFileParams,
   ListGitSpaceCommits200,
   ListGitSpaceCommitsParams,
@@ -1823,6 +1825,237 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
         TContext
       > => {
       return useMutation(getHeadGitSpaceRawFileMutationOptions(options), queryClient);
+    }
+    export const getDownloadGitSpaceArchiveUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    params?: DownloadGitSpaceArchiveParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/git/archive?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/git/archive`
+}
+
+/**
+ * Download a ZIP of the whole repository at ref (defaults to HEAD), resolved once to a commit ID. Includes a repository-slug/short-commit root directory and honors Git export attributes. Excludes Git history and submodule contents. Checks Space read access on every request. Streams without a Content-Length, disk cache, or Range support; disconnects stop archive generation. HEAD checks access and ref without generating a ZIP.
+ */
+export const downloadGitSpaceArchive = async (namespaceSlug: string,
+    spaceSlug: string,
+    params?: DownloadGitSpaceArchiveParams, options?: RequestInit): Promise<Blob> => {
+
+  const res = await fetch(getDownloadGitSpaceArchiveUrl(namespaceSlug,spaceSlug,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+  if (!res.ok) {
+    const errorBody = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = errorBody ? JSON.parse(errorBody) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const body = [204, 205, 304].includes(res.status) ? null : await res.blob();
+  const data: Blob = body as Blob
+  return data
+}
+
+
+
+
+
+export const getDownloadGitSpaceArchiveQueryKey = (namespaceSlug: string,
+    spaceSlug: string,
+    params?: DownloadGitSpaceArchiveParams,) => {
+    return [
+    `/api/namespaces/${namespaceSlug}/spaces/${spaceSlug}/git/archive`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getDownloadGitSpaceArchiveQueryOptions = <TData = Awaited<ReturnType<typeof downloadGitSpaceArchive>>, TError = globalThis.Error & { info?: unknown; status?: number }>(namespaceSlug: string,
+    spaceSlug: string,
+    params?: DownloadGitSpaceArchiveParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadGitSpaceArchive>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadGitSpaceArchiveQueryKey(namespaceSlug,spaceSlug,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadGitSpaceArchive>>> = ({ signal }) => downloadGitSpaceArchive(namespaceSlug,spaceSlug,params, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: namespaceSlug !== null && namespaceSlug !== undefined && spaceSlug !== null && spaceSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadGitSpaceArchive>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type DownloadGitSpaceArchiveQueryResult = NonNullable<Awaited<ReturnType<typeof downloadGitSpaceArchive>>>
+export type DownloadGitSpaceArchiveQueryError = globalThis.Error & { info?: unknown; status?: number }
+
+
+export function useDownloadGitSpaceArchive<TData = Awaited<ReturnType<typeof downloadGitSpaceArchive>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: undefined |  DownloadGitSpaceArchiveParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadGitSpaceArchive>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadGitSpaceArchive>>,
+          TError,
+          Awaited<ReturnType<typeof downloadGitSpaceArchive>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDownloadGitSpaceArchive<TData = Awaited<ReturnType<typeof downloadGitSpaceArchive>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params?: DownloadGitSpaceArchiveParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadGitSpaceArchive>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadGitSpaceArchive>>,
+          TError,
+          Awaited<ReturnType<typeof downloadGitSpaceArchive>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDownloadGitSpaceArchive<TData = Awaited<ReturnType<typeof downloadGitSpaceArchive>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params?: DownloadGitSpaceArchiveParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadGitSpaceArchive>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useDownloadGitSpaceArchive<TData = Awaited<ReturnType<typeof downloadGitSpaceArchive>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params?: DownloadGitSpaceArchiveParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadGitSpaceArchive>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getDownloadGitSpaceArchiveQueryOptions(namespaceSlug,spaceSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getHeadGitSpaceArchiveUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    params?: HeadGitSpaceArchiveParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/git/archive?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/git/archive`
+}
+
+/**
+ * Download a ZIP of the whole repository at ref (defaults to HEAD), resolved once to a commit ID. Includes a repository-slug/short-commit root directory and honors Git export attributes. Excludes Git history and submodule contents. Checks Space read access on every request. Streams without a Content-Length, disk cache, or Range support; disconnects stop archive generation. HEAD checks access and ref without generating a ZIP.
+ */
+export const headGitSpaceArchive = async (namespaceSlug: string,
+    spaceSlug: string,
+    params?: HeadGitSpaceArchiveParams, options?: RequestInit): Promise<void> => {
+
+  const res = await fetch(getHeadGitSpaceArchiveUrl(namespaceSlug,spaceSlug,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'HEAD'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: void = body ? JSON.parse(body) : undefined
+  return data
+}
+
+
+
+
+
+export const getHeadGitSpaceArchiveMutationKey = () => ['headGitSpaceArchive'] as const;
+
+export const getHeadGitSpaceArchiveMutationOptions = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof headGitSpaceArchive>>, TError,HeadGitSpaceArchiveMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof headGitSpaceArchive>>, TError,HeadGitSpaceArchiveMutationVariables, TContext> => {
+
+const mutationKey = getHeadGitSpaceArchiveMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof headGitSpaceArchive>>, HeadGitSpaceArchiveMutationVariables> = (props) => {
+          const {namespaceSlug,spaceSlug,params} = props ?? {};
+
+          return  headGitSpaceArchive(namespaceSlug,spaceSlug,params,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type HeadGitSpaceArchiveMutationResult = NonNullable<Awaited<ReturnType<typeof headGitSpaceArchive>>>
+
+    export type HeadGitSpaceArchiveMutationError = globalThis.Error & { info?: unknown; status?: number }
+    export type HeadGitSpaceArchiveMutationVariables = {namespaceSlug: string;spaceSlug: string;params?: HeadGitSpaceArchiveParams}
+
+    export const useHeadGitSpaceArchive = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof headGitSpaceArchive>>, TError,HeadGitSpaceArchiveMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof headGitSpaceArchive>>,
+        TError,
+        HeadGitSpaceArchiveMutationVariables,
+        TContext
+      > => {
+      return useMutation(getHeadGitSpaceArchiveMutationOptions(options), queryClient);
     }
     export const getGetGitSpaceReadmeUrl = (namespaceSlug: string,
     spaceSlug: string,

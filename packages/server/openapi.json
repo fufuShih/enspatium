@@ -3076,6 +3076,152 @@
         }
       }
     },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/git/archive": {
+      "get": {
+        "operationId": "downloadGitSpaceArchive",
+        "tags": [
+          "spaces"
+        ],
+        "description": "Download a ZIP of the whole repository at ref (defaults to HEAD), resolved once to a commit ID. Includes a repository-slug/short-commit root directory and honors Git export attributes. Excludes Git history and submodule contents. Checks Space read access on every request. Streams without a Content-Length, disk cache, or Range support; disconnects stop archive generation. HEAD checks access and ref without generating a ZIP.",
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 255,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "ref",
+            "required": false
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "security": [
+          {},
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "headers": {
+              "content-disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "cache-control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-git-commit": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Commit ID resolved before generating the ZIP."
+              }
+            },
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "operationId": "headGitSpaceArchive",
+        "tags": [
+          "spaces"
+        ],
+        "description": "Download a ZIP of the whole repository at ref (defaults to HEAD), resolved once to a commit ID. Includes a repository-slug/short-commit root directory and honors Git export attributes. Excludes Git history and submodule contents. Checks Space read access on every request. Streams without a Content-Length, disk cache, or Range support; disconnects stop archive generation. HEAD checks access and ref without generating a ZIP.",
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 255,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "ref",
+            "required": false
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "security": [
+          {},
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archive headers; no body or content length",
+            "headers": {
+              "content-disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "cache-control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-git-commit": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Commit ID resolved before generating the ZIP."
+              }
+            }
+          }
+        }
+      }
+    },
     "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/git/readme": {
       "get": {
         "operationId": "getGitSpaceReadme",

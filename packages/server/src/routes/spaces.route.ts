@@ -11,6 +11,7 @@ import {
   getGitSpaceFile,
   getGitSpaceFileInfo,
   openGitSpaceFile,
+  openGitSpaceArchive,
   getGitSpaceInfo,
   getGitSpaceReadme,
   getGitSpaceTags,
@@ -322,6 +323,21 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
         app.db, app.config.DATA_ROOT, getCurrentUserId(request),
         request.params.namespaceSlug, request.params.spaceSlug, request.query.ref, request.query.path,
       ), request.query.download ?? false),
+    })
+  }
+
+  for (const method of ['GET', 'HEAD'] as const) {
+    app.route({
+      method, url: '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/archive',
+      exposeHeadRoute: false, config: { swagger: { exposeHeadRoute: true } },
+      schema: {
+        operationId: 'downloadGitSpaceArchive', tags: ['spaces'], security: [{}, { session: [] }],
+        params: SpaceParamsSchema, querystring: GitRefQuerySchema,
+      },
+      handler: async (request, reply) => sendGitContent(request, reply, await openGitSpaceArchive(
+        app.db, app.config.DATA_ROOT, getCurrentUserId(request),
+        request.params.namespaceSlug, request.params.spaceSlug, request.query.ref,
+      ), true, 'application/zip'),
     })
   }
 

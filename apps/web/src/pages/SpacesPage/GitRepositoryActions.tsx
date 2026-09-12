@@ -1,9 +1,9 @@
-import { Box, Flex, Heading, Popover, Portal, Text } from '@chakra-ui/react'
+import { Box, Flex, Heading, Popover, Portal, Text, chakra } from '@chakra-ui/react'
 import CopyButton from '../../components/ui/CopyButton'
 import { ActionButton, PageLink, TextInput } from '../../components/ui/Primitives'
 import { accessTokensPath } from '../UserPage/tokenApi'
 
-export function GitCloneMenu({ url }: { url: string }) {
+export function GitCloneMenu({ url, archiveUrl, archiveRef }: { url: string; archiveUrl?: string; archiveRef?: string }) {
   return (
     <Popover.Root positioning={{ placement: 'bottom-end', gutter: 8 }} lazyMount unmountOnExit>
       <Popover.Trigger asChild>
@@ -19,6 +19,10 @@ export function GitCloneMenu({ url }: { url: string }) {
             </Flex>
             <Popover.Description mt="12px" fontSize="12px" lineHeight="1.7" color="var(--muted)">Use an access token as your password when Git asks you to sign in.</Popover.Description>
             <PageLink to={accessTokensPath} mt="12px" fontSize="12px" textDecoration="underline" textUnderlineOffset="3px">Manage access tokens</PageLink>
+            {archiveUrl && <Box mt="20px" pt="16px" borderTop="1px solid var(--border)">
+              <ActionButton asChild w="full"><chakra.a href={archiveUrl} download target="_blank" rel="noopener noreferrer">Download ZIP</chakra.a></ActionButton>
+              <Text mt="8px" fontSize="12px" color="var(--muted)" overflowWrap="anywhere">Source files{archiveRef ? ` · ${archiveRef.startsWith('refs/heads/') ? archiveRef.slice(11) : archiveRef.slice(0, 7)}` : ''}</Text>
+            </Box>}
           </Popover.Content>
         </Popover.Positioner>
       </Portal>

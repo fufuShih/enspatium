@@ -1,7 +1,7 @@
 import { expect, test, vi } from 'vitest'
 import type { GetGitSpaceTree200EntriesItem } from '../src/api/generated/api.schemas.ts'
-import { getGitSpaceFile, getGetGitSpaceRawFileUrl, getGitSpaceRawFile } from '../src/api/generated/spaces.ts'
-import { defaultGitBranch, gitErrorMessage, gitLocation, sortGitEntries } from '../src/pages/SpacesPage/gitBrowserApi.ts'
+import { getGitSpaceFile, getGetGitSpaceRawFileUrl, getGitSpaceRawFile, getDownloadGitSpaceArchiveUrl, downloadGitSpaceArchive } from '../src/api/generated/spaces.ts'
+import { defaultGitBranch, gitArchiveRef, gitErrorMessage, gitLocation, sortGitEntries } from '../src/pages/SpacesPage/gitBrowserApi.ts'
 
 test('repository links retain branch, path, and file mode without interpreting special characters', () => {
   const url = new URL(gitLocation('my-account', 'repo', 'feature/docs', 'docs/a #?.md', true), 'https://example.test')
@@ -39,6 +39,27 @@ test('default branch handles unborn HEAD and empty repositories', () => {
   expect(defaultGitBranch({ defaultBranch: 'main', branches: ['dev', 'main'], commits: [] })).toBe('main')
   expect(defaultGitBranch({ defaultBranch: 'master', branches: ['main'], commits: [] })).toBe('main')
   expect(defaultGitBranch({ defaultBranch: 'main', branches: [], commits: [] })).toBe('')
+})
+
+test('ZIP links use the visible snapshot and preserve branch names through the generated client', async () => {
+  const treeCommit = 'a'.repeat(40)
+  const selectedCommit = 'b'.repeat(40)
+  expect(gitArchiveRef(new URLSearchParams(), 'main')).toBeUndefined()
+  expect(gitArchiveRef(new URLSearchParams(), 'main', treeCommit)).toBe(treeCommit)
+  expect(gitArchiveRef(new URLSearchParams({ view: 'file', commit: selectedCommit }), 'main', treeCommit)).toBe(selectedCommit)
+  expect(gitArchiveRef(new URLSearchParams({ view: 'commits', snapshot: treeCommit }), 'main')).toBe(treeCommit)
+  expect(gitArchiveRef(new URLSearchParams({ view: 'commits', snapshot: treeCommit, commit: selectedCommit }), 'main')).toBe(selectedCommit)
+  expect(gitArchiveRef(new URLSearchParams({ view: 'commits' }), 'feature/docs')).toBe('refs/heads/feature/docs')
+  const params = { ref: 'refs/heads/feature/a #%' }
+  const url = new URL(getDownloadGitSpaceArchiveUrl('owner', 'repo', params), 'https://example.test')
+  expect(url.pathname).toBe('/api/namespaces/owner/spaces/repo/git/archive')
+  expect(url.searchParams.get('ref')).toBe(params.ref)
+  expect(url.hash).toBe('')
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, options) => {
+    expect(options?.credentials).toBe('include')
+    return new Response(new Uint8Array([80, 75, 3, 4]), { headers: { 'content-type': 'application/zip' } })
+  })
+  expect([...new Uint8Array(await (await downloadGitSpaceArchive('owner', 'repo', params)).arrayBuffer())]).toEqual([80, 75, 3, 4])
 })
 
 test('entries are sorted with directories first without changing query data', () => {

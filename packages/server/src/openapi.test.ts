@@ -48,6 +48,12 @@ it('exports the current REST contract without configuration or a database', asyn
     expect(gitRaw.head.operationId).toBe('headGitSpaceRawFile')
     expect(gitRaw.head.responses['200'].content).toBeUndefined()
     expect(gitRaw.get.parameters).toContainEqual(expect.objectContaining({ name: 'download', in: 'query', required: false }))
+    const archive = document.paths['/namespaces/{namespaceSlug}/spaces/{spaceSlug}/git/archive']
+    expect(archive.get.responses['200'].content['application/zip'].schema).toEqual({ type: 'string', format: 'binary' })
+    expect(archive.get.responses['200'].headers['x-git-commit']).toBeDefined()
+    expect(archive.get.responses['200'].headers['content-length']).toBeUndefined()
+    expect(archive.head.operationId).toBe('headGitSpaceArchive')
+    expect(archive.head.responses['200'].content).toBeUndefined()
   } finally {
     await app.close()
   }

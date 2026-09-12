@@ -21,6 +21,7 @@ import {
   getGitFile,
   getGitFileInfo,
   openGitFile,
+  openGitArchive,
   getGitReadme,
   getGitRepositoryInfo,
   getGitTags,
@@ -480,6 +481,15 @@ export async function openGitSpaceFile(
   const space = await getReadableGitSpace(db, actorUserId, namespaceSlug, spaceSlug)
   try { return await openGitFile(dataRoot, space.id, ref, path) }
   catch (error) { throwGitStorageError(error, 'failed to open Git content') }
+}
+
+export async function openGitSpaceArchive(
+  db: Kysely<Database>, dataRoot: string, actorUserId: string | undefined,
+  namespaceSlug: string, spaceSlug: string, ref?: string,
+) {
+  const space = await getReadableGitSpace(db, actorUserId, namespaceSlug, spaceSlug)
+  try { return await openGitArchive(dataRoot, space.id, ref, space.slug) }
+  catch (error) { throwGitStorageError(error, 'failed to open Git archive') }
 }
 
 export async function getGitSpaceReadme(

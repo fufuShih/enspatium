@@ -25,6 +25,23 @@ export async function registerOpenApi(app: FastifyInstance) {
         }
       }
       const operationId = schema.operationId?.replace(/-head$/, '')
+      if (operationId === 'downloadGitSpaceArchive') {
+        const headers = {
+          'content-disposition': { type: 'string' },
+          'cache-control': { type: 'string' },
+          'x-git-commit': { type: 'string', description: 'Commit ID resolved before generating the ZIP.' },
+        }
+        documented = {
+          ...documented,
+          description: 'Download a ZIP of the whole repository at ref (defaults to HEAD), resolved once to a commit ID. Includes a repository-slug/short-commit root directory and honors Git export attributes. Excludes Git history and submodule contents. Checks Space read access on every request. Streams without a Content-Length, disk cache, or Range support; disconnects stop archive generation. HEAD checks access and ref without generating a ZIP.',
+          produces: ['application/zip'],
+          response: { 200: { type: 'string', format: 'binary', headers } },
+        }
+        if (route.method === 'HEAD') {
+          documented.operationId = 'headGitSpaceArchive'
+          documented.response = { 200: { type: 'null', description: 'Archive headers; no body or content length', headers } }
+        }
+      }
       if (operationId === 'getGitSpaceRawFile') {
         const headers = {
           'content-length': { type: 'integer', minimum: 0 },

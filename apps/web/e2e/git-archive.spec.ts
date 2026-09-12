@@ -1,0 +1,91 @@
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { unzipSync, strFromU8 } from 'fflate'
+import type { GetSpace200 } from '../src/api/generated/api.schemas.js'
+import { test, expect } from './fixtures.js'
+import { createSpace, register, signIn } from './helpers.js'
+
+test('Clone downloads the whole source ZIP at the viewed revision with folders and exact file bytes', async ({ page, environment }, testInfo) => {
+  const user = await register(page, 'Archive owner')
+  await signIn(page, user)
+  const space = await createSpace(page, 'Source archive')
+  await page.getByRole('button', { name: 'Clone', exact: true }).click()
+  await expect(page.getByRole('link', { name: 'Download ZIP', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('textbox', { name: 'Clone URL', exact: true })).toHaveValue(new RegExp(`/git/${space.account}/${space.slug}\\.git$`))
+  await page.keyboard.press('Escape')
+  const metadata = await (await page.request.get(`/api/namespaces/${space.account}/spaces/${space.slug}`)).json() as GetSpace200
+  const source = join(environment.root, 'zip-source-' + metadata.id)
+  await environment.git(['clone', join(environment.root, 'data', metadata.id), source])
+  const git = (args: string[]) => environment.git(['-C', source, ...args])
+  await git(['config', 'core.autocrlf', 'false'])
+  await mkdir(join(source, 'docs', 'nested'), { recursive: true })
+  const name = 'docs/nested/中文 #%.txt'
+  const text = 'Original\r\nNested contents\n'
+  const binary = new Uint8Array([0, 1, 255, 128, 42])
+  await writeFile(join(source, 'README.md'), '# Original\n')
+  await writeFile(join(source, name), text)
+  await writeFile(join(source, 'binary.bin'), binary)
+  await writeFile(join(source, 'empty.txt'), '')
+  await writeFile(join(source, '.gitattributes'), 'excluded.txt export-ignore\nversion.txt export-subst\n')
+  await writeFile(join(source, 'excluded.txt'), 'Not exported')
+  await writeFile(join(source, 'version.txt'), '$Format:%H$\n')
+  await writeFile(join(source, 'link.txt'), 'docs/nested/中文 #%.txt')
+  await git(['add', '.'])
+  const linkBlob = (await git(['hash-object', 'link.txt'])).stdout.trim()
+  await git(['update-index', '--cacheinfo', `120000,${linkBlob},link.txt`])
+  await git(['commit', '-m', 'Original source'])
+  await git(['push', 'origin', 'HEAD:main'])
+  const first = (await git(['rev-parse', 'HEAD'])).stdout.trim()
+  await git(['branch', 'original'])
+  await git(['push', 'origin', 'original'])
+  await page.reload()
+  await page.getByRole('link', { name: 'View source', exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Clone', exact: true }).click()
+  const zip = page.getByRole('link', { name: 'Download ZIP', exact: true })
+  await expect(zip).toHaveAttribute('href', new RegExp(`ref=${first}$`))
+  await page.screenshot({ path: testInfo.outputPath('clone-download-zip.png'), fullPage: true, animations: 'disabled' })
+  // Updating main after the menu opens must not change the visible snapshot.
+  await writeFile(join(source, name), 'Updated content\n')
+  await git(['add', 'docs'])
+  await git(['commit', '-m', 'Update source'])
+  await git(['push', 'origin', 'HEAD:main'])
+  const second = (await git(['rev-parse', 'HEAD'])).stdout.trim()
+  async function download(commit: string, contents: string) {
+    await expect(zip).toHaveAttribute('href', new RegExp(`ref=${commit}$`))
+    const pending = page.waitForEvent('download')
+    await zip.click()
+    const result = await pending
+    const prefix = `${space.slug}-${commit.slice(0, 7)}/`
+    expect(result.suggestedFilename()).toBe(prefix.slice(0, -1) + '.zip')
+    const entries = unzipSync(await readFile((await result.path())!))
+    expect(Object.keys(entries).every(path => path.startsWith(prefix))).toBe(true)
+    expect(strFromU8(entries[prefix + name]!)).toBe(contents)
+    expect([...entries[prefix + 'binary.bin']!]).toEqual([...binary])
+    expect(entries[prefix + 'empty.txt']!.length).toBe(0)
+    expect(strFromU8(entries[prefix + 'README.md']!)).toBe('# Original\n')
+    expect(strFromU8(entries[prefix + 'version.txt']!)).toBe(commit + '\n')
+    expect(strFromU8(entries[prefix + 'link.txt']!)).toBe(name)
+    expect(entries[prefix + 'excluded.txt']).toBeUndefined()
+    expect(Object.keys(entries).some(path => path.includes('/.git/'))).toBe(false)
+    await page.keyboard.press('Escape')
+  }
+  await download(first, text)
+  // Branch changes select another snapshot; folder view still exports the root.
+  await page.getByLabel('Branch', { exact: true }).selectOption('original')
+  await page.getByRole('link', { name: /^docs\/\s*Folder$/ }).click()
+  await page.getByRole('link', { name: /^nested\/\s*Folder$/ }).waitFor()
+  await page.getByRole('button', { name: 'Clone', exact: true }).click()
+  await download(first, text)
+  await page.getByLabel('Branch', { exact: true }).selectOption('main')
+  await expect(page.getByRole('link', { name: 'View source', exact: true })).toHaveAttribute('href', new RegExp(`commit=${second}$`))
+  await page.getByRole('link', { name: 'View source', exact: true }).click()
+  await expect(page.getByLabel('File contents')).toContainText('Original')
+  await expect(page).toHaveURL(new RegExp(`commit=${second}$`))
+  await page.getByRole('button', { name: 'Clone', exact: true }).click()
+  await download(second, 'Updated content\n')
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.getByRole('button', { name: 'Clone', exact: true }).click()
+  await expect(zip).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.screenshot({ path: testInfo.outputPath('clone-download-zip-mobile.png'), fullPage: true, animations: 'disabled' })
+})
