@@ -264,6 +264,56 @@ export type ListNamespaceMembers200Item = {
   joinedAt: string;
 };
 
+export type ListGitSpaceReferencesParams = {
+type: typeof ListGitSpaceReferencesType[keyof typeof ListGitSpaceReferencesType];
+/**
+ * @maxLength 255
+ */
+search?: string;
+/**
+ * @minimum 0
+ * @maximum 1000000
+ */
+offset?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export const ListGitSpaceReferencesType = {  branch: 'branch',
+  tag: 'tag',
+} as const
+export const ListGitSpaceReferences200ItemsItemType = {  branch: 'branch',
+  tag: 'tag',
+} as const
+export type ListGitSpaceReferences200ItemsItemCommit = {
+  /** @pattern ^[0-9a-f]{40,64}$ */
+  id: string;
+  /** @pattern ^[0-9a-f]+$ */
+  shortId: string;
+  authorName: string;
+  authorEmail: string;
+  authoredAt: string;
+  message: string;
+  /** Tip commit time, not the time the reference was pushed. */
+  committedAt: string;
+};
+
+export type ListGitSpaceReferences200ItemsItem = {
+  name: string;
+  type: typeof ListGitSpaceReferences200ItemsItemType[keyof typeof ListGitSpaceReferences200ItemsItemType];
+  commit: ListGitSpaceReferences200ItemsItemCommit;
+};
+
+export type ListGitSpaceReferences200 = {
+  items: ListGitSpaceReferences200ItemsItem[];
+  /** @minimum 0 */
+  total: number;
+  hasMore: boolean;
+};
+
 export type GetGitSpaceStorage200 = {
   /** @minimum 0 */
   usedBytes: number;

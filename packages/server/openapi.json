@@ -1294,6 +1294,192 @@
         }
       }
     },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/git/refs": {
+      "get": {
+        "operationId": "listGitSpaceReferences",
+        "tags": [
+          "spaces"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "branch"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "tag"
+                  ]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "type",
+            "required": true
+          },
+          {
+            "schema": {
+              "maxLength": 255,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "search",
+            "required": false
+          },
+          {
+            "schema": {
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "offset",
+            "required": false
+          },
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "security": [
+          {},
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items",
+                    "total",
+                    "hasMore"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "type",
+                          "commit"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "branch"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "tag"
+                                ]
+                              }
+                            ]
+                          },
+                          "commit": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "shortId",
+                              "authorName",
+                              "authorEmail",
+                              "authoredAt",
+                              "message",
+                              "committedAt"
+                            ],
+                            "properties": {
+                              "id": {
+                                "pattern": "^[0-9a-f]{40,64}$",
+                                "type": "string"
+                              },
+                              "shortId": {
+                                "pattern": "^[0-9a-f]+$",
+                                "type": "string"
+                              },
+                              "authorName": {
+                                "type": "string"
+                              },
+                              "authorEmail": {
+                                "type": "string"
+                              },
+                              "authoredAt": {
+                                "format": "date-time",
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              },
+                              "committedAt": {
+                                "format": "date-time",
+                                "description": "Tip commit time, not the time the reference was pushed.",
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/git/storage": {
       "get": {
         "operationId": "getGitSpaceStorage",

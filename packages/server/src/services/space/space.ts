@@ -26,6 +26,7 @@ import {
   getGitReadme,
   getGitRepositoryInfo,
   getGitTags,
+  listGitReferences,
   getGitTree,
   GitStorageError,
   setGitDefaultBranch,
@@ -346,6 +347,18 @@ export async function listGitSpaceCommits(
     return await getGitCommits(dataRoot, space.id, inputRef, offset, limit)
   } catch (error) {
     throwGitStorageError(error, 'failed to read Git commits')
+  }
+}
+
+export async function listGitSpaceReferences(
+  db: Kysely<Database>, dataRoot: string, actorUserId: string | undefined,
+  inputNamespaceSlug: string, inputSpaceSlug: string, type: 'branch' | 'tag', search = '', offset = 0, limit = 30,
+) {
+  const space = await getReadableGitSpace(db, actorUserId, inputNamespaceSlug, inputSpaceSlug)
+  try {
+    return await listGitReferences(dataRoot, space.id, type, search, offset, limit)
+  } catch (error) {
+    throwGitStorageError(error, 'failed to read Git references')
   }
 }
 

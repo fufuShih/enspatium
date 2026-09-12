@@ -50,6 +50,8 @@ import type {
   HeadGitSpaceRawFileParams,
   ListGitSpaceCommits200,
   ListGitSpaceCommitsParams,
+  ListGitSpaceReferences200,
+  ListGitSpaceReferencesParams,
   ListSpaceMembers200Item,
   ListSpaces200Item,
   UpdateGitSpaceDefaultBranch200,
@@ -79,6 +81,138 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getListGitSpaceReferencesUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    params: ListGitSpaceReferencesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/git/refs?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/git/refs`
+}
+
+export const listGitSpaceReferences = async (namespaceSlug: string,
+    spaceSlug: string,
+    params: ListGitSpaceReferencesParams, options?: RequestInit): Promise<ListGitSpaceReferences200> => {
+
+  const res = await fetch(getListGitSpaceReferencesUrl(namespaceSlug,spaceSlug,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: ListGitSpaceReferences200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getListGitSpaceReferencesQueryKey = (namespaceSlug: string,
+    spaceSlug: string,
+    params?: ListGitSpaceReferencesParams,) => {
+    return [
+    `/api/namespaces/${namespaceSlug}/spaces/${spaceSlug}/git/refs`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListGitSpaceReferencesQueryOptions = <TData = Awaited<ReturnType<typeof listGitSpaceReferences>>, TError = globalThis.Error & { info?: unknown; status?: number }>(namespaceSlug: string,
+    spaceSlug: string,
+    params: ListGitSpaceReferencesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGitSpaceReferences>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListGitSpaceReferencesQueryKey(namespaceSlug,spaceSlug,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listGitSpaceReferences>>> = ({ signal }) => listGitSpaceReferences(namespaceSlug,spaceSlug,params, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: namespaceSlug !== null && namespaceSlug !== undefined && spaceSlug !== null && spaceSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listGitSpaceReferences>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListGitSpaceReferencesQueryResult = NonNullable<Awaited<ReturnType<typeof listGitSpaceReferences>>>
+export type ListGitSpaceReferencesQueryError = globalThis.Error & { info?: unknown; status?: number }
+
+
+export function useListGitSpaceReferences<TData = Awaited<ReturnType<typeof listGitSpaceReferences>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: ListGitSpaceReferencesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGitSpaceReferences>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listGitSpaceReferences>>,
+          TError,
+          Awaited<ReturnType<typeof listGitSpaceReferences>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListGitSpaceReferences<TData = Awaited<ReturnType<typeof listGitSpaceReferences>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: ListGitSpaceReferencesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGitSpaceReferences>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listGitSpaceReferences>>,
+          TError,
+          Awaited<ReturnType<typeof listGitSpaceReferences>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListGitSpaceReferences<TData = Awaited<ReturnType<typeof listGitSpaceReferences>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: ListGitSpaceReferencesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGitSpaceReferences>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListGitSpaceReferences<TData = Awaited<ReturnType<typeof listGitSpaceReferences>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: ListGitSpaceReferencesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGitSpaceReferences>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListGitSpaceReferencesQueryOptions(namespaceSlug,spaceSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
 
 export const getGetGitSpaceStorageUrl = (namespaceSlug: string,
     spaceSlug: string,) => {

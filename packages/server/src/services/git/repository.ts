@@ -58,6 +58,12 @@ export interface GitTag {
   commitId: string
 }
 
+export interface GitReferencePage {
+  items: { name: string; type: 'branch' | 'tag'; commit: GitCommit & { committedAt: string } }[]
+  total: number
+  hasMore: boolean
+}
+
 export interface GitCommitDetail {
   ref: string
   id: string
@@ -268,6 +274,41 @@ export async function getGitTags(
     if (name && commitId) tags.push({ name: name.slice('refs/tags/'.length), commitId })
   }
   return tags
+}
+
+export async function listGitReferences(
+  dataRoot: string, spaceId: string, type: 'branch' | 'tag', search = '', offset = 0, limit = 30,
+): Promise<GitReferencePage> {
+  const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git')
+  const refs = type === 'tag' ? await getGitTags(dataRoot, spaceId) : (await runGit(repositoryPath, [
+    'for-each-ref', '--sort=refname', '--format=%(refname)%09%(objectname)', 'refs/heads/',
+  ])).split('\n').filter(Boolean).map(record => {
+    const [name, commitId] = record.split('\t')
+    return { name: name!.slice('refs/heads/'.length), commitId: commitId! }
+  })
+  const matches = refs.filter(ref => ref.name.toLowerCase().includes(search.toLowerCase()))
+  const page = matches.slice(offset, offset + limit)
+  if (!page.length) return { items: [], total: matches.length, hasMore: false }
+  // One bounded metadata command per page, pinned to the captured IDs even if
+  // refs change during the request. Do not walk each branch's history.
+  const fields = (await runGit(repositoryPath, [
+    'log', '--no-walk=unsorted', '--format=%H%x00%h%x00%an%x00%ae%x00%aI%x00%cI%x00%s%x00',
+    ...new Set(page.map(ref => ref.commitId)), '--',
+  ])).split('\0')
+  const commits = new Map<string, GitCommit & { committedAt: string }>()
+  for (let i = 0; i + 6 < fields.length; i += 7) {
+    const id = fields[i]!.trim()
+    commits.set(id, { id, shortId: fields[i + 1]!, authorName: fields[i + 2]!, authorEmail: fields[i + 3]!, authoredAt: fields[i + 4]!, committedAt: fields[i + 5]!, message: fields[i + 6]! })
+  }
+  return {
+    items: page.map(ref => {
+      const commit = commits.get(ref.commitId)
+      if (!commit) throw new Error('failed to read reference commit')
+      return { name: ref.name, type, commit }
+    }),
+    total: matches.length,
+    hasMore: offset + page.length < matches.length,
+  }
 }
 
 export async function getGitCommit(

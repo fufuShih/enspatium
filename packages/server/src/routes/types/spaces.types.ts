@@ -153,6 +153,26 @@ export const GitTagResponseSchema = Type.Object({
 
 export const GitTagListResponseSchema = Type.Array(GitTagResponseSchema)
 
+export const GitReferencesQuerySchema = Type.Object({
+  type: Type.Union([Type.Literal('branch'), Type.Literal('tag')]),
+  search: Type.Optional(Type.String({ maxLength: 255 })),
+  offset: Type.Optional(Type.Integer({ minimum: 0, maximum: 1_000_000, default: 0 })),
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, default: 30 })),
+})
+
+export const GitReferencePageResponseSchema = Type.Object({
+  items: Type.Array(Type.Object({
+    name: Type.String(),
+    type: Type.Union([Type.Literal('branch'), Type.Literal('tag')]),
+    commit: Type.Object({
+      ...GitCommitResponseSchema.properties,
+      committedAt: Type.String({ format: 'date-time', description: 'Tip commit time, not the time the reference was pushed.' }),
+    }),
+  })),
+  total: Type.Integer({ minimum: 0 }),
+  hasMore: Type.Boolean(),
+})
+
 export const GitCommitDetailResponseSchema = Type.Object({
   ref: Type.String(),
   id: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),

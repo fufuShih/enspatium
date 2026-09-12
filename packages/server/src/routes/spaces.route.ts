@@ -15,6 +15,7 @@ import {
   getGitSpaceInfo,
   getGitSpaceReadme,
   getGitSpaceTags,
+  listGitSpaceReferences,
   getGitSpaceTree,
   getReadableGitSpace,
   getSpaceDetails,
@@ -45,6 +46,8 @@ import {
   GitRefQuerySchema,
   GitRepositoryInfoResponseSchema,
   GitTagListResponseSchema,
+  GitReferencesQuerySchema,
+  GitReferencePageResponseSchema,
   GitTreeQuerySchema,
   GitTreeResponseSchema,
   NamespaceParamsSchema,
@@ -64,6 +67,20 @@ import { acquireGitProcess } from '../services/git/process.js'
 import { join } from 'node:path'
 
 export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
+  app.get('/namespaces/:namespaceSlug/spaces/:spaceSlug/git/refs', {
+    schema: {
+      operationId: 'listGitSpaceReferences', tags: ['spaces'], security: [{}, { session: [] }],
+      params: SpaceParamsSchema, querystring: GitReferencesQuerySchema,
+      response: { 200: GitReferencePageResponseSchema },
+    },
+  }, async (request, reply) => {
+    reply.header('cache-control', 'private, no-store')
+    return listGitSpaceReferences(
+      app.db, app.config.DATA_ROOT, getCurrentUserId(request), request.params.namespaceSlug, request.params.spaceSlug,
+      request.query.type, request.query.search, request.query.offset, request.query.limit,
+    )
+  })
+
   app.get('/namespaces/:namespaceSlug/spaces/:spaceSlug/git/storage', {
     schema: {
       operationId: 'getGitSpaceStorage', tags: ['spaces'], params: SpaceParamsSchema,
