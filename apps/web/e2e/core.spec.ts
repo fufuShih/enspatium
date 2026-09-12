@@ -43,6 +43,7 @@ test('Space settings persist the name, visibility and default branch', async ({ 
     await environment.git(['-C', source, 'push', 'origin', 'HEAD:' + branch])
   }
   await page.getByRole('button', { name: 'Refresh branches', exact: true }).click()
+  await expect(page.getByText('Used when browsing this Space and cloning the repository. The default branch is protected against force pushes and deletion. Changing it moves this protection to the selected branch.', { exact: true })).toBeVisible()
   await page.getByLabel('Default branch', { exact: true }).selectOption('release')
   await page.getByRole('button', { name: 'Save default branch', exact: true }).click()
   await expect(page.getByText('Default branch saved.', { exact: true })).toBeVisible()
@@ -56,10 +57,16 @@ test('Space settings persist the name, visibility and default branch', async ({ 
   await expect(page.getByLabel('Default branch', { exact: true })).toHaveValue('release')
   await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toBeDisabled()
   expect((await request.get(`/api/namespaces/${space.account}/spaces/${space.slug}`)).status()).toBe(200)
+  let busyReplies = 0
+  await page.route(`**/api/namespaces/${space.account}/spaces/${space.slug}/git`, async route => {
+    if (busyReplies++ < 2) await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ statusCode: 503, code: 'GIT_BUSY', error: 'Service Unavailable', message: 'Git is busy. Please retry shortly.' }) })
+    else await route.continue()
+  })
   await page.getByRole('link', { name: 'Back to Space', exact: true }).click()
   await expect(page).toHaveURL(new RegExp(space.url + '$'))
   await expect(page.getByRole('heading', { name: 'Renamed project', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Release content', exact: true })).toBeVisible()
+  await expect.poll(() => busyReplies).toBeGreaterThanOrEqual(3)
   await expect(page.getByRole('button', { name: 'Delete Space', exact: true })).toHaveCount(0)
   await openSettings(page)
   await page.getByLabel('Visibility', { exact: true }).selectOption('private')

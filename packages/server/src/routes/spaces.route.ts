@@ -400,6 +400,7 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
     {
       schema: {
         operationId: 'updateGitSpaceDefaultBranch',
+        description: 'Owners only. Choose an existing branch as the clone/browse default. The current default branch is protected against deletion and non-fast-forward pushes. Returns 409 while storage writes or maintenance are active so protection cannot change during a push.',
         tags: ['spaces'],
         params: SpaceParamsSchema,
         body: Type.Object({ branch: Type.String({ minLength: 1, maxLength: 255 }) }, { additionalProperties: false }),

@@ -39,7 +39,7 @@ import {
   type GitTree,
 } from '../git/repository.js'
 import { createSpaceStorage, deleteSpaceStorage, SpaceStorageUnavailable } from './storage.js'
-import { withStorageWrite } from './storage-access.js'
+import { withStorageExclusive, withStorageWrite } from './storage-access.js'
 
 export class SpaceServiceError extends Error {
   constructor(
@@ -701,7 +701,8 @@ function throwGitStorageError(error: unknown, message: string): never {
 }
 
 export function updateGitSpaceDefaultBranch(...args: Parameters<typeof updateGitSpaceDefaultBranchMutation>) {
-  return withStorageWrite(args[1], () => updateGitSpaceDefaultBranchMutation(...args))
+  // The protected ref cannot change while a push is being admitted or checked.
+  return withStorageExclusive(args[1], () => updateGitSpaceDefaultBranchMutation(...args))
 }
 
 async function updateGitSpaceDefaultBranchMutation(

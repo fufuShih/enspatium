@@ -39,7 +39,7 @@ export interface GitHttpBackendInput {
 
 export async function serveGitHttpBackend(
   input: GitHttpBackendInput,
-): Promise<void> {
+): Promise<{ refsChanged: boolean }> {
   if (input.servicePath !== 'info/refs' && input.servicePath !== input.service) {
     throw new Error('Git HTTP service path does not match the service')
   }
@@ -50,6 +50,9 @@ export async function serveGitHttpBackend(
   let hook: Awaited<ReturnType<typeof createReceiveHook>> | undefined
   let buffered: Awaited<ReturnType<typeof bufferPush>> | undefined
   const releaseProcess = acquireGitProcess()
+  const refs = async () => (await execGitInAcquiredSlot(['--git-dir', repository, 'for-each-ref', '--format=%(refname) %(objectname)'], { maxBuffer: 4 * 1024 * 1024 })).stdout
+  let beforeRefs = ''
+  let refsChanged = false
   try {
     if (input.servicePath === 'git-receive-pack') {
       releasePush = await acquireGitPush(input.dataRoot, input.spaceId, limits)
@@ -57,13 +60,16 @@ export async function serveGitHttpBackend(
     if (releasePush) {
       buffered = await bufferPush(input.request, repository, limits.GIT_MAX_PUSH_BYTES + 1024 * 1024)
       hook = await createReceiveHook(repository)
+      beforeRefs = await refs()
     }
     await executeGitHttp(input, limits, hook?.directory, buffered)
     if (releasePush) {
       await synchronizeGitHeadAtPath(repository, async (path, args) =>
         (await execGitInAcquiredSlot(['--git-dir=' + path, ...args])).stdout)
+      refsChanged = beforeRefs !== await refs()
     }
     input.response.end()
+    return { refsChanged }
   } finally {
     releaseProcess()
     try { await hook?.dispose() } finally {

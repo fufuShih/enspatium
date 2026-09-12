@@ -154,8 +154,9 @@ async function handleGitRequest(
     await requireSpaceStorage(app.config.DATA_ROOT, access.space.id, 'git', service === 'git-receive-pack')
     reply.hijack()
 
+    let refsChanged = false
     try {
-      await serveGitHttpBackend({
+      const result = await serveGitHttpBackend({
         request: request.raw,
         response: reply.raw,
         dataRoot: app.config.DATA_ROOT,
@@ -165,6 +166,7 @@ async function handleGitRequest(
         limits: app.config,
         ...(access.userId ? { remoteUser: access.userId } : {}),
       })
+      refsChanged = result.refsChanged
     } catch (error) {
       if ((error instanceof GitResourceError || error instanceof GitCapacityError) && !reply.raw.headersSent) {
         reply.raw.writeHead(error.statusCode, { 'content-type': 'text/plain; charset=utf-8', 'connection': 'close', 'retry-after': '5' })
@@ -184,7 +186,7 @@ async function handleGitRequest(
       return
     }
 
-    if (servicePath === 'git-receive-pack' && access.userId) {
+    if (servicePath === 'git-receive-pack' && access.userId && refsChanged) {
       try {
         await createAuditEvent(app.db, {
           actorUserId: access.userId,

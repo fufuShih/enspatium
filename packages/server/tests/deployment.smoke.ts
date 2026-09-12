@@ -93,7 +93,18 @@ test('production images serve HTTPS, authenticate, persist data and support real
     const cloneUrl = `${origin}/api/git/${account}/deployment-git.git`
     await git(['remote', 'add', 'origin', cloneUrl])
     await git(['push', 'origin', 'main'])
+    const firstCommit = await git(['rev-parse', 'HEAD'])
+    await writeFile(join(root, 'second.txt'), 'Fast-forward push\n')
+    await git(['add', 'second.txt'])
+    await git(['commit', '-m', 'Fast-forward contents'])
+    await git(['push', 'origin', 'main'])
     const commit = await git(['rev-parse', 'HEAD'])
+    for (const args of [['push', '--force', 'origin', firstCommit + ':main'], ['push', 'origin', '--delete', 'main']]) {
+      let rejected = false
+      try { await exec('git', args, { cwd: root, env, timeout: 30_000, windowsHide: true }) }
+      catch (error) { rejected = String((error as { stderr?: string }).stderr).includes('The default branch is protected') }
+      expect(rejected, 'The remote must reject changes to the protected default branch').toBe(true)
+    }
     const compose = ['compose', '--env-file', 'deploy/.env.smoke', '-p', 'enspatium-smoke', '-f', 'deploy/compose.yaml']
     // Elevate only this freshly generated disposable test account. The real
     // production bootstrap and account management have separate acceptance tests.
@@ -110,6 +121,7 @@ test('production images serve HTTPS, authenticate, persist data and support real
     expect(await json('GET', '/api/admin/git/maintenance', 200)).toEqual({ job: null })
     const events = await json<{ action: string; metadata: { status?: string } }[]>('GET', base + '/deployment-git/audit-events', 200)
     expect(events.some(event => event.action === 'git.maintained' && event.metadata.status === 'completed')).toBe(true)
+    expect(events.filter(event => event.action === 'git.pushed')).toHaveLength(2)
     await git(['clone', cloneUrl, 'clone'])
     expect(await git(['rev-parse', 'HEAD'], join(root, 'clone'))).toBe(commit)
     expect(await readFile(join(root, 'clone/README.md'), 'utf8')).toBe('# Deployment check\n')

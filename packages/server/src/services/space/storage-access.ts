@@ -36,7 +36,8 @@ function acquire(dataRoot: string, checking: boolean): () => void {
 export const acquireStorageWrite = (dataRoot: string) =>
   acquire(dataRoot, false)
 
-export const acquireStorageCheck = (dataRoot: string) => acquire(dataRoot, true)
+export const acquireStorageExclusive = (dataRoot: string) => acquire(dataRoot, true)
+export const acquireStorageCheck = acquireStorageExclusive
 
 export async function withStorageWrite<T>(
   dataRoot: string,
@@ -50,14 +51,16 @@ export async function withStorageWrite<T>(
   }
 }
 
-export async function withStorageCheck<T>(
+export async function withStorageExclusive<T>(
   dataRoot: string,
   run: () => Promise<T>,
 ): Promise<T> {
-  const release = acquireStorageCheck(dataRoot)
+  const release = acquireStorageExclusive(dataRoot)
   try {
     return await run()
   } finally {
     release()
   }
 }
+
+export const withStorageCheck = withStorageExclusive

@@ -2316,6 +2316,9 @@ export const getUpdateGitSpaceDefaultBranchUrl = (namespaceSlug: string,
   return `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/git/default-branch`
 }
 
+/**
+ * Owners only. Choose an existing branch as the clone/browse default. The current default branch is protected against deletion and non-fast-forward pushes. Returns 409 while storage writes or maintenance are active so protection cannot change during a push.
+ */
 export const updateGitSpaceDefaultBranch = async (namespaceSlug: string,
     spaceSlug: string,
     updateGitSpaceDefaultBranchBody: UpdateGitSpaceDefaultBranchBody, options?: RequestInit): Promise<UpdateGitSpaceDefaultBranch200> => {

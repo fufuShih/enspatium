@@ -3430,6 +3430,7 @@
         "tags": [
           "spaces"
         ],
+        "description": "Owners only. Choose an existing branch as the clone/browse default. The current default branch is protected against deletion and non-fast-forward pushes. Returns 409 while storage writes or maintenance are active so protection cannot change during a push.",
         "requestBody": {
           "required": true,
           "content": {

@@ -53,6 +53,18 @@ These controls assume one backend and no outside writers to `DATA_ROOT`. Headroo
 
 References: [Git pack size limit](https://git-scm.com/docs/git-config#Documentation/git-config.txt-receivemaxInputSize), [Git quarantine and pre-receive behavior](https://git-scm.com/docs/git-receive-pack#_quarantine_environment).
 
+### Default branch protection
+
+The current default branch is always protected from deletion and non-fast-forward updates through Git Smart HTTP, including pushes by owners and administrators. Normal fast-forward updates and first pushes into an empty repository are allowed. The policy uses the repository's symbolic HEAD, so it also applies to existing repositories without changing their files or database rows during deployment.
+
+Owners can select another existing default branch in Space settings. Protection follows that selection; changing the default returns 409 while a storage write/check/maintenance operation is active, and storage writes pause until the change and its audit finish. This prevents a push from racing a change to the protected ref. Other branches keep normal force-push/deletion behavior. The first version has no bypass token, rules editor or per-branch configuration.
+
+The pre-receive hook checks ancestry using quarantined incoming objects and ignores replacement refs. A protected-branch failure rejects every ref in that push before any refs are updated, even when the client did not request `--atomic`. Limits cap incoming ref commands at 10,000 per push and each command line at 16 Ki characters. Failed or no-op receives no longer create `git.pushed` success events: the service compares refs before/after receive-pack and records a push only when they changed. Existing receive size, disk and process limits continue to apply.
+
+This protection covers service-managed HTTP pushes. Host administrators who directly edit the bare repository bypass it; keep external writers stopped as described in the storage consistency guidance.
+
+Git browser/settings read queries retry `GIT_BUSY` responses twice with short delays before showing the normal retry action. This handles brief contention during navigation without changing limits; other errors and writes are not retried by this policy.
+
 ## Local HTTPS check
 
 Set `SITE_ADDRESS=https://localhost`, `HTTP_BIND=127.0.0.1`, `HTTP_PORT=18080`, `HTTPS_PORT=18443` in a separate ignored env file. Use `-p enspatium-smoke` for an isolated Compose project with new volumes. Caddy uses its local CA; export the public root certificate from `/data/caddy/pki/authorities/local/root.crt` in the `web` container and trust it for your test client. Do not turn off session security to make production tests pass. This only verifies local HTTPS; a public deployment still needs its real DNS and certificate checked.
@@ -109,7 +121,7 @@ This checklist tracks delivery, not permission to expose an unfinished service p
 - [x] Git resource controls: push size and concurrent process limits, repository usage/quota, disk headroom. Verified oversized and chunked uploads, quota rejection without ref changes, low disk, overlapping/interrupted uploads, busy responses, single-slot push/HEAD/clone, all 17 server integration cases, browser usage refresh/mobile layout, and production HTTPS push/clone after container recreation.
 - [x] Consistent backup and isolated restore verification for PostgreSQL and content. The manual tool captures stopped-writer database/content snapshots and exact images, checks hashes, and restores only into fresh projects. The backup acceptance test verifies saved commits/tags, old Object versions, HTTPS sign-in/clone/download, corrupted bytes, existing-volume protection, cleanup and an unchanged source deployment. See [backup and recovery](BACKUP.md).
 - [x] Operations: health/disk/error visibility, controlled Git maintenance, upgrade/recovery verification. The System page, bounded probes and local alerts are implemented. Admin Git maintenance is verified with real repositories, unchanged refs/clone contents, age-based pruning, busy/low-disk/config failures, process-tree cancellation on Windows/Linux, graceful shutdown, browser flows and production HTTPS/container recreation. The [upgrade rehearsal](UPGRADE.md) verifies old/new images on retained volumes, sessions/tokens, Git/Object reads and new writes, a failing migration after a schema change, and isolated recovery of the previous snapshot/images without overwriting newer source data.
-- [ ] Default branch protection against force pushes and deletion.
+- [x] Default branch protection against force pushes and deletion. Verified owner/writer rejection, first and fast-forward pushes, whole-push rejection, Unicode default changes, busy settings, replacement-ref ancestry, other-branch updates, accurate push audit counts, browser recovery from capacity responses and production HTTPS/restart behavior.
 - [ ] Tag browsing with files/history and ZIP downloads.
 - [ ] Branch/tag lists with commit and update details.
 - [ ] Branch/tag comparison with changed files and diff.

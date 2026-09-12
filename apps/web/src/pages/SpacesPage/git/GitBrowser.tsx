@@ -1,3 +1,4 @@
+import { gitReadRetry } from './gitReadQuery'
 import { Box, Flex, Heading, Text } from '@chakra-ui/react'
 import { Fragment } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
@@ -25,7 +26,7 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
   const viewer = user?.id ?? null
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const info = useGetGitSpaceInfo(account, slug, { query: { retry: false, queryKey: [...getGetGitSpaceInfoQueryKey(account, slug), viewer] } })
+  const info = useGetGitSpaceInfo(account, slug, { query: { ...gitReadRetry, queryKey: [...getGetGitSpaceInfoQueryKey(account, slug), viewer] } })
   const branch = params.get('ref') || (info.data ? defaultGitBranch(info.data) : '')
   const path = params.get('path') || ''
   const isFile = params.get('view') === 'file'
@@ -34,10 +35,10 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
   const ready = info.isSuccess && (info.data.branches.includes(branch) || Boolean(fileCommit))
   const revision = `refs/heads/${branch}`
   const treeParams = { ref: revision, path }
-  const tree = useGetGitSpaceTree(account, slug, treeParams, { query: { enabled: ready && !isHistory && !isFile, retry: false, queryKey: [...getGetGitSpaceTreeQueryKey(account, slug, treeParams), viewer] } })
+  const tree = useGetGitSpaceTree(account, slug, treeParams, { query: { enabled: ready && !isHistory && !isFile, ...gitReadRetry, queryKey: [...getGetGitSpaceTreeQueryKey(account, slug, treeParams), viewer] } })
   // Pin README to the displayed tree so a concurrent push cannot mix revisions.
   const readmeParams = { ref: tree.data?.commitId ?? revision }
-  const readme = useGetGitSpaceReadme(account, slug, readmeParams, { query: { enabled: ready && !isHistory && !isFile && !path && tree.isSuccess, retry: false, queryKey: [...getGetGitSpaceReadmeQueryKey(account, slug, readmeParams), viewer] } })
+  const readme = useGetGitSpaceReadme(account, slug, readmeParams, { query: { enabled: ready && !isHistory && !isFile && !path && tree.isSuccess, ...gitReadRetry, queryKey: [...getGetGitSpaceReadmeQueryKey(account, slug, readmeParams), viewer] } })
   const root = gitLocation(account, slug, branch)
   const segments = path.split('/').filter(Boolean)
   const parent = gitLocation(account, slug, branch, segments.slice(0, -1).join('/'))

@@ -1,3 +1,4 @@
+import { gitReadRetry } from './gitReadQuery'
 import { Box, Flex, Heading, Text, chakra } from '@chakra-ui/react'
 import { useMemo } from 'react'
 import { useSearchParams } from 'react-router'
@@ -21,16 +22,16 @@ export default function GitHistory({ account, slug, branch }: { account: string;
   const location = (changes: HistoryLocation = {}) => gitHistoryLocation(account, slug, branch, { ...options, ...changes })
   const listParams = { ref: snapshot || `refs/heads/${branch}`, offset, limit: commitPageSize }
   const history = useListGitSpaceCommits(account, slug, listParams, { query: {
-    enabled: !commit, retry: false, queryKey: [...getListGitSpaceCommitsQueryKey(account, slug, listParams), viewer],
+    enabled: !commit, ...gitReadRetry, queryKey: [...getListGitSpaceCommitsQueryKey(account, slug, listParams), viewer],
   } })
   const commitParams = { ref: commit || '' }
   const detail = useGetGitSpaceCommit(account, slug, commitParams, { query: {
-    enabled: Boolean(commit), retry: false, queryKey: [...getGetGitSpaceCommitQueryKey(account, slug, commitParams), viewer],
+    enabled: Boolean(commit), ...gitReadRetry, queryKey: [...getGetGitSpaceCommitQueryKey(account, slug, commitParams), viewer],
   } })
   // Resolve the detail first, then pin the diff to its immutable commit ID.
   const diffParams = { to: detail.data?.id || '' }
   const diff = useGetGitSpaceDiff(account, slug, diffParams, { query: {
-    enabled: Boolean(commit) && detail.isSuccess, retry: false, queryKey: [...getGetGitSpaceDiffQueryKey(account, slug, diffParams), viewer],
+    enabled: Boolean(commit) && detail.isSuccess, ...gitReadRetry, queryKey: [...getGetGitSpaceDiffQueryKey(account, slug, diffParams), viewer],
   } })
   const files = useMemo(() => parseGitPatch(diff.data?.patch ?? ''), [diff.data?.patch])
   const selected = selectedPath ? files.find(file => file.path === selectedPath) : files[0]

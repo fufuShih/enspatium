@@ -1,3 +1,4 @@
+import { gitReadRetry } from '../git/gitReadQuery'
 import { Box, Flex, Heading, Text, chakra } from '@chakra-ui/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
@@ -71,7 +72,7 @@ export default function SpaceSettings({ account, space }: { account: string; spa
 function GitSettings({ account, slug }: { account: string; slug: string }) {
   const { user } = useAuth()
   const client = useQueryClient()
-  const info = useGetGitSpaceInfo(account, slug, { query: { retry: false, queryKey: [...getGetGitSpaceInfoQueryKey(account, slug), user?.id ?? null] } })
+  const info = useGetGitSpaceInfo(account, slug, { query: { ...gitReadRetry, queryKey: [...getGetGitSpaceInfoQueryKey(account, slug), user?.id ?? null] } })
   const [selected, setSelected] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
@@ -101,7 +102,7 @@ function GitSettings({ account, slug }: { account: string; slug: string }) {
         {!info.data.branches.includes(branch) && <option value={branch} disabled>Select a branch</option>}
         {info.data.branches.map(item => <option key={item} value={item}>{item}</option>)}
       </SelectInput>
-      <Text mt="8px" color="var(--muted)" fontSize="12px">Used when browsing this Space and cloning the repository.</Text>
+      <Text mt="8px" color="var(--muted)" fontSize="12px">Used when browsing this Space and cloning the repository. The default branch is protected against force pushes and deletion. Changing it moves this protection to the selected branch.</Text>
       {error && <Text role="alert" color="fg.error" fontSize="13px" mt="16px">{error}</Text>}
       <Flex align="center" justify="space-between" gap="12px" mt="20px"><Text role="status" fontSize="13px" color="var(--muted)">{saved ? 'Default branch saved.' : ''}</Text><ActionButton type="submit" disabled={pending || !info.data.branches.includes(branch) || branch === info.data.defaultBranch} loading={pending} loadingText="Saving...">Save default branch</ActionButton></Flex>
     </form>}

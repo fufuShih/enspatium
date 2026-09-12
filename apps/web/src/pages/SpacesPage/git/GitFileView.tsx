@@ -1,3 +1,4 @@
+import { gitReadRetry } from './gitReadQuery'
 import { Box, Flex, Text, chakra } from '@chakra-ui/react'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router'
@@ -19,13 +20,13 @@ export default function GitFileView({ account, slug, branch, path, commit }: {
   const navigate = useNavigate()
   const params = { ref: commit || `refs/heads/${branch}`, path }
   const info = useGetGitSpaceFileInfo(account, slug, params, { query: {
-    retry: false, gcTime: 0, refetchOnWindowFocus: false, refetchOnReconnect: false,
+    ...gitReadRetry, gcTime: 0, refetchOnWindowFocus: false, refetchOnReconnect: false,
     queryKey: [...getGetGitSpaceFileInfoQueryKey(account, slug, params), user?.id ?? null],
   } })
   const previewParams = { ref: info.data?.commitId ?? params.ref, path }
   const tooLarge = Boolean(info.data && info.data.size > 1024 * 1024)
   const preview = useGetGitSpaceFile(account, slug, previewParams, { query: {
-    enabled: info.isSuccess && !tooLarge, retry: false,
+    enabled: info.isSuccess && !tooLarge, ...gitReadRetry,
     queryKey: [...getGetGitSpaceFileQueryKey(account, slug, previewParams), user?.id ?? null],
   } })
   useEffect(() => {
