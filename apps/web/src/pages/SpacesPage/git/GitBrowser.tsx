@@ -18,6 +18,7 @@ import { gitHistoryLocation } from './gitHistoryApi'
 import { storageErrorTitle } from '../shared/storageErrors'
 import { EmptyGitRepository, GitCloneMenu } from './GitRepositoryActions'
 import GitFileView from './GitFileView'
+import GitStorageUsage from './GitStorageUsage'
 
 export default function GitBrowser({ account, slug }: { account: string; slug: string }) {
   const { user } = useAuth()
@@ -48,6 +49,7 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
   if (!info.data.branches.length && !fileCommit) return <Box minW="0">
     <Flex align="center" justify="space-between" gap="16px" mb="20px"><Text fontSize="13px" color="var(--muted)">Repository</Text><GitCloneMenu url={cloneUrl} /></Flex>
     <EmptyGitRepository url={cloneUrl} refreshing={info.isFetching} onRefresh={() => { void info.refetch() }} />
+    <GitStorageUsage account={account} slug={slug} />
   </Box>
   if (!ready && !(isHistory && params.get('commit'))) return <RequestState title="Branch not found" message="Choose an existing branch to continue."><ActionButton asChild mt="20px"><PageLink to={gitLocation(account, slug, defaultGitBranch(info.data))}>Back to repository</PageLink></ActionButton></RequestState>
 
@@ -94,6 +96,7 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
         </Box>}
       </> : null}
       </>}
+      <GitStorageUsage account={account} slug={slug} />
     </Box>
   )
 }

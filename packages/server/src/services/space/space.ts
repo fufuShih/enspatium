@@ -1,3 +1,4 @@
+import { GitCapacityError } from '../git/process.js'
 import type { Kysely } from 'kysely'
 
 import type { Database } from '../../db/index.js'
@@ -680,7 +681,7 @@ function validateSpaceWriteRole(
 }
 
 function throwGitStorageError(error: unknown, message: string): never {
-  if (error instanceof SpaceStorageUnavailable) throw error
+  if (error instanceof SpaceStorageUnavailable || error instanceof GitCapacityError) throw error
   if (error instanceof GitStorageError) {
     if (error.code === 'REF_NOT_FOUND' || error.code === 'PATH_NOT_FOUND') {
       throw new SpaceServiceError('NOT_FOUND', 404, error.message, error)

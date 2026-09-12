@@ -1,13 +1,11 @@
-import { execFile } from 'node:child_process'
 import { access, lstat, mkdir, opendir, realpath, rm } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { promisify } from 'node:util'
 
 import type { SpaceType } from '../../db/types/space.types.js'
+import { execGit, GitCapacityError } from '../git/process.js'
 
-const execFileAsync = promisify(execFile)
 const repositoryRoot = fileURLToPath(new URL('../../../../../', import.meta.url))
 const spaceIdPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -53,11 +51,14 @@ export async function requireSpaceStorage(dataRoot: string, spaceId: string, typ
         const entry = await lstat(resolve(target, name))
         if (entry.isSymbolicLink() || (name === 'HEAD' ? !entry.isFile() : !entry.isDirectory())) throw new Error('invalid Git storage')
       }
-      const result = await execFileAsync('git', ['--git-dir', target, 'rev-parse', '--is-bare-repository'], { timeout: 10_000, windowsHide: true })
+      const result = await execGit(['--git-dir', target, 'rev-parse', '--is-bare-repository'], { timeout: 10_000, windowsHide: true })
       if (result.stdout.trim() !== 'true') throw new Error('invalid bare repository')
     }
     return target
-  } catch (error) { throw new SpaceStorageUnavailable(error) }
+  } catch (error) {
+    if (error instanceof GitCapacityError) throw error
+    throw new SpaceStorageUnavailable(error)
+  }
 }
 
 export function resolveDataRoot(configuredRoot: string): string {
@@ -107,7 +108,7 @@ export async function createSpaceStorage(
   const target = getSpaceStoragePath(dataRoot, spaceId)
 
   if (spaceType === 'git') {
-    await execFileAsync('git', ['init', '--bare', '--initial-branch=main', target], {
+    await execGit(['init', '--bare', '--initial-branch=main', target], {
       timeout: 10_000,
       windowsHide: true,
     })

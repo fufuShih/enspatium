@@ -16,6 +16,7 @@ import {
   getGitSpaceReadme,
   getGitSpaceTags,
   getGitSpaceTree,
+  getReadableGitSpace,
   getSpaceDetails,
   listSpaceMembers,
   listSpaces,
@@ -57,8 +58,35 @@ import {
   UpdateSpaceMemberBodySchema,
 } from './types/spaces.types.js'
 import { sendGitContent } from './git-content.js'
+import { requireSpaceStorage } from '../services/space/storage.js'
+import { measureGitObjects } from '../services/git/receive-hook.js'
+import { acquireGitProcess } from '../services/git/process.js'
+import { join } from 'node:path'
 
 export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
+  app.get('/namespaces/:namespaceSlug/spaces/:spaceSlug/git/storage', {
+    schema: {
+      operationId: 'getGitSpaceStorage', tags: ['spaces'], params: SpaceParamsSchema,
+      response: { 200: Type.Object({
+        usedBytes: Type.Integer({ minimum: 0 }),
+        maxBytes: Type.Integer({ minimum: 1 }),
+        maxPushBytes: Type.Integer({ minimum: 1 }),
+      }) },
+    },
+  }, async (request, reply) => {
+    const space = await getReadableGitSpace(app.db, getCurrentUserId(request), request.params.namespaceSlug, request.params.spaceSlug)
+    const repository = await requireSpaceStorage(app.config.DATA_ROOT, space.id, 'git')
+    const release = acquireGitProcess()
+    try {
+      reply.header('cache-control', 'private, no-store')
+      return {
+        usedBytes: await measureGitObjects(join(repository, 'objects')),
+        maxBytes: app.config.GIT_REPOSITORY_MAX_BYTES,
+        maxPushBytes: app.config.GIT_MAX_PUSH_BYTES,
+      }
+    } finally { release() }
+  })
+
   app.post(
     '/namespaces/:namespaceSlug/spaces',
     {

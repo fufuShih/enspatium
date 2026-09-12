@@ -264,6 +264,15 @@ export type ListNamespaceMembers200Item = {
   joinedAt: string;
 };
 
+export type GetGitSpaceStorage200 = {
+  /** @minimum 0 */
+  usedBytes: number;
+  /** @minimum 1 */
+  maxBytes: number;
+  /** @minimum 1 */
+  maxPushBytes: number;
+};
+
 export const CreateSpaceBodyType = {  git: 'git',
   object: 'object',
 } as const

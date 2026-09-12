@@ -1294,6 +1294,67 @@
         }
       }
     },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/git/storage": {
+      "get": {
+        "operationId": "getGitSpaceStorage",
+        "tags": [
+          "spaces"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "usedBytes",
+                    "maxBytes",
+                    "maxPushBytes"
+                  ],
+                  "properties": {
+                    "usedBytes": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "maxBytes": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "maxPushBytes": {
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/namespaces/{namespaceSlug}/spaces": {
       "post": {
         "operationId": "createSpace",

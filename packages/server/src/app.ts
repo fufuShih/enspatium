@@ -10,6 +10,7 @@ import { registerOpenApi } from './openapi.js'
 import { registerRoutes } from './routes/index.js'
 import { initializeStorage } from './services/space/storage.js'
 import { registerSessionAccess } from './services/session-access.js'
+import { configureGitConcurrency } from './services/git/process.js'
 
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7
 
@@ -22,6 +23,7 @@ export async function buildApp() {
   }).withTypeProvider<TypeBoxTypeProvider>()
 
   await app.register(configPlugin)
+  configureGitConcurrency(app.config.GIT_MAX_CONCURRENT_PROCESSES)
   proxy.enabled = app.config.TRUST_PROXY
   await app.register(rateLimit, {
     global: false,

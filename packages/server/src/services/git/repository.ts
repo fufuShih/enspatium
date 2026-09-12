@@ -1,10 +1,10 @@
 import { execFile, spawn } from 'node:child_process'
 import { PassThrough } from 'node:stream'
-import { promisify, TextDecoder } from 'node:util'
+import { TextDecoder } from 'node:util'
 
 import { requireSpaceStorage } from '../space/storage.js'
+import { acquireGitProcess, execGit, GitCapacityError, terminateGitTree } from './process.js'
 
-const execFileAsync = promisify(execFile)
 const gitFieldSeparator = '\u001f'
 const gitRecordSeparator = '\u001e'
 const maxGitFileSize = 1024 * 1024
@@ -136,14 +136,16 @@ interface RawGitTreeEntry {
 // Preserve a valid default; otherwise prefer main, then the first branch.
 export async function synchronizeGitHead(dataRoot: string, spaceId: string): Promise<void> {
   const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git', true)
-  const [headOutput, branchesOutput] = await Promise.all([
-    runGit(repositoryPath, ['symbolic-ref', 'HEAD']),
-    runGit(repositoryPath, ['for-each-ref', '--sort=refname', '--format=%(refname)', 'refs/heads/']),
-  ])
+  await synchronizeGitHeadAtPath(repositoryPath)
+}
+
+export async function synchronizeGitHeadAtPath(repositoryPath: string, command = runGit): Promise<void> {
+  const headOutput = await command(repositoryPath, ['symbolic-ref', 'HEAD'])
+  const branchesOutput = await command(repositoryPath, ['for-each-ref', '--sort=refname', '--format=%(refname)', 'refs/heads/'])
   const branches = branchesOutput.trim().split('\n').filter(Boolean)
   if (branches.length === 0 || branches.includes(headOutput.trim())) return
   const branch = branches.includes('refs/heads/main') ? 'refs/heads/main' : branches[0]!
-  await runGit(repositoryPath, ['symbolic-ref', 'HEAD', branch])
+  await command(repositoryPath, ['symbolic-ref', 'HEAD', branch])
 }
 
 export async function setGitDefaultBranch(dataRoot: string, spaceId: string, branch: string): Promise<void> {
@@ -165,14 +167,12 @@ export async function getGitRepositoryInfo(
 ): Promise<GitRepositoryInfo> {
   const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git')
 
-  const [defaultBranchOutput, branchesOutput] = await Promise.all([
-    runGit(repositoryPath, ['symbolic-ref', 'HEAD']),
-    runGit(repositoryPath, [
-      'for-each-ref',
-      '--sort=refname',
-      '--format=%(refname)',
-      'refs/heads/',
-    ]),
+  const defaultBranchOutput = await runGit(repositoryPath, ['symbolic-ref', 'HEAD'])
+  const branchesOutput = await runGit(repositoryPath, [
+    'for-each-ref',
+    '--sort=refname',
+    '--format=%(refname)',
+    'refs/heads/',
   ])
 
   const branches = branchesOutput
@@ -496,23 +496,27 @@ async function resolveGitFile(dataRoot: string, spaceId: string, inputRef: strin
 
 function streamGitOutput(repositoryPath: string, args: string[], expectedSize?: number) {
   // Callers pass resolved object IDs, never unchecked revisions or disk paths.
+  const release = acquireGitProcess()
   const child = spawn('git', ['--git-dir=' + repositoryPath, ...args], {
-    stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true,
+    stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true, detached: process.platform !== 'win32',
   })
   const stream = new PassThrough()
+  const timeout = setTimeout(() => stream.destroy(new Error('Git content stream timed out')), 5 * 60 * 1000)
   let size = 0
   child.stdout.on('data', (chunk: Buffer) => { size += chunk.length })
   child.stdout.once('error', error => stream.destroy(error))
   child.once('error', () => stream.destroy(new Error('Unable to read Git content')))
   child.stdout.pipe(stream, { end: false })
   child.once('close', code => {
+    clearTimeout(timeout)
+    release()
     if (stream.destroyed) return
     if (code !== 0 || (expectedSize !== undefined && size !== expectedSize)) stream.destroy(new Error('Git content stream was interrupted'))
     else stream.end()
   })
   stream.once('close', () => {
     child.stdout.destroy()
-    if (child.exitCode === null && child.signalCode === null) child.kill()
+    void terminateGitTree(child).catch(error => stream.destroy(error))
   })
   return stream
 }
@@ -543,8 +547,7 @@ async function runGit(
   arguments_: string[],
   maxBuffer = 1024 * 1024,
 ): Promise<string> {
-  const { stdout } = await execFileAsync(
-    'git',
+  const { stdout } = await execGit(
     ['--git-dir=' + repositoryPath, ...arguments_],
     {
       encoding: 'utf8',
@@ -571,7 +574,8 @@ async function runGitBuffer(
   arguments_: string[],
   maxBuffer: number,
 ): Promise<Buffer> {
-  return new Promise((resolvePromise, reject) => {
+  const release = acquireGitProcess()
+  return new Promise<Buffer>((resolvePromise, reject) => {
     execFile(
       'git',
       ['--git-dir=' + repositoryPath, ...arguments_],
@@ -590,7 +594,7 @@ async function runGitBuffer(
         resolvePromise(Buffer.isBuffer(stdout) ? stdout : Buffer.from(stdout))
       },
     )
-  })
+  }).finally(release)
 }
 
 function parseGitCommits(output: string): GitCommit[] {
@@ -649,7 +653,7 @@ async function resolveGitCommit(
 
     return { ref, commitId }
   } catch (error) {
-    if (error instanceof GitStorageError) {
+    if (error instanceof GitStorageError || error instanceof GitCapacityError) {
       throw error
     }
 

@@ -1,12 +1,10 @@
-import { execFile } from 'node:child_process'
 import { devNull } from 'node:os'
 import { join } from 'node:path'
-import { promisify } from 'node:util'
 import type { FileTree } from './filesystem.js'
 import { errorCode } from './filesystem.js'
 import type { IssueReporter } from './report.js'
 
-const execFileAsync = promisify(execFile)
+import { execGit } from '../git/process.js'
 
 export async function checkGit(
   path: string,
@@ -17,6 +15,11 @@ export async function checkGit(
 ): Promise<void> {
   if (!tree.complete) return
   for (const [name, file] of tree.files) {
+    if (name.startsWith('.ensp-push-') || name.startsWith('.ensp-hooks-'))
+      issue({
+        severity: 'warning', code: 'GIT_UPLOAD_TEMPORARY', path: file.path,
+        message: 'Temporary Git upload data remains after an interrupted server process. Inspect it with the service stopped before removing it.',
+      })
     if (name.endsWith('.lock'))
       issue({
         severity: 'warning',
@@ -74,8 +77,7 @@ export async function checkGit(
   async function git(args: string[]) {
     signal?.throwIfAborted()
     try {
-      const result = await execFileAsync(
-        'git',
+      const result = await execGit(
         [
           '--git-dir',
           path,

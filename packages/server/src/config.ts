@@ -31,6 +31,10 @@ const configSchema = Type.Object({
   LOGIN_ACCOUNT_RATE_LIMIT: Type.Integer({ default: 10, minimum: 1, maximum: 10000 }),
   REGISTRATION_RATE_LIMIT: Type.Integer({ default: 5, minimum: 1, maximum: 10000 }),
   GIT_AUTH_RATE_LIMIT: Type.Integer({ default: 300, minimum: 1, maximum: 10000 }),
+  GIT_MAX_CONCURRENT_PROCESSES: Type.Integer({ default: 4, minimum: 1, maximum: 64 }),
+  GIT_MAX_PUSH_BYTES: Type.Integer({ default: 104857600, minimum: 1024, maximum: 10737418240 }),
+  GIT_REPOSITORY_MAX_BYTES: Type.Integer({ default: 1073741824, minimum: 1024, maximum: Number.MAX_SAFE_INTEGER }),
+  STORAGE_MIN_FREE_BYTES: Type.Integer({ default: 1073741824, minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
 })
 
 export type AppConfig = Static<typeof configSchema>

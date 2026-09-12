@@ -1,5 +1,5 @@
 import type { GetGitSpaceInfo200, GetGitSpaceTree200EntriesItem } from '../../../api/generated/api.schemas.ts'
-import { apiStatus } from '../../../context/session.ts'
+import { apiCode, apiStatus } from '../../../context/session.ts'
 import { spacePath } from '../shared/spaceApi.ts'
 import { storageErrorMessage } from '../shared/storageErrors.ts'
 
@@ -29,6 +29,7 @@ export function gitArchiveRef(params: URLSearchParams, branch: string, treeCommi
 }
 
 export function gitErrorMessage(error: unknown) {
+  if (apiCode(error) === 'GIT_BUSY') return 'Git is busy. Please retry shortly.'
   const storageMessage = storageErrorMessage(error)
   if (storageMessage) return storageMessage
   switch (apiStatus(error)) {

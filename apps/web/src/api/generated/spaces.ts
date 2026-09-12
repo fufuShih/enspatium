@@ -41,6 +41,7 @@ import type {
   GetGitSpaceRawFileParams,
   GetGitSpaceReadme200,
   GetGitSpaceReadmeParams,
+  GetGitSpaceStorage200,
   GetGitSpaceTags200Item,
   GetGitSpaceTree200,
   GetGitSpaceTreeParams,
@@ -78,6 +79,123 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetGitSpaceStorageUrl = (namespaceSlug: string,
+    spaceSlug: string,) => {
+
+
+
+
+  return `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/git/storage`
+}
+
+export const getGitSpaceStorage = async (namespaceSlug: string,
+    spaceSlug: string, options?: RequestInit): Promise<GetGitSpaceStorage200> => {
+
+  const res = await fetch(getGetGitSpaceStorageUrl(namespaceSlug,spaceSlug),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: GetGitSpaceStorage200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getGetGitSpaceStorageQueryKey = (namespaceSlug: string,
+    spaceSlug: string,) => {
+    return [
+    `/api/namespaces/${namespaceSlug}/spaces/${spaceSlug}/git/storage`
+    ] as const;
+    }
+
+
+export const getGetGitSpaceStorageQueryOptions = <TData = Awaited<ReturnType<typeof getGitSpaceStorage>>, TError = globalThis.Error & { info?: unknown; status?: number }>(namespaceSlug: string,
+    spaceSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceStorage>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGitSpaceStorageQueryKey(namespaceSlug,spaceSlug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGitSpaceStorage>>> = ({ signal }) => getGitSpaceStorage(namespaceSlug,spaceSlug, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: namespaceSlug !== null && namespaceSlug !== undefined && spaceSlug !== null && spaceSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceStorage>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetGitSpaceStorageQueryResult = NonNullable<Awaited<ReturnType<typeof getGitSpaceStorage>>>
+export type GetGitSpaceStorageQueryError = globalThis.Error & { info?: unknown; status?: number }
+
+
+export function useGetGitSpaceStorage<TData = Awaited<ReturnType<typeof getGitSpaceStorage>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceStorage>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getGitSpaceStorage>>,
+          TError,
+          Awaited<ReturnType<typeof getGitSpaceStorage>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetGitSpaceStorage<TData = Awaited<ReturnType<typeof getGitSpaceStorage>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceStorage>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getGitSpaceStorage>>,
+          TError,
+          Awaited<ReturnType<typeof getGitSpaceStorage>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetGitSpaceStorage<TData = Awaited<ReturnType<typeof getGitSpaceStorage>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceStorage>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetGitSpaceStorage<TData = Awaited<ReturnType<typeof getGitSpaceStorage>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceStorage>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetGitSpaceStorageQueryOptions(namespaceSlug,spaceSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
 
 export const getCreateSpaceUrl = (namespaceSlug: string,) => {
 

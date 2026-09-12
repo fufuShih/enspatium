@@ -8,6 +8,8 @@ import type {
 import { createAuditEvent } from '../services/audit/audit.js'
 import { requireSpaceStorage } from '../services/space/storage.js'
 import { acquireStorageWrite } from '../services/space/storage-access.js'
+import { GitCapacityError } from '../services/git/process.js'
+import { GitResourceError } from '../services/git/resources.js'
 import {
   getReadableGitSpace,
   getWritableGitSpace,
@@ -160,9 +162,15 @@ async function handleGitRequest(
         spaceId: access.space.id,
         service,
         servicePath,
+        limits: app.config,
         ...(access.userId ? { remoteUser: access.userId } : {}),
       })
     } catch (error) {
+      if ((error instanceof GitResourceError || error instanceof GitCapacityError) && !reply.raw.headersSent) {
+        reply.raw.writeHead(error.statusCode, { 'content-type': 'text/plain; charset=utf-8', 'connection': 'close', 'retry-after': '5' })
+        reply.raw.end(error.message + '\n')
+        return
+      }
       request.log.error({ err: error }, 'Git HTTP backend failed')
 
       if (!reply.raw.headersSent) {
