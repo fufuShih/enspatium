@@ -1,7 +1,7 @@
 import { Suspense, useEffect } from 'react'
 import { Box } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
-import { useLocation, useParams } from 'react-router'
+import { Route, Routes, useLocation, useParams } from 'react-router'
 import { ActionButton, PageContainer, PageLink } from '../../components/ui/Primitives'
 import AuthStatus from '../../components/AuthStatus'
 import RequestState from '../../components/RequestState'
@@ -9,6 +9,7 @@ import { useAuth } from '../../context/auth'
 import { apiStatus } from '../../context/session'
 import type { AppPagePlugin } from './types'
 import { getAppPlugin } from './registry'
+import { appPath } from './paths'
 
 export default function AppPage() {
   const { appType } = useParams()
@@ -42,5 +43,14 @@ function AppContent({ plugin }: { plugin: AppPagePlugin }) {
       {status === 401 && <ActionButton asChild mt="20px"><PageLink to="/login" state={{ from: location.pathname + location.search }}>Sign in</PageLink></ActionButton>}
     </RequestState></PageContainer>
   }
-  return <Suspense fallback={<PageContainer><RequestState loading title="Loading app..." /></PageContainer>}><plugin.view key={`${query.data.id}:${user?.id ?? 'anonymous'}`} space={query.data} /></Suspense>
+  const props = { space: query.data, basePath: appPath(plugin.type, query.data.id) }
+  return <Suspense fallback={<PageContainer><RequestState loading title="Loading app..." /></PageContainer>}>
+    <Routes key={`${query.data.id}:${user?.id ?? 'anonymous'}`}>
+      <Route index element={<plugin.view {...props} />} />
+      {plugin.routes?.map(route => <Route key={route.path} path={route.path} element={<route.view {...props} />} />)}
+      <Route path="*" element={<PageContainer><RequestState title="Page not found" message="This page does not exist in this app.">
+        <ActionButton asChild mt="20px"><PageLink to={props.basePath}>Back to app</PageLink></ActionButton>
+      </RequestState></PageContainer>} />
+    </Routes>
+  </Suspense>
 }

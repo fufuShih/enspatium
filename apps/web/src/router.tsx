@@ -9,7 +9,7 @@ import CreateOrganizationPage from "./pages/UserPage/CreateOrganizationPage";
 import AppPage from "./pages/AppPages/AppPage";
 
 export const router = createBrowserRouter([
-  { path: '/app/:appType/:spaceId', Component: AppPage },
+  { path: '/app/:appType/:spaceId/*', Component: AppPage },
   {
     path: "/",
     Component: BaseLayout,
