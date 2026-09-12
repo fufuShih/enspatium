@@ -76,7 +76,7 @@ docker compose --env-file deploy/.env -f deploy/compose.yaml logs --tail 100 ser
 
 Logs rotate at 10 MiB with three files per container. The backend healthcheck includes a database query. Restart policies recover exited containers; an unhealthy status alone does not restart a container. Operate a single backend instance: the storage write guard is process-local. Do not scale this service or allow another process to write `DATA_ROOT`.
 
-For an upgrade, retain the prior images, stop web/backend traffic, take a consistent database/content backup, then build the new release and start it with `up -d --wait`. The migration container runs before the backend. Review migration compatibility before rollback: restoring an older image alone is insufficient when a schema change is incompatible. Restore a verified matching database/content backup when required. Backup and recovery tooling is tracked in the trial checklist below.
+For an upgrade, first take and verify a [database/content backup](BACKUP.md), then stop traffic, build the new release and start it with `up -d --wait`. The migration container runs before the backend. Review migration compatibility before rollback: restoring an older image alone is insufficient when a schema change is incompatible. The backup includes the matching images and can be restored into a separate deployment without overwriting the original.
 
 References: [Caddy SPA and API routing](https://caddyserver.com/docs/caddyfile/patterns), [Compose dependency readiness](https://docs.docker.com/compose/how-tos/startup-order/).
 
@@ -87,7 +87,7 @@ This checklist tracks delivery, not permission to expose an unfinished service p
 - [x] Production deployment: reproducible images, HTTPS, persistent storage, migrations and deployment smoke test. Verified with local HTTPS, real Git push/clone, container recreation, and browser registration/login/reload. Public DNS/certificate validation remains deployment-specific.
 - [x] Access management: registration switch, authentication throttling, account disable/re-enable and session/token access enforcement. Verified by API integration, admin browser workflow, bootstrap and production deployment tests.
 - [x] Git resource controls: push size and concurrent process limits, repository usage/quota, disk headroom. Verified oversized and chunked uploads, quota rejection without ref changes, low disk, overlapping/interrupted uploads, busy responses, single-slot push/HEAD/clone, all 17 server integration cases, browser usage refresh/mobile layout, and production HTTPS push/clone after container recreation.
-- [ ] Consistent backup and isolated restore verification for PostgreSQL and content.
+- [x] Consistent backup and isolated restore verification for PostgreSQL and content. The manual tool captures stopped-writer database/content snapshots and exact images, checks hashes, and restores only into fresh projects. The backup acceptance test verifies saved commits/tags, old Object versions, HTTPS sign-in/clone/download, corrupted bytes, existing-volume protection, cleanup and an unchanged source deployment. See [backup and recovery](BACKUP.md).
 - [ ] Operations: health/disk/error visibility, controlled Git maintenance, upgrade/recovery verification.
 - [ ] Default branch protection against force pushes and deletion.
 - [ ] Tag browsing with files/history and ZIP downloads.

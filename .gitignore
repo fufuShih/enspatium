@@ -10,3 +10,5 @@ playwright-report/
 *.log
 
 /data/
+/backups/
+/deploy/backups/
