@@ -11,7 +11,7 @@ import RequestState from '../../components/RequestState'
 import { useAuth } from '../../context/auth'
 import { apiStatus } from '../../context/session'
 import { namespacePath } from '../UserPage/namespaces'
-import { cacheCreatedSpace, creatableNamespaces, makeSpaceSlug, spaceErrorMessage, spacePath } from './spaceApi'
+import { cacheCreatedSpace, creatableNamespaces, makeSpaceSlug, spaceErrorMessage, spacePath } from './shared/spaceApi'
 import { getAppPlugin } from '../AppPages/registry'
 import { getListAppsQueryKey, useListApps } from '../../api/generated/apps'
 

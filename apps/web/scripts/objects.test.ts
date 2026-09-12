@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest'
-import { fileErrorMessage, formatFileSize, uploadFile } from '../src/pages/SpacesPage/objectFileApi.ts'
+import { fileErrorMessage, formatFileSize, uploadFile } from '../src/pages/SpacesPage/object/objectFileApi.ts'
 
 test('uploads raw file bytes with the original MIME type and encoded filename', async () => {
   const file = new File([new Uint8Array([0, 255, 128, 10])], 'notes #1.txt', { type: 'text/plain' })

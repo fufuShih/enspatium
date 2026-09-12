@@ -2,12 +2,12 @@ import { Box, Dialog, Flex, Portal, Text, chakra } from '@chakra-ui/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { deleteSpace } from '../../api/generated/spaces'
-import { ActionButton, TextInput } from '../../components/ui/Primitives'
-import { apiStatus } from '../../context/session'
-import { namespacePath } from '../UserPage/namespaces'
-import { storageErrorMessage } from './storageErrors'
-import { clearDeletedSpace } from './spaceApi'
+import { deleteSpace } from '../../../api/generated/spaces'
+import { ActionButton, TextInput } from '../../../components/ui/Primitives'
+import { apiStatus } from '../../../context/session'
+import { namespacePath } from '../../UserPage/namespaces'
+import { storageErrorMessage } from '../shared/storageErrors'
+import { clearDeletedSpace } from '../shared/spaceApi'
 
 export default function DeleteSpaceButton({ account, slug }: { account: string; slug: string }) {
   const client = useQueryClient()

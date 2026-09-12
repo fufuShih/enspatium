@@ -1,7 +1,7 @@
 import { Box, chakra } from '@chakra-ui/react'
 import { useEffect, useRef, useState } from 'react'
 import type { ListAppObjects200ObjectsItem } from '../../../../api/generated/api.schemas'
-import { imagePreviewLimit } from '../../../SpacesPage/objectPreview'
+import { imagePreviewLimit } from '../../../SpacesPage/object/objectPreview'
 import { mediaIntegration } from './integration'
 
 export function MediaIcon({ kind }: { kind?: string }) {

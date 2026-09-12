@@ -1,4 +1,4 @@
-import type { ListObjects200Item } from '../../api/generated/api.schemas.ts'
+import type { ListObjects200Item } from '../../../api/generated/api.schemas.ts'
 
 export type ObjectFileKind = 'image' | 'text' | 'pdf' | 'archive' | 'audio' | 'video' | 'file'
 export const textPreviewLimit = 1024 * 1024

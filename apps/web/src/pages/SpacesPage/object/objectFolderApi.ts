@@ -1,4 +1,4 @@
-import { spacePath } from './spaceApi.ts'
+import { spacePath } from '../shared/spaceApi.ts'
 
 export function objectFolderLocation(account: string, slug: string, prefix = '', filter = '', cursor = '', deleted = false) {
   const params = new URLSearchParams()

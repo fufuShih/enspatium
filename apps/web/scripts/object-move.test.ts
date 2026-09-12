@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest'
 import { moveObject } from '../src/api/generated/objects.ts'
-import { objectMoveKey } from '../src/pages/SpacesPage/objectMoveApi.ts'
+import { objectMoveKey } from '../src/pages/SpacesPage/object/objectMoveApi.ts'
 
 test('renaming keeps the parent; moving keeps the filename and supports root or nested destinations', () => {
   expect(objectMoveKey('docs/book.pdf', 'rename', '中文 #%.pdf')).toBe('docs/中文 #%.pdf')

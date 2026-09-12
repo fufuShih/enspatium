@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest'
-import { deleteSelectedObject } from '../src/pages/SpacesPage/objectDeletion.ts'
+import { deleteSelectedObject } from '../src/pages/SpacesPage/object/objectDeletion.ts'
 
 const target = { id: 'object-id', key: 'docs/中文 #%.txt', versionId: 'original-version' }
 const controller = () => new AbortController()

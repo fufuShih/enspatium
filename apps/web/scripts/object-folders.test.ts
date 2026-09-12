@@ -1,8 +1,8 @@
 import { expect, test, vi } from 'vitest'
 import { QueryClient } from '@tanstack/react-query'
 import { getBrowseObjectsQueryKey, getListObjectsQueryKey, getGetObjectStorageUsageQueryKey, getListObjectVersionsQueryKey, getGetObjectHeadQueryKey } from '../src/api/generated/objects.ts'
-import { objectBreadcrumbs, objectFolderLocation, newObjectFolder } from '../src/pages/SpacesPage/objectFolderApi.ts'
-import { uploadFile, refreshObjectLists } from '../src/pages/SpacesPage/objectFileApi.ts'
+import { objectBreadcrumbs, objectFolderLocation, newObjectFolder } from '../src/pages/SpacesPage/object/objectFolderApi.ts'
+import { uploadFile, refreshObjectLists } from '../src/pages/SpacesPage/object/objectFileApi.ts'
 
 test('folder URLs and breadcrumbs preserve Unicode, spaces and literal percent characters', () => {
   const path = '中文😀/a %_#/'

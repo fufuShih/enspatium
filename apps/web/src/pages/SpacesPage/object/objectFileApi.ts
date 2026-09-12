@@ -1,9 +1,9 @@
-import { apiCode, apiStatus } from '../../context/session.ts'
-import { uploadObject, getObjectHead, getListObjectVersionsQueryKey, getGetObjectHeadQueryKey, getBrowseObjectsQueryKey, getListObjectsQueryKey, getGetObjectStorageUsageQueryKey } from '../../api/generated/objects.ts'
+import { apiCode, apiStatus } from '../../../context/session.ts'
+import { uploadObject, getObjectHead, getListObjectVersionsQueryKey, getGetObjectHeadQueryKey, getBrowseObjectsQueryKey, getListObjectsQueryKey, getGetObjectStorageUsageQueryKey } from '../../../api/generated/objects.ts'
 import type { QueryClient } from '@tanstack/react-query'
-import { getListAppObjectsQueryKey } from '../../api/generated/app-objects.ts'
-import { appPlugins } from '../AppPages/registry.ts'
-import { storageErrorMessage } from './storageErrors.ts'
+import { getListAppObjectsQueryKey } from '../../../api/generated/app-objects.ts'
+import { appPlugins } from '../../AppPages/registry.ts'
+import { storageErrorMessage } from '../shared/storageErrors.ts'
 
 export const fileSizeLimit = 100 * 1024 * 1024
 export const fileListLimit = 100

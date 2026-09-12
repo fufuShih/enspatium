@@ -8,12 +8,12 @@ import RequestState from '../../components/RequestState'
 import { useAuth } from '../../context/auth'
 import { apiStatus } from '../../context/session'
 import { namespacePath } from '../UserPage/namespaces'
-import { spaceErrorMessage, spacePath } from './spaceApi'
+import { spaceErrorMessage, spacePath } from './shared/spaceApi'
 import { appPath, getAppPlugin } from '../AppPages/registry'
-import ObjectFileList from './ObjectFileList'
-import SpaceSettings from './SpaceSettings'
+import ObjectFileList from './object/ObjectFileList'
+import SpaceSettings from './settings/SpaceSettings'
 
-const GitBrowser = lazy(() => import('./GitBrowser'))
+const GitBrowser = lazy(() => import('./git/GitBrowser'))
 
 export default function SpacePage({ settings = false }: { settings?: boolean }) {
   const { account = '', spaceSlug = '' } = useParams()

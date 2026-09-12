@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
-import { getGetSpaceQueryKey, getListSpacesQueryKey } from '../../api/generated/spaces.ts'
-import { apiStatus } from '../../context/session.ts'
-import { storageErrorMessage } from './storageErrors.ts'
+import { getGetSpaceQueryKey, getListSpacesQueryKey } from '../../../api/generated/spaces.ts'
+import { apiStatus } from '../../../context/session.ts'
+import { storageErrorMessage } from '../shared/storageErrors.ts'
 
 export function settingsErrorMessage(error: unknown) {
   return storageErrorMessage(error) ?? ({

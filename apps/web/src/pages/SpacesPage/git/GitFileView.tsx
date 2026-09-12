@@ -4,13 +4,13 @@ import { useNavigate } from 'react-router'
 import {
   getGetGitSpaceFileInfoQueryKey, getGetGitSpaceFileQueryKey, getGetGitSpaceRawFileUrl,
   useGetGitSpaceFileInfo, useGetGitSpaceFile,
-} from '../../api/generated/spaces'
-import { ActionButton } from '../../components/ui/Primitives'
-import RequestState from '../../components/RequestState'
-import { useAuth } from '../../context/auth'
+} from '../../../api/generated/spaces'
+import { ActionButton } from '../../../components/ui/Primitives'
+import RequestState from '../../../components/RequestState'
+import { useAuth } from '../../../context/auth'
 import { gitErrorMessage, gitLocation } from './gitBrowserApi'
-import { formatFileSize } from './objectFileApi'
-import { storageErrorTitle } from './storageErrors'
+import { formatFileSize } from '../object/objectFileApi'
+import { storageErrorTitle } from '../shared/storageErrors'
 
 export default function GitFileView({ account, slug, branch, path, commit }: {
   account: string; slug: string; branch: string; path: string; commit: string

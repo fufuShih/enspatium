@@ -1,9 +1,9 @@
 import { expect, test } from 'vitest'
-import { fileErrorMessage } from '../src/pages/SpacesPage/objectFileApi.ts'
-import { gitErrorMessage } from '../src/pages/SpacesPage/gitBrowserApi.ts'
-import { storageErrorTitle } from '../src/pages/SpacesPage/storageErrors.ts'
+import { fileErrorMessage } from '../src/pages/SpacesPage/object/objectFileApi.ts'
+import { gitErrorMessage } from '../src/pages/SpacesPage/git/gitBrowserApi.ts'
+import { storageErrorTitle } from '../src/pages/SpacesPage/shared/storageErrors.ts'
 import { QueryClient } from '@tanstack/react-query'
-import { clearDeletedSpace } from '../src/pages/SpacesPage/spaceApi.ts'
+import { clearDeletedSpace } from '../src/pages/SpacesPage/shared/spaceApi.ts'
 
 test('missing content and unavailable storage are distinguished from missing metadata and network errors', () => {
   const unavailable = { status: 503, info: { code: 'SPACE_STORAGE_UNAVAILABLE' } }

@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { QueryClient } from '@tanstack/react-query'
-import { refreshSpaceSettings } from '../src/pages/SpacesPage/settingsApi.ts'
+import { refreshSpaceSettings } from '../src/pages/SpacesPage/settings/settingsApi.ts'
 
 test('settings changes invalidate metadata, contents and account list without invalidating other Spaces', async () => {
   const client = new QueryClient()

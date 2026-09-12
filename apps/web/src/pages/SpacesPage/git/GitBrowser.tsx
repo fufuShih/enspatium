@@ -5,17 +5,17 @@ import {
   getGetGitSpaceInfoQueryKey, getGetGitSpaceTreeQueryKey, getGetGitSpaceReadmeQueryKey,
   useGetGitSpaceInfo, useGetGitSpaceTree, useGetGitSpaceReadme,
   getDownloadGitSpaceArchiveUrl,
-} from '../../api/generated/spaces'
-import { ActionButton, PageLink, SelectInput } from '../../components/ui/Primitives'
-import RequestState from '../../components/RequestState'
-import { useAuth } from '../../context/auth'
-import { apiStatus } from '../../context/session'
+} from '../../../api/generated/spaces'
+import { ActionButton, PageLink, SelectInput } from '../../../components/ui/Primitives'
+import RequestState from '../../../components/RequestState'
+import { useAuth } from '../../../context/auth'
+import { apiStatus } from '../../../context/session'
 import { defaultGitBranch, gitArchiveRef, gitErrorMessage, gitLocation, sortGitEntries } from './gitBrowserApi'
-import { formatFileSize } from './objectFileApi'
+import { formatFileSize } from '../object/objectFileApi'
 import GitReadme from './GitReadme'
 import GitHistory from './GitHistory'
 import { gitHistoryLocation } from './gitHistoryApi'
-import { storageErrorTitle } from './storageErrors'
+import { storageErrorTitle } from '../shared/storageErrors'
 import { EmptyGitRepository, GitCloneMenu } from './GitRepositoryActions'
 import GitFileView from './GitFileView'
 

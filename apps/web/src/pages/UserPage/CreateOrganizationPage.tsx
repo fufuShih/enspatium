@@ -7,7 +7,7 @@ import AuthStatus from '../../components/AuthStatus'
 import { ActionButton, PageContainer, PageHeading, TextInput } from '../../components/ui/Primitives'
 import { useAuth } from '../../context/auth'
 import { apiStatus } from '../../context/session'
-import { makeSpaceSlug } from '../SpacesPage/spaceApi'
+import { makeSpaceSlug } from '../SpacesPage/shared/spaceApi'
 import { namespacePath } from './namespaces'
 import { organizationErrorMessage, refreshOrganization } from './organizationApi'
 

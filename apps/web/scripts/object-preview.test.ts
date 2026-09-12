@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { decodeObjectText, objectFileKind, objectPreviewKind } from '../src/pages/SpacesPage/objectPreview.ts'
+import { decodeObjectText, objectFileKind, objectPreviewKind } from '../src/pages/SpacesPage/object/objectPreview.ts'
 
 test('active document formats are shown as text, never embedded as a document', () => {
   expect(objectPreviewKind({ key: 'page.html', contentType: 'text/html' })).toBe('text')

@@ -1,5 +1,5 @@
-import { deleteObject, getObjectHead } from '../../api/generated/objects.ts'
-import type { ListObjects200Item } from '../../api/generated/api.schemas.ts'
+import { deleteObject, getObjectHead } from '../../../api/generated/objects.ts'
+import type { ListObjects200Item } from '../../../api/generated/api.schemas.ts'
 
 export type DeleteTarget = Pick<ListObjects200Item, 'id' | 'key' | 'versionId'>
 export type DeleteItem = DeleteTarget & {

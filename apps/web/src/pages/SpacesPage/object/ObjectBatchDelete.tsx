@@ -1,6 +1,6 @@
 import { Box, Dialog, Flex, Portal, Text, chakra } from '@chakra-ui/react'
 import { useRef } from 'react'
-import { ActionButton } from '../../components/ui/Primitives'
+import { ActionButton } from '../../../components/ui/Primitives'
 import type { DeleteTarget } from './objectDeletion'
 import type { ObjectDeletions } from './useObjectDeletions'
 

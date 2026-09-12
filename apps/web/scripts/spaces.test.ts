@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 import { QueryClient } from '@tanstack/react-query'
 import type { CreateSpace201, ListNamespaces200Item } from '../src/api/generated/api.schemas.ts'
 import { getGetSpaceQueryKey, getListSpacesQueryKey } from '../src/api/generated/spaces.ts'
-import { cacheCreatedSpace, creatableNamespaces, makeSpaceSlug, spaceErrorMessage, spacePath } from '../src/pages/SpacesPage/spaceApi.ts'
+import { cacheCreatedSpace, creatableNamespaces, makeSpaceSlug, spaceErrorMessage, spacePath } from '../src/pages/SpacesPage/shared/spaceApi.ts'
 import { authReturnPath } from '../src/context/session.ts'
 
 const created: CreateSpace201 = { app: null, objectVersionLimit: 3, objectRetentionDays: 7, id: 'space-id', namespaceId: 'namespace-id', createdByUserId: 'owner-id', name: 'My Project', slug: 'my-project', type: 'git', visibility: 'private', createdAt: '', updatedAt: '' }

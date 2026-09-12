@@ -1,7 +1,7 @@
 import { expect, test, vi } from 'vitest'
 import type { GetGitSpaceTree200EntriesItem } from '../src/api/generated/api.schemas.ts'
 import { getGitSpaceFile, getGetGitSpaceRawFileUrl, getGitSpaceRawFile, getDownloadGitSpaceArchiveUrl, downloadGitSpaceArchive } from '../src/api/generated/spaces.ts'
-import { defaultGitBranch, gitArchiveRef, gitErrorMessage, gitLocation, sortGitEntries } from '../src/pages/SpacesPage/gitBrowserApi.ts'
+import { defaultGitBranch, gitArchiveRef, gitErrorMessage, gitLocation, sortGitEntries } from '../src/pages/SpacesPage/git/gitBrowserApi.ts'
 
 test('repository links retain branch, path, and file mode without interpreting special characters', () => {
   const url = new URL(gitLocation('my-account', 'repo', 'feature/docs', 'docs/a #?.md', true), 'https://example.test')

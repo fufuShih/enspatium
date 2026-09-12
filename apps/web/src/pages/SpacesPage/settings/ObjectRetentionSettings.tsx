@@ -1,10 +1,10 @@
 import { Box, Flex, Heading, Text, chakra } from '@chakra-ui/react'
 import { useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import type { GetSpace200 } from '../../api/generated/api.schemas'
-import { updateSpace } from '../../api/generated/spaces'
-import { ActionButton, TextInput } from '../../components/ui/Primitives'
-import { apiStatus } from '../../context/session'
+import type { GetSpace200 } from '../../../api/generated/api.schemas.ts'
+import { updateSpace } from '../../../api/generated/spaces'
+import { ActionButton, TextInput } from '../../../components/ui/Primitives'
+import { apiStatus } from '../../../context/session'
 import { refreshSpaceSettings, settingsErrorMessage } from './settingsApi'
 
 export default function ObjectRetentionSettings({ account, space }: { account: string; space: GetSpace200 }) {

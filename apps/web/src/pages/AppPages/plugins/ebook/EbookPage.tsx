@@ -5,7 +5,7 @@ import type { ListAppObjectsParams } from '../../../../api/generated/api.schemas
 import { ActionButton, PageLink, TextInput } from '../../../../components/ui/Primitives'
 import RequestState from '../../../../components/RequestState'
 import { useAuth } from '../../../../context/auth'
-import { fileErrorMessage, formatFileSize } from '../../../SpacesPage/objectFileApi'
+import { fileErrorMessage, formatFileSize } from '../../../SpacesPage/object/objectFileApi'
 import type { AppPageProps } from '../../types'
 import { ebookIntegration } from './integration'
 import { appPath } from '../../paths'

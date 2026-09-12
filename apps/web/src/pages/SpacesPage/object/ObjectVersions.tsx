@@ -1,12 +1,12 @@
 import { Box, Flex, Text } from '@chakra-ui/react'
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { getListObjectVersionsQueryKey, restoreObjectVersion, useListObjectVersions } from '../../api/generated/objects'
-import type { ListObjects200Item } from '../../api/generated/api.schemas'
-import { useAuth } from '../../context/auth'
-import { apiStatus } from '../../context/session'
-import RequestState from '../../components/RequestState'
-import { ActionButton } from '../../components/ui/Primitives'
+import { getListObjectVersionsQueryKey, restoreObjectVersion, useListObjectVersions } from '../../../api/generated/objects'
+import type { ListObjects200Item } from '../../../api/generated/api.schemas.ts'
+import { useAuth } from '../../../context/auth'
+import { apiStatus } from '../../../context/session'
+import RequestState from '../../../components/RequestState'
+import { ActionButton } from '../../../components/ui/Primitives'
 import { fileErrorMessage, formatFileSize, refreshObjectLists } from './objectFileApi'
 
 export default function ObjectVersions({ account, slug, fileKey, selectedId, onSelect, onRestored, onBusy }: {

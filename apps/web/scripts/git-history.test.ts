@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest'
 import { getGitSpaceDiff, listGitSpaceCommits } from '../src/api/generated/spaces.ts'
-import { decodeGitPath, gitHistoryLocation, historyOptions, parseGitPatch } from '../src/pages/SpacesPage/gitHistoryApi.ts'
+import { decodeGitPath, gitHistoryLocation, historyOptions, parseGitPatch } from '../src/pages/SpacesPage/git/gitHistoryApi.ts'
 
 test('history links preserve the snapshot, page, branch and selected file across reloads', () => {
   const options = { commit: 'a'.repeat(40), snapshot: 'b'.repeat(40), offset: 30, file: 'docs/a #?.md' }

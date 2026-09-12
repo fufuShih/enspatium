@@ -8,7 +8,7 @@ import AuthStatus from '../../components/AuthStatus'
 import RequestState from '../../components/RequestState'
 import { apiStatus } from '../../context/session'
 import SpacesPage from '../SpacesPage/SpacesPage'
-import { spaceErrorMessage } from '../SpacesPage/spaceApi'
+import { spaceErrorMessage } from '../SpacesPage/shared/spaceApi'
 import { namespacePath } from './namespaces'
 import MemberManager from '../../components/MemberManager'
 

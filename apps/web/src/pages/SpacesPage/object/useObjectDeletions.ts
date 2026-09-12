@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { apiCode, apiStatus } from '../../context/session'
+import { apiCode, apiStatus } from '../../../context/session'
 import { deleteSelectedObject, type DeleteItem, type DeleteTarget } from './objectDeletion'
 import { fileErrorMessage, refreshObjectLists } from './objectFileApi'
 

@@ -5,11 +5,11 @@ import {
   getListGitSpaceCommitsQueryKey, useListGitSpaceCommits,
   getGetGitSpaceCommitQueryKey, useGetGitSpaceCommit,
   getGetGitSpaceDiffQueryKey, useGetGitSpaceDiff,
-} from '../../api/generated/spaces'
-import { ActionButton, PageLink } from '../../components/ui/Primitives'
-import RequestState from '../../components/RequestState'
-import { useAuth } from '../../context/auth'
-import { storageErrorTitle } from './storageErrors'
+} from '../../../api/generated/spaces'
+import { ActionButton, PageLink } from '../../../components/ui/Primitives'
+import RequestState from '../../../components/RequestState'
+import { useAuth } from '../../../context/auth'
+import { storageErrorTitle } from '../shared/storageErrors'
 import { type HistoryLocation, commitPageSize, gitHistoryError, gitHistoryLocation, historyOptions, maxDiffPreviewLines, parseGitPatch } from './gitHistoryApi'
 
 export default function GitHistory({ account, slug, branch }: { account: string; slug: string; branch: string }) {

@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
-import type { CreateSpace201, ListNamespaces200Item, ListSpaces200Item } from '../../api/generated/api.schemas.ts'
-import { getGetSpaceQueryKey, getListSpacesQueryKey } from '../../api/generated/spaces.ts'
-import { apiStatus } from '../../context/session.ts'
+import type { CreateSpace201, ListNamespaces200Item, ListSpaces200Item } from '../../../api/generated/api.schemas.ts'
+import { getGetSpaceQueryKey, getListSpacesQueryKey } from '../../../api/generated/spaces.ts'
+import { apiStatus } from '../../../context/session.ts'
 
 export function spacePath(account: string, slug: string) {
   return `/${encodeURIComponent(account)}/${encodeURIComponent(slug)}`

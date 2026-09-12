@@ -1,4 +1,4 @@
-import { apiStatus } from '../../context/session.ts'
+import { apiStatus } from '../../../context/session.ts'
 import { gitErrorMessage, gitLocation } from './gitBrowserApi.ts'
 
 export const commitPageSize = 30

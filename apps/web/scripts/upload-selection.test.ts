@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest'
-import { prepareUploads, readDroppedFiles, selectFiles } from '../src/pages/SpacesPage/uploadSelection'
-import { uploadFile, fileSizeLimit, type UploadAttempt } from '../src/pages/SpacesPage/objectFileApi'
+import { prepareUploads, readDroppedFiles, selectFiles } from '../src/pages/SpacesPage/object/uploadSelection'
+import { uploadFile, fileSizeLimit, type UploadAttempt } from '../src/pages/SpacesPage/object/objectFileApi'
 
 const signal = () => new AbortController().signal
 function fileEntry(name: string): FileSystemEntry {

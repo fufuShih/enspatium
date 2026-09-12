@@ -1,7 +1,7 @@
-import type { GetGitSpaceInfo200, GetGitSpaceTree200EntriesItem } from '../../api/generated/api.schemas.ts'
-import { apiStatus } from '../../context/session.ts'
-import { spacePath } from './spaceApi.ts'
-import { storageErrorMessage } from './storageErrors.ts'
+import type { GetGitSpaceInfo200, GetGitSpaceTree200EntriesItem } from '../../../api/generated/api.schemas.ts'
+import { apiStatus } from '../../../context/session.ts'
+import { spacePath } from '../shared/spaceApi.ts'
+import { storageErrorMessage } from '../shared/storageErrors.ts'
 
 export function defaultGitBranch(info: GetGitSpaceInfo200) {
   return info.branches.includes(info.defaultBranch) ? info.defaultBranch : info.branches[0] ?? ''

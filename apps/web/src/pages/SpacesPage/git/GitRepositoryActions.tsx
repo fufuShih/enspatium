@@ -1,7 +1,7 @@
 import { Box, Flex, Heading, Popover, Portal, Text, chakra } from '@chakra-ui/react'
-import CopyButton from '../../components/ui/CopyButton'
-import { ActionButton, PageLink, TextInput } from '../../components/ui/Primitives'
-import { accessTokensPath } from '../UserPage/tokenApi'
+import CopyButton from '../../../components/ui/CopyButton'
+import { ActionButton, PageLink, TextInput } from '../../../components/ui/Primitives'
+import { accessTokensPath } from '../../UserPage/tokenApi'
 
 export function GitCloneMenu({ url, archiveUrl, archiveRef }: { url: string; archiveUrl?: string; archiveRef?: string }) {
   return (

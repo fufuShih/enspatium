@@ -1,6 +1,6 @@
 import { Box, Heading, Text } from '@chakra-ui/react'
 import Markdown from 'react-markdown'
-import type { GetGitSpaceFile200 } from '../../api/generated/api.schemas'
+import type { GetGitSpaceFile200 } from '../../../api/generated/api.schemas.ts'
 
 export default function GitReadme({ file }: { file: GetGitSpaceFile200 }) {
   if (!/\.(md|markdown)$/i.test(file.name)) return <Box as="pre" p="24px" m="0" whiteSpace="pre-wrap" overflowWrap="anywhere" fontSize="13px">{file.content || 'This README is empty.'}</Box>

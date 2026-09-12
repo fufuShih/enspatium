@@ -1,4 +1,4 @@
-import { apiCode } from '../../context/session.ts'
+import { apiCode } from '../../../context/session.ts'
 
 export function storageErrorMessage(error: unknown) {
   if (apiCode(error) === 'OBJECT_CONTENT_CORRUPT') return 'This version no longer matches its saved checksum. Restore was cancelled and your current version was kept.'

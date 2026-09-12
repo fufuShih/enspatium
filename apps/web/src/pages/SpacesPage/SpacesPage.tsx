@@ -3,7 +3,7 @@ import { useState } from 'react'
 import type { GetNamespace200, ListSpaces200Item } from '../../api/generated/api.schemas'
 import RequestState from '../../components/RequestState'
 import { ActionButton, PageLink, SelectInput, TextInput } from '../../components/ui/Primitives'
-import { spaceErrorMessage, spacePath } from './spaceApi'
+import { spaceErrorMessage, spacePath } from './shared/spaceApi'
 import { appPlugins, getAppPlugin } from '../AppPages/registry'
 
 export default function SpacesPage({ owner, spaces, isLoading, error, onRetry, signedIn, canCreate }: {

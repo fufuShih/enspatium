@@ -8,6 +8,13 @@ Enspatium is a self-hosted platform for managing content, storage, and collabora
 - `apps` — deployable frontend applications
 - `packages` — Node.js server and shared packages
 
+`apps/web/src/pages/SpacesPage` keeps its three page entries at the root. Supporting files are grouped one level below:
+
+- `git/` — repository browsing, history and downloads
+- `object/` — file browsing, uploads, versions, deletion and moves
+- `settings/` — Space settings, members, retention and Space deletion
+- `shared/` — Space URL/cache helpers and shared storage errors
+
 ## Development
 
 ```powershell

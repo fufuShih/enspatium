@@ -1,9 +1,9 @@
 import { Box, Heading, Text } from '@chakra-ui/react'
-import { useGetNamespace } from '../../api/generated/namespaces'
-import MemberManager from '../../components/MemberManager'
-import RequestState from '../../components/RequestState'
-import { PageLink } from '../../components/ui/Primitives'
-import { namespacePath } from '../UserPage/namespaces'
+import { useGetNamespace } from '../../../api/generated/namespaces'
+import MemberManager from '../../../components/MemberManager'
+import RequestState from '../../../components/RequestState'
+import { PageLink } from '../../../components/ui/Primitives'
+import { namespacePath } from '../../UserPage/namespaces'
 
 export default function SpaceMembers({ account, slug }: { account: string; slug: string }) {
   const profile = useGetNamespace(account, { query: { retry: false } })
