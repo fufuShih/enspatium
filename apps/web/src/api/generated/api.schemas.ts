@@ -601,6 +601,57 @@ export type GetGitSpaceFile200 = {
   content: string;
 };
 
+export type GetGitSpaceFileInfoParams = {
+/**
+ * @minLength 1
+ * @maxLength 255
+ */
+ref?: string;
+/**
+ * @minLength 1
+ * @maxLength 4096
+ */
+path: string;
+};
+
+export type GetGitSpaceFileInfo200 = {
+  ref: string;
+  /** @pattern ^[0-9a-f]{40,64}$ */
+  commitId: string;
+  path: string;
+  name: string;
+  /** @minimum 0 */
+  size: number;
+};
+
+export type GetGitSpaceRawFileParams = {
+/**
+ * @minLength 1
+ * @maxLength 255
+ */
+ref?: string;
+/**
+ * @minLength 1
+ * @maxLength 4096
+ */
+path: string;
+download?: boolean;
+};
+
+export type HeadGitSpaceRawFileParams = {
+/**
+ * @minLength 1
+ * @maxLength 255
+ */
+ref?: string;
+/**
+ * @minLength 1
+ * @maxLength 4096
+ */
+path: string;
+download?: boolean;
+};
+
 export type GetGitSpaceReadmeParams = {
 /**
  * @minLength 1

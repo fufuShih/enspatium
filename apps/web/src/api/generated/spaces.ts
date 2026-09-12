@@ -33,14 +33,18 @@ import type {
   GetGitSpaceDiff200,
   GetGitSpaceDiffParams,
   GetGitSpaceFile200,
+  GetGitSpaceFileInfo200,
+  GetGitSpaceFileInfoParams,
   GetGitSpaceFileParams,
   GetGitSpaceInfo200,
+  GetGitSpaceRawFileParams,
   GetGitSpaceReadme200,
   GetGitSpaceReadmeParams,
   GetGitSpaceTags200Item,
   GetGitSpaceTree200,
   GetGitSpaceTreeParams,
   GetSpace200,
+  HeadGitSpaceRawFileParams,
   ListGitSpaceCommits200,
   ListGitSpaceCommitsParams,
   ListSpaceMembers200Item,
@@ -1457,7 +1461,370 @@ export function useGetGitSpaceFile<TData = Awaited<ReturnType<typeof getGitSpace
 
 
 
-export const getGetGitSpaceReadmeUrl = (namespaceSlug: string,
+export const getGetGitSpaceFileInfoUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    params: GetGitSpaceFileInfoParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/git/file-info?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/git/file-info`
+}
+
+export const getGitSpaceFileInfo = async (namespaceSlug: string,
+    spaceSlug: string,
+    params: GetGitSpaceFileInfoParams, options?: RequestInit): Promise<GetGitSpaceFileInfo200> => {
+
+  const res = await fetch(getGetGitSpaceFileInfoUrl(namespaceSlug,spaceSlug,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: GetGitSpaceFileInfo200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getGetGitSpaceFileInfoQueryKey = (namespaceSlug: string,
+    spaceSlug: string,
+    params?: GetGitSpaceFileInfoParams,) => {
+    return [
+    `/api/namespaces/${namespaceSlug}/spaces/${spaceSlug}/git/file-info`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetGitSpaceFileInfoQueryOptions = <TData = Awaited<ReturnType<typeof getGitSpaceFileInfo>>, TError = globalThis.Error & { info?: unknown; status?: number }>(namespaceSlug: string,
+    spaceSlug: string,
+    params: GetGitSpaceFileInfoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceFileInfo>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGitSpaceFileInfoQueryKey(namespaceSlug,spaceSlug,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGitSpaceFileInfo>>> = ({ signal }) => getGitSpaceFileInfo(namespaceSlug,spaceSlug,params, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: namespaceSlug !== null && namespaceSlug !== undefined && spaceSlug !== null && spaceSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceFileInfo>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetGitSpaceFileInfoQueryResult = NonNullable<Awaited<ReturnType<typeof getGitSpaceFileInfo>>>
+export type GetGitSpaceFileInfoQueryError = globalThis.Error & { info?: unknown; status?: number }
+
+
+export function useGetGitSpaceFileInfo<TData = Awaited<ReturnType<typeof getGitSpaceFileInfo>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: GetGitSpaceFileInfoParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceFileInfo>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getGitSpaceFileInfo>>,
+          TError,
+          Awaited<ReturnType<typeof getGitSpaceFileInfo>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetGitSpaceFileInfo<TData = Awaited<ReturnType<typeof getGitSpaceFileInfo>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: GetGitSpaceFileInfoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceFileInfo>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getGitSpaceFileInfo>>,
+          TError,
+          Awaited<ReturnType<typeof getGitSpaceFileInfo>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetGitSpaceFileInfo<TData = Awaited<ReturnType<typeof getGitSpaceFileInfo>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: GetGitSpaceFileInfoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceFileInfo>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetGitSpaceFileInfo<TData = Awaited<ReturnType<typeof getGitSpaceFileInfo>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: GetGitSpaceFileInfoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceFileInfo>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetGitSpaceFileInfoQueryOptions(namespaceSlug,spaceSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetGitSpaceRawFileUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    params: GetGitSpaceRawFileParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/git/raw?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/git/raw`
+}
+
+/**
+ * Stream exact Git blob bytes at ref and path. Raw is served as plain text without HTML execution; download=true returns an attachment. No preview size limit. Every request checks Space read access. HEAD returns headers only. Range requests are not supported.
+ */
+export const getGitSpaceRawFile = async (namespaceSlug: string,
+    spaceSlug: string,
+    params: GetGitSpaceRawFileParams, options?: RequestInit): Promise<Blob> => {
+
+  const res = await fetch(getGetGitSpaceRawFileUrl(namespaceSlug,spaceSlug,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+  if (!res.ok) {
+    const errorBody = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = errorBody ? JSON.parse(errorBody) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const body = [204, 205, 304].includes(res.status) ? null : await res.blob();
+  const data: Blob = body as Blob
+  return data
+}
+
+
+
+
+
+export const getGetGitSpaceRawFileQueryKey = (namespaceSlug: string,
+    spaceSlug: string,
+    params?: GetGitSpaceRawFileParams,) => {
+    return [
+    `/api/namespaces/${namespaceSlug}/spaces/${spaceSlug}/git/raw`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetGitSpaceRawFileQueryOptions = <TData = Awaited<ReturnType<typeof getGitSpaceRawFile>>, TError = globalThis.Error & { info?: unknown; status?: number }>(namespaceSlug: string,
+    spaceSlug: string,
+    params: GetGitSpaceRawFileParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceRawFile>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGitSpaceRawFileQueryKey(namespaceSlug,spaceSlug,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGitSpaceRawFile>>> = ({ signal }) => getGitSpaceRawFile(namespaceSlug,spaceSlug,params, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: namespaceSlug !== null && namespaceSlug !== undefined && spaceSlug !== null && spaceSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceRawFile>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetGitSpaceRawFileQueryResult = NonNullable<Awaited<ReturnType<typeof getGitSpaceRawFile>>>
+export type GetGitSpaceRawFileQueryError = globalThis.Error & { info?: unknown; status?: number }
+
+
+export function useGetGitSpaceRawFile<TData = Awaited<ReturnType<typeof getGitSpaceRawFile>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: GetGitSpaceRawFileParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceRawFile>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getGitSpaceRawFile>>,
+          TError,
+          Awaited<ReturnType<typeof getGitSpaceRawFile>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetGitSpaceRawFile<TData = Awaited<ReturnType<typeof getGitSpaceRawFile>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: GetGitSpaceRawFileParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceRawFile>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getGitSpaceRawFile>>,
+          TError,
+          Awaited<ReturnType<typeof getGitSpaceRawFile>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetGitSpaceRawFile<TData = Awaited<ReturnType<typeof getGitSpaceRawFile>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: GetGitSpaceRawFileParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceRawFile>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetGitSpaceRawFile<TData = Awaited<ReturnType<typeof getGitSpaceRawFile>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ namespaceSlug: string,
+    spaceSlug: string,
+    params: GetGitSpaceRawFileParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitSpaceRawFile>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetGitSpaceRawFileQueryOptions(namespaceSlug,spaceSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getHeadGitSpaceRawFileUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    params: HeadGitSpaceRawFileParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/git/raw?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/git/raw`
+}
+
+/**
+ * Stream exact Git blob bytes at ref and path. Raw is served as plain text without HTML execution; download=true returns an attachment. No preview size limit. Every request checks Space read access. HEAD returns headers only. Range requests are not supported.
+ */
+export const headGitSpaceRawFile = async (namespaceSlug: string,
+    spaceSlug: string,
+    params: HeadGitSpaceRawFileParams, options?: RequestInit): Promise<void> => {
+
+  const res = await fetch(getHeadGitSpaceRawFileUrl(namespaceSlug,spaceSlug,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'HEAD'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: void = body ? JSON.parse(body) : undefined
+  return data
+}
+
+
+
+
+
+export const getHeadGitSpaceRawFileMutationKey = () => ['headGitSpaceRawFile'] as const;
+
+export const getHeadGitSpaceRawFileMutationOptions = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof headGitSpaceRawFile>>, TError,HeadGitSpaceRawFileMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof headGitSpaceRawFile>>, TError,HeadGitSpaceRawFileMutationVariables, TContext> => {
+
+const mutationKey = getHeadGitSpaceRawFileMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof headGitSpaceRawFile>>, HeadGitSpaceRawFileMutationVariables> = (props) => {
+          const {namespaceSlug,spaceSlug,params} = props ?? {};
+
+          return  headGitSpaceRawFile(namespaceSlug,spaceSlug,params,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type HeadGitSpaceRawFileMutationResult = NonNullable<Awaited<ReturnType<typeof headGitSpaceRawFile>>>
+
+    export type HeadGitSpaceRawFileMutationError = globalThis.Error & { info?: unknown; status?: number }
+    export type HeadGitSpaceRawFileMutationVariables = {namespaceSlug: string;spaceSlug: string;params: HeadGitSpaceRawFileParams}
+
+    export const useHeadGitSpaceRawFile = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof headGitSpaceRawFile>>, TError,HeadGitSpaceRawFileMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof headGitSpaceRawFile>>,
+        TError,
+        HeadGitSpaceRawFileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getHeadGitSpaceRawFileMutationOptions(options), queryClient);
+    }
+    export const getGetGitSpaceReadmeUrl = (namespaceSlug: string,
     spaceSlug: string,
     params?: GetGitSpaceReadmeParams,) => {
   const normalizedParams = new URLSearchParams();

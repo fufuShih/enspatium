@@ -25,6 +25,24 @@ export async function registerOpenApi(app: FastifyInstance) {
         }
       }
       const operationId = schema.operationId?.replace(/-head$/, '')
+      if (operationId === 'getGitSpaceRawFile') {
+        const headers = {
+          'content-length': { type: 'integer', minimum: 0 },
+          'content-disposition': { type: 'string' },
+          'cache-control': { type: 'string' },
+          'x-git-commit': { type: 'string', description: 'Resolved commit ID used for this response.' },
+        }
+        documented = {
+          ...documented,
+          description: 'Stream exact Git blob bytes at ref and path. Raw is served as plain text without HTML execution; download=true returns an attachment. No preview size limit. Every request checks Space read access. HEAD returns headers only. Range requests are not supported.',
+          produces: ['application/octet-stream', 'text/plain'],
+          response: { 200: { type: 'string', format: 'binary', headers } },
+        }
+        if (route.method === 'HEAD') {
+          documented.operationId = 'headGitSpaceRawFile'
+          documented.response = { 200: { type: 'null', description: 'File headers; no body', headers } }
+        }
+      }
       if (operationId === 'downloadObject' || operationId === 'downloadObjectVersion' || operationId === 'downloadAppContent') {
         const headers = {
           'accept-ranges': { type: 'string', enum: ['bytes'] },

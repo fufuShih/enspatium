@@ -9,6 +9,8 @@ import {
   listGitSpaceCommits,
   getGitSpaceDiff,
   getGitSpaceFile,
+  getGitSpaceFileInfo,
+  openGitSpaceFile,
   getGitSpaceInfo,
   getGitSpaceReadme,
   getGitSpaceTags,
@@ -35,6 +37,8 @@ import {
   GitDiffResponseSchema,
   GitFileQuerySchema,
   GitFileResponseSchema,
+  GitFileInfoResponseSchema,
+  GitRawQuerySchema,
   GitReadmeResponseSchema,
   GitRefQuerySchema,
   GitRepositoryInfoResponseSchema,
@@ -51,6 +55,7 @@ import {
   UpdateSpaceBodySchema,
   UpdateSpaceMemberBodySchema,
 } from './types/spaces.types.js'
+import { sendGitContent } from './git-content.js'
 
 export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.post(
@@ -293,6 +298,32 @@ export const spaceRoutes: FastifyPluginAsyncTypebox = async (app) => {
       )
     },
   )
+
+  app.get('/namespaces/:namespaceSlug/spaces/:spaceSlug/git/file-info', {
+    schema: {
+      operationId: 'getGitSpaceFileInfo', tags: ['spaces'], security: [{}, { session: [] }],
+      params: SpaceParamsSchema, querystring: GitFileQuerySchema,
+      response: { 200: GitFileInfoResponseSchema },
+    },
+  }, request => getGitSpaceFileInfo(
+    app.db, app.config.DATA_ROOT, getCurrentUserId(request),
+    request.params.namespaceSlug, request.params.spaceSlug, request.query.ref, request.query.path,
+  ))
+
+  for (const method of ['GET', 'HEAD'] as const) {
+    app.route({
+      method, url: '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/raw',
+      exposeHeadRoute: false, config: { swagger: { exposeHeadRoute: true } },
+      schema: {
+        operationId: 'getGitSpaceRawFile', tags: ['spaces'], security: [{}, { session: [] }],
+        params: SpaceParamsSchema, querystring: GitRawQuerySchema,
+      },
+      handler: async (request, reply) => sendGitContent(request, reply, await openGitSpaceFile(
+        app.db, app.config.DATA_ROOT, getCurrentUserId(request),
+        request.params.namespaceSlug, request.params.spaceSlug, request.query.ref, request.query.path,
+      ), request.query.download ?? false),
+    })
+  }
 
   app.get(
     '/namespaces/:namespaceSlug/spaces/:spaceSlug/git/readme',

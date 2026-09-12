@@ -42,6 +42,12 @@ it('exports the current REST contract without configuration or a database', asyn
     expect(objects.head.operationId).toBe('headObjectContent')
     expect(objects.head.responses['200'].content).toBeUndefined()
     expect(document.paths['/namespaces/{namespaceSlug}/spaces/{spaceSlug}/object-versions/content'].head.operationId).toBe('headObjectVersionContent')
+    const gitRaw = document.paths['/namespaces/{namespaceSlug}/spaces/{spaceSlug}/git/raw']
+    expect(gitRaw.get.responses['200'].content['application/octet-stream'].schema).toEqual({ type: 'string', format: 'binary' })
+    expect(gitRaw.get.responses['200'].headers['x-git-commit']).toBeDefined()
+    expect(gitRaw.head.operationId).toBe('headGitSpaceRawFile')
+    expect(gitRaw.head.responses['200'].content).toBeUndefined()
+    expect(gitRaw.get.parameters).toContainEqual(expect.objectContaining({ name: 'download', in: 'query', required: false }))
   } finally {
     await app.close()
   }

@@ -1,4 +1,5 @@
-import { execFile } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
+import { PassThrough } from 'node:stream'
 import { promisify, TextDecoder } from 'node:util'
 
 import { requireSpaceStorage } from '../space/storage.js'
@@ -110,12 +111,15 @@ export interface GitTree {
   entries: GitTreeEntry[]
 }
 
-export interface GitFile {
+export interface GitFileInfo {
   ref: string
   commitId: string
   path: string
   name: string
   size: number
+}
+
+export interface GitFile extends GitFileInfo {
   encoding: 'utf-8' | 'base64'
   content: string
 }
@@ -441,6 +445,25 @@ export async function getGitFile(
   inputRef: string | undefined,
   inputPath: string,
 ): Promise<GitFile> {
+  const { repositoryPath, objectId, file } = await resolveGitFile(dataRoot, spaceId, inputRef, inputPath)
+  if (file.size > maxGitFileSize) {
+    throw new GitStorageError('FILE_TOO_LARGE', 'Git file exceeds the 1 MiB response limit')
+  }
+  const contents = await runGitBuffer(repositoryPath, ['cat-file', 'blob', objectId], maxGitFileSize + 1)
+  return { ...file, ...encodeGitFile(contents) }
+}
+
+export async function getGitFileInfo(dataRoot: string, spaceId: string, inputRef: string | undefined, inputPath: string): Promise<GitFileInfo> {
+  return (await resolveGitFile(dataRoot, spaceId, inputRef, inputPath)).file
+}
+
+export async function openGitFile(dataRoot: string, spaceId: string, inputRef: string | undefined, inputPath: string) {
+  const { repositoryPath, objectId, file } = await resolveGitFile(dataRoot, spaceId, inputRef, inputPath)
+  // Lazy creation lets HEAD return metadata without starting a content process.
+  return { file, createReadStream: () => streamGitBlob(repositoryPath, objectId, file.size) }
+}
+
+async function resolveGitFile(dataRoot: string, spaceId: string, inputRef: string | undefined, inputPath: string) {
   const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git')
   const path = normalizeGitPath(inputPath, false)
   const { ref, commitId } = await resolveGitCommit(repositoryPath, inputRef)
@@ -450,33 +473,37 @@ export async function getGitFile(
     throw new GitStorageError('PATH_NOT_FOUND', 'Git path not found')
   }
 
-  if (entry.objectType !== 'blob') {
+  if (entry.objectType !== 'blob' || entry.size === null) {
     throw new GitStorageError('NOT_A_FILE', 'Git path is not a file')
   }
 
-  if (entry.size === null || entry.size > maxGitFileSize) {
-    throw new GitStorageError(
-      'FILE_TOO_LARGE',
-      'Git file exceeds the 1 MiB response limit',
-    )
-  }
-
-  const contents = await runGitBuffer(
-    repositoryPath,
-    ['cat-file', 'blob', entry.objectId],
-    maxGitFileSize + 1,
-  )
-  const encoded = encodeGitFile(contents)
-
   return {
-    ref,
-    commitId,
-    path,
-    name: path.split('/').at(-1) ?? path,
-    size: entry.size,
-    encoding: encoded.encoding,
-    content: encoded.content,
+    repositoryPath, objectId: entry.objectId,
+    file: { ref, commitId, path, name: path.split('/').at(-1) ?? path, size: entry.size },
   }
+}
+
+function streamGitBlob(repositoryPath: string, objectId: string, expectedSize: number) {
+  // Only a resolved blob ID reaches cat-file. Never interpret paths as disk paths.
+  const child = spawn('git', ['--git-dir=' + repositoryPath, 'cat-file', 'blob', objectId], {
+    stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true,
+  })
+  const stream = new PassThrough()
+  let size = 0
+  child.stdout.on('data', (chunk: Buffer) => { size += chunk.length })
+  child.stdout.once('error', error => stream.destroy(error))
+  child.once('error', () => stream.destroy(new Error('Unable to read Git content')))
+  child.stdout.pipe(stream, { end: false })
+  child.once('close', code => {
+    if (stream.destroyed) return
+    if (code !== 0 || size !== expectedSize) stream.destroy(new Error('Git content stream was interrupted'))
+    else stream.end()
+  })
+  stream.once('close', () => {
+    child.stdout.destroy()
+    if (child.exitCode === null && child.signalCode === null) child.kill()
+  })
+  return stream
 }
 
 export async function getGitReadme(
@@ -493,7 +520,7 @@ export async function getGitReadme(
     const entry = entriesByName.get(readmeName.toLowerCase())
 
     if (entry?.type === 'file') {
-      return getGitFile(dataRoot, spaceId, tree.ref, entry.path)
+      return { ...await getGitFile(dataRoot, spaceId, tree.commitId, entry.path), ref: tree.ref }
     }
   }
 
@@ -725,6 +752,7 @@ function encodeGitFile(contents: Buffer): {
   content: string
 } {
   try {
+    if (contents.includes(0)) throw new Error('Binary content')
     return {
       encoding: 'utf-8',
       content: new TextDecoder('utf-8', { fatal: true }).decode(contents),

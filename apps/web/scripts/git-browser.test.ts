@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest'
 import type { GetGitSpaceTree200EntriesItem } from '../src/api/generated/api.schemas.ts'
-import { getGitSpaceFile } from '../src/api/generated/spaces.ts'
+import { getGitSpaceFile, getGetGitSpaceRawFileUrl, getGitSpaceRawFile } from '../src/api/generated/spaces.ts'
 import { defaultGitBranch, gitErrorMessage, gitLocation, sortGitEntries } from '../src/pages/SpacesPage/gitBrowserApi.ts'
 
 test('repository links retain branch, path, and file mode without interpreting special characters', () => {
@@ -13,6 +13,26 @@ test('repository links retain branch, path, and file mode without interpreting s
   const root = new URL(gitLocation('my-account', 'repo', 'main'), 'https://example.test')
   expect(root.searchParams.has('path')).toBe(false)
   expect(root.searchParams.has('view')).toBe(false)
+})
+
+test('file snapshots and raw URLs preserve commit and path; generated downloads return exact binary bytes', async () => {
+  const commit = 'a'.repeat(40)
+  const path = 'docs/中文 #%.bin'
+  const location = new URL(gitLocation('owner', 'repo', 'feature/docs', path, true, commit), 'https://example.test')
+  expect(location.searchParams.get('commit')).toBe(commit)
+  expect(new URL(gitLocation('owner', 'repo', 'main', '', false, commit), location).searchParams.has('commit')).toBe(false)
+  const url = new URL(getGetGitSpaceRawFileUrl('owner', 'repo', { ref: commit, path, download: true }), location)
+  expect(url.pathname).toBe('/api/namespaces/owner/spaces/repo/git/raw')
+  expect(url.searchParams.get('path')).toBe(path)
+  expect(url.searchParams.get('ref')).toBe(commit)
+  expect(url.searchParams.get('download')).toBe('true')
+  expect(url.hash).toBe('')
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, options) => {
+    expect(options?.credentials).toBe('include')
+    return new Response(new Uint8Array([0, 255, 12]), { headers: { 'content-type': 'application/octet-stream' } })
+  })
+  const blob = await getGitSpaceRawFile('owner', 'repo', { ref: commit, path, download: true })
+  expect([...new Uint8Array(await blob.arrayBuffer())]).toEqual([0, 255, 12])
 })
 
 test('default branch handles unborn HEAD and empty repositories', () => {

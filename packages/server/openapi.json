@@ -2780,6 +2780,302 @@
         }
       }
     },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/git/file-info": {
+      "get": {
+        "operationId": "getGitSpaceFileInfo",
+        "tags": [
+          "spaces"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 255,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "ref",
+            "required": false
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 4096,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "path",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "security": [
+          {},
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ref",
+                    "commitId",
+                    "path",
+                    "name",
+                    "size"
+                  ],
+                  "properties": {
+                    "ref": {
+                      "type": "string"
+                    },
+                    "commitId": {
+                      "pattern": "^[0-9a-f]{40,64}$",
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "size": {
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/git/raw": {
+      "get": {
+        "operationId": "getGitSpaceRawFile",
+        "tags": [
+          "spaces"
+        ],
+        "description": "Stream exact Git blob bytes at ref and path. Raw is served as plain text without HTML execution; download=true returns an attachment. No preview size limit. Every request checks Space read access. HEAD returns headers only. Range requests are not supported.",
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 255,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "ref",
+            "required": false
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 4096,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "path",
+            "required": true
+          },
+          {
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "download",
+            "required": false
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "security": [
+          {},
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "headers": {
+              "content-length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "content-disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "cache-control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-git-commit": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Resolved commit ID used for this response."
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "operationId": "headGitSpaceRawFile",
+        "tags": [
+          "spaces"
+        ],
+        "description": "Stream exact Git blob bytes at ref and path. Raw is served as plain text without HTML execution; download=true returns an attachment. No preview size limit. Every request checks Space read access. HEAD returns headers only. Range requests are not supported.",
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 255,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "ref",
+            "required": false
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 4096,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "path",
+            "required": true
+          },
+          {
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "download",
+            "required": false
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "security": [
+          {},
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File headers; no body",
+            "headers": {
+              "content-length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "content-disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "cache-control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-git-commit": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Resolved commit ID used for this response."
+              }
+            }
+          }
+        }
+      }
+    },
     "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/git/readme": {
       "get": {
         "operationId": "getGitSpaceReadme",

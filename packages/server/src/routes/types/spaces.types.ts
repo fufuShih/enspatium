@@ -123,6 +123,11 @@ export const GitFileQuerySchema = Type.Object({
   path: Type.String({ minLength: 1, maxLength: 4096 }),
 })
 
+export const GitRawQuerySchema = Type.Object({
+  ...GitFileQuerySchema.properties,
+  download: Type.Optional(Type.Boolean({ default: false })),
+})
+
 export const GitDiffQuerySchema = Type.Object({
   from: Type.Optional(Type.String({ minLength: 1, maxLength: 255, description: 'Defaults to the first parent of to, or the empty tree for an initial commit.' })),
   to: Type.String({ minLength: 1, maxLength: 255 }),
@@ -193,12 +198,16 @@ export const GitTreeResponseSchema = Type.Object({
   entries: Type.Array(GitTreeEntryResponseSchema),
 })
 
-export const GitFileResponseSchema = Type.Object({
+export const GitFileInfoResponseSchema = Type.Object({
   ref: Type.String(),
   commitId: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
   path: Type.String(),
   name: Type.String(),
   size: Type.Integer({ minimum: 0 }),
+})
+
+export const GitFileResponseSchema = Type.Object({
+  ...GitFileInfoResponseSchema.properties,
   encoding: Type.Union([Type.Literal('utf-8'), Type.Literal('base64')]),
   content: Type.String(),
 })

@@ -19,6 +19,8 @@ import {
   getGitCommits,
   getGitDiff,
   getGitFile,
+  getGitFileInfo,
+  openGitFile,
   getGitReadme,
   getGitRepositoryInfo,
   getGitTags,
@@ -29,6 +31,7 @@ import {
   type GitCommitPage,
   type GitDiff,
   type GitFile,
+  type GitFileInfo,
   type GitRepositoryInfo,
   type GitTag,
   type GitTree,
@@ -459,6 +462,24 @@ export async function getGitSpaceFile(
   } catch (error) {
     throwGitStorageError(error, 'failed to read Git file')
   }
+}
+
+export async function getGitSpaceFileInfo(
+  db: Kysely<Database>, dataRoot: string, actorUserId: string | undefined,
+  namespaceSlug: string, spaceSlug: string, ref: string | undefined, path: string,
+): Promise<GitFileInfo> {
+  const space = await getReadableGitSpace(db, actorUserId, namespaceSlug, spaceSlug)
+  try { return await getGitFileInfo(dataRoot, space.id, ref, path) }
+  catch (error) { throwGitStorageError(error, 'failed to read Git file information') }
+}
+
+export async function openGitSpaceFile(
+  db: Kysely<Database>, dataRoot: string, actorUserId: string | undefined,
+  namespaceSlug: string, spaceSlug: string, ref: string | undefined, path: string,
+) {
+  const space = await getReadableGitSpace(db, actorUserId, namespaceSlug, spaceSlug)
+  try { return await openGitFile(dataRoot, space.id, ref, path) }
+  catch (error) { throwGitStorageError(error, 'failed to open Git content') }
 }
 
 export async function getGitSpaceReadme(

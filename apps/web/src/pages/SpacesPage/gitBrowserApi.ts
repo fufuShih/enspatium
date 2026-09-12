@@ -7,11 +7,12 @@ export function defaultGitBranch(info: GetGitSpaceInfo200) {
   return info.branches.includes(info.defaultBranch) ? info.defaultBranch : info.branches[0] ?? ''
 }
 
-export function gitLocation(account: string, slug: string, branch: string, path = '', file = false) {
+export function gitLocation(account: string, slug: string, branch: string, path = '', file = false, commit = '') {
   const query = new URLSearchParams()
   if (branch) query.set('ref', branch)
   if (path) query.set('path', path)
   if (file) query.set('view', 'file')
+  if (file && commit) query.set('commit', commit)
   return `${spacePath(account, slug)}${query.size ? `?${query}` : ''}`
 }
 
