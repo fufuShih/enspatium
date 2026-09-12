@@ -1047,3 +1047,87 @@ key: string;
 versionId: string;
 };
 
+export type CheckStorageIntegrityBody = {
+  spaceId?: string;
+  deep?: boolean;
+};
+
+export const CheckStorageIntegrity200Mode = {  basic: 'basic',
+  deep: 'deep',
+} as const
+export type CheckStorageIntegrity200Consistency = typeof CheckStorageIntegrity200Consistency[keyof typeof CheckStorageIntegrity200Consistency];
+
+
+export const CheckStorageIntegrity200Consistency = {
+  'service-writes-paused': 'service-writes-paused',
+} as const;
+
+export const CheckStorageIntegrity200Status = {  ok: 'ok',
+  issues: 'issues',
+  incomplete: 'incomplete',
+} as const
+export const CheckStorageIntegrity200SpacesItemType = {  git: 'git',
+  object: 'object',
+} as const
+export type CheckStorageIntegrity200SpacesItem = {
+  id: string;
+  namespace: string;
+  slug: string;
+  type: typeof CheckStorageIntegrity200SpacesItemType[keyof typeof CheckStorageIntegrity200SpacesItemType];
+  objects: number;
+  versions: number;
+  filesChecked: number;
+  hashesChecked: number;
+  versionBytes: string;
+};
+
+export const CheckStorageIntegrity200IssuesItemSeverity = {  info: 'info',
+  warning: 'warning',
+  error: 'error',
+} as const
+export type CheckStorageIntegrity200IssuesItem = {
+  severity: typeof CheckStorageIntegrity200IssuesItemSeverity[keyof typeof CheckStorageIntegrity200IssuesItemSeverity];
+  code: string;
+  message: string;
+  spaceId?: string;
+  objectId?: string;
+  versionId?: string;
+  key?: string;
+  path?: string;
+  detail?: string;
+};
+
+export type CheckStorageIntegrity200 = {
+  startedAt: string;
+  finishedAt: string;
+  mode: typeof CheckStorageIntegrity200Mode[keyof typeof CheckStorageIntegrity200Mode];
+  dataRoot: string;
+  scope: string;
+  consistency: CheckStorageIntegrity200Consistency;
+  complete: boolean;
+  status: typeof CheckStorageIntegrity200Status[keyof typeof CheckStorageIntegrity200Status];
+  spaces: CheckStorageIntegrity200SpacesItem[];
+  issues: CheckStorageIntegrity200IssuesItem[];
+};
+
+export type CheckStorageIntegrity401 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type CheckStorageIntegrity403 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type CheckStorageIntegrity409 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+

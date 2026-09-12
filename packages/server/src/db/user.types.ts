@@ -10,6 +10,7 @@ export interface UserTable {
   email: string
   password_hash: string
   display_name: string
+  is_admin: Generated<boolean>
   created_at: Generated<Date>
   updated_at: Generated<Date>
 }

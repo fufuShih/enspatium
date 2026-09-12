@@ -2,13 +2,18 @@ import { sql, type Kysely } from 'kysely'
 import type { Database } from '../../db/index.js'
 import { createAuditEvent } from '../audit/audit.js'
 import { requireSpaceStorage } from '../space/storage.js'
+import { StorageBusyError, withStorageWrite } from '../space/storage-access.js'
 import { deleteObjectFile } from './storage.js'
 
 const cleanupBatchSize = 100
 
 /** Mark before touching bytes, then delete under the same Space lock as writes.
  * A failed/unconfirmed DB commit leaves a durable purge marker to retry. */
-export async function cleanupObjectSpace(
+export function cleanupObjectSpace(...args: Parameters<typeof cleanupObjectSpaceMutation>) {
+  return withStorageWrite(args[1], () => cleanupObjectSpaceMutation(...args))
+}
+
+async function cleanupObjectSpaceMutation(
   db: Kysely<Database>, dataRoot: string, spaceId: string, now = new Date(),
 ): Promise<number> {
   await db.transaction().execute(async tx => {
@@ -92,7 +97,10 @@ export async function cleanupObjectVersions(
     if (!spaces.length) return
     for (const space of spaces) {
       try { await cleanupObjectSpace(db, dataRoot, space.id) }
-      catch (error) { onError(error, space.id) }
+      catch (error) {
+        if (error instanceof StorageBusyError) return // Retry at the next sweep, without interrupting the check.
+        onError(error, space.id)
+      }
     }
     cursor = spaces.at(-1)!.id
   }

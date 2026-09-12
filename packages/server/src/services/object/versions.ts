@@ -5,6 +5,7 @@ import type { ObjectVersionPage, PublicSpaceObject, SpaceObject } from '../../db
 import { createAuditEvent } from '../audit/audit.js'
 import { getReadableObjectSpace, getWritableObjectSpace } from '../space/space.js'
 import { requireSpaceStorage } from '../space/storage.js'
+import { withStorageWrite } from '../space/storage-access.js'
 import { deleteObjectFile, writeObjectFile } from './storage.js'
 import {
   downloadObject, ensureObjectQuota, escapeLikePrefix, getObjectByKey,
@@ -52,7 +53,11 @@ export async function listObjectVersions(
   }
 }
 
-export async function uploadObject(
+export function uploadObject(...args: Parameters<typeof uploadObjectMutation>) {
+  return withStorageWrite(args[1], () => uploadObjectMutation(...args))
+}
+
+async function uploadObjectMutation(
   db: Kysely<Database>, dataRoot: string, actor: string, namespace: string, slug: string,
   input: UploadObjectInput,
   restoredFrom?: { id: string; checksum: string; size: number },
@@ -126,7 +131,11 @@ export async function uploadObject(
   }
 }
 
-export async function deleteObject(
+export function deleteObject(...args: Parameters<typeof deleteObjectMutation>) {
+  return withStorageWrite(args[1], () => deleteObjectMutation(...args))
+}
+
+async function deleteObjectMutation(
   db: Kysely<Database>, dataRoot: string, actor: string, namespace: string, slug: string,
   inputKey: string, expectedVersion?: string,
 ): Promise<void> {
@@ -157,7 +166,11 @@ export async function deleteObject(
   })
 }
 
-export async function restoreObjectVersion(
+export function restoreObjectVersion(...args: Parameters<typeof restoreObjectVersionMutation>) {
+  return withStorageWrite(args[1], () => restoreObjectVersionMutation(...args))
+}
+
+async function restoreObjectVersionMutation(
   db: Kysely<Database>, dataRoot: string, actor: string, namespace: string, slug: string,
   input: { key: string; versionId: string; expectedVersion: string },
 ): Promise<PublicSpaceObject> {

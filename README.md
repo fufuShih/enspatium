@@ -99,6 +99,43 @@ Missing Space storage returns `503 SPACE_STORAGE_UNAVAILABLE` instead of an empt
 
 Storage-root identity checks cover disappearance or replacement during the running server process. Deployment must ensure the correct `DATA_ROOT` volume is mounted before startup; these checks are not persistent volume identification or a backup/recovery system.
 
+## Storage integrity inspection
+
+Site administrators can call `POST /admin/storage/check` with their existing login session (`/api/admin/storage/check` through the frontend proxy). It returns a JSON report directly; no command-line checker or background job is needed.
+
+Apply migration 0016 with `pnpm --filter @enspatium/server db:migrate`. It adds `users.is_admin`, defaulting to `false` for both existing and new accounts. Provision the first administrator through a trusted database connection using the registered account's ID:
+
+```sql
+UPDATE users SET is_admin = true WHERE id = '<registered-user-id>';
+```
+
+Registration cannot grant admin access. Space ownership and Git access tokens do not grant site administration rights. Every check reads the current database role, so revocation applies to existing sessions. Unauthenticated requests receive 401; signed-in non-admins receive 403. No existing account is automatically promoted.
+
+Send `{}` for a basic check of all Spaces, or select a Space and verify its contents:
+
+```json
+{
+  "spaceId": "00000000-0000-0000-0000-000000000001",
+  "deep": true
+}
+```
+
+Only the server's configured `DATA_ROOT` is inspected. Basic mode checks Space directories, Object current-version metadata, retained version locators and sizes, and Git bare-repository structure, refs and HEAD. Deep mode also streams Object bytes to compare SHA-256 and runs `git fsck --full --no-progress`, including packed objects. Basic success does not verify contents. Empty Git repositories are valid; dangling Git objects alone are informational.
+
+Checks run while the service remains online. In the current single-backend deployment, a shared guard covers each storage mutation from before its first filesystem change through its database commit or rollback. If an upload, push, deletion, restore, branch change, Space creation or retention purge is active, checking returns `409 STORAGE_BUSY`. While checking, another check and new storage writes also receive 409. Downloads, browsing, clone and login remain available; scheduled retention skips that sweep and retries on its next interval. Push-triggered automatic Git maintenance is disabled so it cannot outlive the write guard. Even a single-Space check pauses writes across the same data root to keep coordination simple.
+
+The scan has a two-minute cooperative time budget, a 30-second limit per database statement, and a 60-second limit per Git command with bounded output. Cancellation returns an incomplete report after cleanup, then releases the write guard. For larger installations, check one Space at a time and allow enough time in the HTTP proxy. A stalled filesystem or database connection can delay cancellation; this is not a background job API.
+
+HTTP 200 reports have `status: "ok" | "issues" | "incomplete"`, `complete`, timestamps, mode, scope, Space counts and issues with Object keys, version IDs and physical paths. `issues` means findings need attention; `incomplete` means the scan could not finish. Version byte totals are decimal strings and do not represent disk allocation or unknown files. Responses use `Cache-Control: private, no-store`. Invalid UUIDs or field types receive 400; concurrent storage operations receive 409. The endpoint and typed client are included in OpenAPI and generated `admin.ts`; regenerate with `pnpm generate:api`.
+
+All retained Object versions are checked, including deleted-file history and legacy nested paths. Deletion markers require no content file. Pending purges produce `PURGE_PENDING`; missing bytes are expected until metadata cleanup completes. Unreferenced files, temporary uploads and unregistered root entries are reported separately. Unknown root entries are not recursively inspected; a scoped check omits them. Empty Object folders have no database records and are not orphan content.
+
+Inspection uses a read-only repeatable-read transaction. It does not initialize missing storage, repair records, change checksums, import files or remove anything. Detected external changes, inaccessible paths, symlinks/junctions and special files make the report incomplete. Git external object stores, common directories, config includes and custom fsck overrides require manual review.
+
+The write guard coordinates only this backend process. Direct filesystem edits, direct database edits and another backend process bypass it; it is not a distributed lock or a database/filesystem snapshot. Keep `DATA_ROOT` writable only by the service account and perform ordinary changes through Object APIs or Git push. A structurally valid manual Git change may pass inspection. Recover lost bytes from backup or restore an intact retained Object version through the normal API. Changing a stored file does not create a version, and adding a file directly does not register an Object. Inspection preserves metadata for recovery; it never updates checksums to legitimize changed bytes.
+
+Integration tests verify admin enforcement and revocation, concurrent uploads/checks/retention, reads during checks, missing/renamed files, same-size corruption, interrupted cleanup, pagination, legacy paths, packed and empty Git repositories, dangling and corrupt objects, invalid HEAD/refs and symlinks. They compare database records and file contents before and after inspection using isolated schemas and temporary storage.
+
 ## Object versions
 
 Stop the backend before upgrading an existing database, then run:

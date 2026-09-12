@@ -34,6 +34,7 @@ import {
   type GitTree,
 } from '../git/repository.js'
 import { createSpaceStorage, deleteSpaceStorage, SpaceStorageUnavailable } from './storage.js'
+import { withStorageWrite } from './storage-access.js'
 
 export class SpaceServiceError extends Error {
   constructor(
@@ -47,7 +48,11 @@ export class SpaceServiceError extends Error {
   }
 }
 
-export async function createSpace(
+export function createSpace(...args: Parameters<typeof createSpaceMutation>) {
+  return withStorageWrite(args[1], () => createSpaceMutation(...args))
+}
+
+async function createSpaceMutation(
   db: Kysely<Database>,
   dataRoot: string,
   actorUserId: string,
@@ -663,7 +668,11 @@ function throwGitStorageError(error: unknown, message: string): never {
   throw new SpaceStorageUnavailable(new Error(message, { cause: error }))
 }
 
-export async function updateGitSpaceDefaultBranch(
+export function updateGitSpaceDefaultBranch(...args: Parameters<typeof updateGitSpaceDefaultBranchMutation>) {
+  return withStorageWrite(args[1], () => updateGitSpaceDefaultBranchMutation(...args))
+}
+
+async function updateGitSpaceDefaultBranchMutation(
   db: Kysely<Database>,
   dataRoot: string,
   actorUserId: string,
@@ -772,7 +781,11 @@ export async function updateSpace(
   }
 }
 
-export async function deleteSpace(
+export function deleteSpace(...args: Parameters<typeof deleteSpaceMutation>) {
+  return withStorageWrite(args[1], () => deleteSpaceMutation(...args))
+}
+
+async function deleteSpaceMutation(
   db: Kysely<Database>,
   dataRoot: string,
   actorUserId: string,

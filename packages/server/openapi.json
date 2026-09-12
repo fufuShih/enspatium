@@ -5844,6 +5844,337 @@
           }
         }
       }
+    },
+    "/admin/storage/check": {
+      "post": {
+        "operationId": "checkStorageIntegrity",
+        "tags": [
+          "admin"
+        ],
+        "description": "Site admins only. Run a read-only storage check and return the report. Storage writes are paused in this backend process until checking finishes; reads remain available. Returns 409 if writes or another check are active. Findings use HTTP 200 with status issues/incomplete. Requests have a two-minute scan budget; direct filesystem edits and multiple backend processes are outside the write guard.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "properties": {
+                  "spaceId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "deep": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "startedAt",
+                    "finishedAt",
+                    "mode",
+                    "dataRoot",
+                    "scope",
+                    "consistency",
+                    "complete",
+                    "status",
+                    "spaces",
+                    "issues"
+                  ],
+                  "properties": {
+                    "startedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "finishedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "mode": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "basic"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "deep"
+                          ]
+                        }
+                      ]
+                    },
+                    "dataRoot": {
+                      "type": "string"
+                    },
+                    "scope": {
+                      "type": "string"
+                    },
+                    "consistency": {
+                      "type": "string",
+                      "enum": [
+                        "service-writes-paused"
+                      ]
+                    },
+                    "complete": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "ok"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "issues"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "incomplete"
+                          ]
+                        }
+                      ]
+                    },
+                    "spaces": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "namespace",
+                          "slug",
+                          "type",
+                          "objects",
+                          "versions",
+                          "filesChecked",
+                          "hashesChecked",
+                          "versionBytes"
+                        ],
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "namespace": {
+                            "type": "string"
+                          },
+                          "slug": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "git"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "object"
+                                ]
+                              }
+                            ]
+                          },
+                          "objects": {
+                            "type": "integer"
+                          },
+                          "versions": {
+                            "type": "integer"
+                          },
+                          "filesChecked": {
+                            "type": "integer"
+                          },
+                          "hashesChecked": {
+                            "type": "integer"
+                          },
+                          "versionBytes": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "severity",
+                          "code",
+                          "message"
+                        ],
+                        "properties": {
+                          "severity": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "info"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "warning"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "error"
+                                ]
+                              }
+                            ]
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "spaceId": {
+                            "type": "string"
+                          },
+                          "objectId": {
+                            "type": "string"
+                          },
+                          "versionId": {
+                            "type": "string"
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "security": [

@@ -38,7 +38,8 @@ export async function serveGitHttpBackend(
   }
 
   const environment = createGitHttpEnvironment(input)
-  const child = spawn('git', ['http-backend'], {
+  // Keep push-triggered maintenance from outliving the storage write lease.
+  const child = spawn('git', ['-c', 'receive.autogc=false', 'http-backend'], {
     env: environment,
     stdio: ['pipe', 'pipe', 'pipe'],
     windowsHide: true,
@@ -70,12 +71,14 @@ export async function serveGitHttpBackend(
     },
   )
 
+  const operations = [
+    pipeline(input.request, child.stdin),
+    pipeline(child.stdout, responseTransform, input.response, { end: false }),
+    waitForGitProcess(child),
+  ]
+
   try {
-    await Promise.all([
-      pipeline(input.request, child.stdin),
-      pipeline(child.stdout, responseTransform, input.response, { end: false }),
-      waitForGitProcess(child),
-    ])
+    await Promise.all(operations)
     if (input.servicePath === 'git-receive-pack') {
       await synchronizeGitHead(input.dataRoot, input.spaceId)
     }
@@ -83,6 +86,10 @@ export async function serveGitHttpBackend(
     input.response.end()
   } catch (error) {
     child.kill()
+    child.stdin.destroy()
+    child.stdout.destroy()
+    // A failed stream must not release the lease while Git is still exiting.
+    await Promise.allSettled(operations)
 
     const stderr = Buffer.concat(errorOutput).toString('utf8').trim()
     const detail = timedOut

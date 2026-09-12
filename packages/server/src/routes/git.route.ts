@@ -7,6 +7,7 @@ import type {
 
 import { createAuditEvent } from '../services/audit/audit.js'
 import { requireSpaceStorage } from '../services/space/storage.js'
+import { acquireStorageWrite } from '../services/space/storage-access.js'
 import {
   getReadableGitSpace,
   getWritableGitSpace,
@@ -142,45 +143,50 @@ async function handleGitRequest(
     throw error
   }
 
-  await requireSpaceStorage(app.config.DATA_ROOT, access.space.id, 'git', service === 'git-receive-pack')
-  reply.hijack()
-
+  // Acquire before hijacking so a busy response is a normal HTTP 409. Retain
+  // the lease until the Git subprocess, HEAD synchronization and audit finish.
+  const releaseWrite = servicePath === 'git-receive-pack' ? acquireStorageWrite(app.config.DATA_ROOT) : undefined
   try {
-    await serveGitHttpBackend({
-      request: request.raw,
-      response: reply.raw,
-      dataRoot: app.config.DATA_ROOT,
-      spaceId: access.space.id,
-      service,
-      servicePath,
-      ...(access.userId ? { remoteUser: access.userId } : {}),
-    })
-  } catch (error) {
-    request.log.error({ err: error }, 'Git HTTP backend failed')
+    await requireSpaceStorage(app.config.DATA_ROOT, access.space.id, 'git', service === 'git-receive-pack')
+    reply.hijack()
 
-    if (!reply.raw.headersSent) {
-      reply.raw.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' })
-      reply.raw.end('Git HTTP backend failed\n')
+    try {
+      await serveGitHttpBackend({
+        request: request.raw,
+        response: reply.raw,
+        dataRoot: app.config.DATA_ROOT,
+        spaceId: access.space.id,
+        service,
+        servicePath,
+        ...(access.userId ? { remoteUser: access.userId } : {}),
+      })
+    } catch (error) {
+      request.log.error({ err: error }, 'Git HTTP backend failed')
+
+      if (!reply.raw.headersSent) {
+        reply.raw.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' })
+        reply.raw.end('Git HTTP backend failed\n')
+        return
+      }
+
+      reply.raw.destroy(error instanceof Error ? error : undefined)
       return
     }
 
-    reply.raw.destroy(error instanceof Error ? error : undefined)
-    return
-  }
-
-  if (servicePath === 'git-receive-pack' && access.userId) {
-    try {
-      await createAuditEvent(app.db, {
-        actorUserId: access.userId,
-        namespaceId: access.space.namespaceId,
-        spaceId: access.space.id,
-        action: 'git.pushed',
-        metadata: { transport: 'smart-http' },
-      })
-    } catch (error) {
-      request.log.error({ err: error }, 'failed to create Git push audit event')
+    if (servicePath === 'git-receive-pack' && access.userId) {
+      try {
+        await createAuditEvent(app.db, {
+          actorUserId: access.userId,
+          namespaceId: access.space.namespaceId,
+          spaceId: access.space.id,
+          action: 'git.pushed',
+          metadata: { transport: 'smart-http' },
+        })
+      } catch (error) {
+        request.log.error({ err: error }, 'failed to create Git push audit event')
+      }
     }
-  }
+  } finally { releaseWrite?.() }
 }
 
 async function getGitReadAccess(
