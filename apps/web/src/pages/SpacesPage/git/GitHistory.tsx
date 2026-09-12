@@ -1,4 +1,5 @@
 import { gitReadRetry } from './gitReadQuery'
+import { gitRevision } from './gitBrowserApi'
 import { Box, Flex, Heading, Text, chakra } from '@chakra-ui/react'
 import { useMemo } from 'react'
 import { useSearchParams } from 'react-router'
@@ -20,7 +21,7 @@ export default function GitHistory({ account, slug, branch }: { account: string;
   const options = historyOptions(params)
   const { commit, offset = 0, snapshot, file: selectedPath } = options
   const location = (changes: HistoryLocation = {}) => gitHistoryLocation(account, slug, branch, { ...options, ...changes })
-  const listParams = { ref: snapshot || `refs/heads/${branch}`, offset, limit: commitPageSize }
+  const listParams = { ref: snapshot || gitRevision(branch, options.refType), offset, limit: commitPageSize }
   const history = useListGitSpaceCommits(account, slug, listParams, { query: {
     enabled: !commit, ...gitReadRetry, queryKey: [...getListGitSpaceCommitsQueryKey(account, slug, listParams), viewer],
   } })
@@ -42,7 +43,7 @@ export default function GitHistory({ account, slug, branch }: { account: string;
     {active.isPending ? <RequestState loading title={commit ? 'Loading commit...' : 'Loading commits...'} /> : active.isError ? <RequestState title={storageErrorTitle(active.error, 'Unable to load commits')} message={gitHistoryError(active.error)} onRetry={() => { void active.refetch() }} /> : !commit && history.data ? <>
       <Flex justify="space-between" align="center" gap="16px" mb="16px">
         <Heading as="h2" fontSize="16px" fontWeight="500">Commits</Heading>
-        <PageLink to={gitHistoryLocation(account, slug, branch)} fontSize="12px" onClick={() => { if (!snapshot && !offset) void history.refetch() }}>Latest commits</PageLink>
+        <PageLink to={gitHistoryLocation(account, slug, branch, { refType: options.refType })} fontSize="12px" onClick={() => { if (!snapshot && !offset) void history.refetch() }}>Latest commits</PageLink>
       </Flex>
       {!history.data.commits.length ? <RequestState title="No commits on this page" /> : <Box as="ul" listStyleType="none" m="0" p="0" border="1px solid var(--border)" borderRadius="8px" overflow="hidden">
         {history.data.commits.map((item, index) => <Box as="li" key={item.id} borderTop={index ? '1px solid var(--border)' : undefined}>

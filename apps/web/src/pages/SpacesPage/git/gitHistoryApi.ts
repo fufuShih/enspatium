@@ -1,13 +1,13 @@
 import { apiStatus } from '../../../context/session.ts'
-import { gitErrorMessage, gitLocation } from './gitBrowserApi.ts'
+import { gitErrorMessage, gitLocation, type GitRefType } from './gitBrowserApi.ts'
 
 export const commitPageSize = 30
 export const maxDiffPreviewLines = 3000
 
-export type HistoryLocation = { commit?: string; offset?: number; snapshot?: string; file?: string }
+export type HistoryLocation = { commit?: string; offset?: number; snapshot?: string; file?: string; refType?: GitRefType }
 
 export function gitHistoryLocation(account: string, slug: string, branch: string, options: HistoryLocation = {}) {
-  const [pathname, search] = gitLocation(account, slug, branch).split('?')
+  const [pathname, search] = gitLocation(account, slug, branch, '', false, '', options.refType).split('?')
   const params = new URLSearchParams(search)
   params.set('view', 'commits')
   if (options.commit) params.set('commit', options.commit)
@@ -21,6 +21,7 @@ export function historyOptions(params: URLSearchParams): HistoryLocation {
   const offset = Number(params.get('offset'))
   const snapshot = params.get('snapshot') || undefined
   return {
+    ...(params.get('refType') === 'tag' ? { refType: 'tag' as const } : {}),
     commit: params.get('commit') || undefined,
     file: params.get('file') || undefined,
     offset: Number.isSafeInteger(offset) && offset >= 0 && offset <= 1_000_000 ? offset : 0,
@@ -29,7 +30,7 @@ export function historyOptions(params: URLSearchParams): HistoryLocation {
 }
 
 export function gitHistoryError(error: unknown) {
-  if (apiStatus(error) === 404) return 'This commit or branch is no longer available.'
+  if (apiStatus(error) === 404) return 'This commit or reference is no longer available.'
   if (apiStatus(error) === 413) return 'This diff exceeds the 1 MiB preview limit. Clone the repository to view the full changes.'
   return gitErrorMessage(error)
 }

@@ -244,29 +244,30 @@ export async function getGitTags(
   const output = await runGit(repositoryPath, [
     'for-each-ref',
     '--sort=refname',
-    '--format=%(refname:short)%09%(objecttype)%09%(objectname)%09%(*objecttype)%09%(*objectname)',
+    '--format=%(refname)%09%(objecttype)%09%(objectname)%09%(*objecttype)%09%(*objectname)',
     'refs/tags/',
   ])
 
-  return output
-    .split('\n')
-    .filter(Boolean)
-    .flatMap((record) => {
-      const [name, objectType, objectId, peeledType, peeledId] =
-        record.split('\t')
-      const commitId =
-        objectType === 'commit'
-          ? objectId
-          : peeledType === 'commit'
-            ? peeledId
-            : undefined
+  const tags: GitTag[] = []
+  for (const record of output.split('\n').filter(Boolean)) {
+    const [name, objectType, objectId, peeledType, peeledId] =
+      record.split('\t')
+    let commitId =
+      objectType === 'commit'
+        ? objectId
+        : peeledType === 'commit'
+          ? peeledId
+          : undefined
 
-      if (!name || !commitId) {
-        return []
-      }
-
-      return [{ name, commitId }]
-    })
+    if (name && objectType === 'tag' && peeledType === 'tag') {
+      // Annotated tags may point to another annotated tag. Peel the complete
+      // chain, retaining the existing API's commit-tag-only contract.
+      try { commitId = (await runGit(repositoryPath, ['rev-parse', '--verify', '--end-of-options', objectId + '^{commit}'])).trim() }
+      catch (error) { if ((error as { code?: unknown }).code !== 128) throw error }
+    }
+    if (name && commitId) tags.push({ name: name.slice('refs/tags/'.length), commitId })
+  }
+  return tags
 }
 
 export async function getGitCommit(

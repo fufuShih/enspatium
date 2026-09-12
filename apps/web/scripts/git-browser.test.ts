@@ -1,7 +1,8 @@
 import { expect, test, vi } from 'vitest'
 import type { GetGitSpaceTree200EntriesItem } from '../src/api/generated/api.schemas.ts'
 import { getGitSpaceFile, getGetGitSpaceRawFileUrl, getGitSpaceRawFile, getDownloadGitSpaceArchiveUrl, downloadGitSpaceArchive } from '../src/api/generated/spaces.ts'
-import { defaultGitBranch, gitArchiveRef, gitErrorMessage, gitLocation, sortGitEntries } from '../src/pages/SpacesPage/git/gitBrowserApi.ts'
+import { defaultGitBranch, gitArchiveRef, gitErrorMessage, gitLocation, gitRefType, gitRevision, sortGitEntries } from '../src/pages/SpacesPage/git/gitBrowserApi.ts'
+import { gitHistoryLocation, historyOptions } from '../src/pages/SpacesPage/git/gitHistoryApi.ts'
 
 test('repository links retain branch, path, and file mode without interpreting special characters', () => {
   const url = new URL(gitLocation('my-account', 'repo', 'feature/docs', 'docs/a #?.md', true), 'https://example.test')
@@ -13,6 +14,19 @@ test('repository links retain branch, path, and file mode without interpreting s
   const root = new URL(gitLocation('my-account', 'repo', 'main'), 'https://example.test')
   expect(root.searchParams.has('path')).toBe(false)
   expect(root.searchParams.has('view')).toBe(false)
+})
+
+test('tag names remain distinct from identical branch names across file, history and archive links', () => {
+  const name = 'release/首版#%'
+  const file = new URL(gitLocation('owner', 'repo', name, 'docs/readme.md', true, 'a'.repeat(40), 'tag'), 'https://example.test')
+  expect(gitRefType(file.searchParams)).toBe('tag')
+  expect(file.searchParams.get('ref')).toBe(name)
+  expect(gitRevision(name, 'tag')).toBe('refs/tags/' + name)
+  expect(gitRevision(name)).toBe('refs/heads/' + name)
+  const history = new URL(gitHistoryLocation('owner', 'repo', name, { refType: 'tag' }), file)
+  expect(historyOptions(history.searchParams).refType).toBe('tag')
+  expect(gitArchiveRef(history.searchParams, name)).toBe('refs/tags/' + name)
+  expect(gitArchiveRef(file.searchParams, name)).toBe('a'.repeat(40))
 })
 
 test('file snapshots and raw URLs preserve commit and path; generated downloads return exact binary bytes', async () => {

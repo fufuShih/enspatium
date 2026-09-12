@@ -7,9 +7,14 @@ export function defaultGitBranch(info: GetGitSpaceInfo200) {
   return info.branches.includes(info.defaultBranch) ? info.defaultBranch : info.branches[0] ?? ''
 }
 
-export function gitLocation(account: string, slug: string, branch: string, path = '', file = false, commit = '') {
+export type GitRefType = 'branch' | 'tag'
+export const gitRefType = (params: URLSearchParams): GitRefType => params.get('refType') === 'tag' ? 'tag' : 'branch'
+export const gitRevision = (name: string, type: GitRefType = 'branch') => `refs/${type === 'tag' ? 'tags' : 'heads'}/${name}`
+
+export function gitLocation(account: string, slug: string, branch: string, path = '', file = false, commit = '', refType: GitRefType = 'branch') {
   const query = new URLSearchParams()
   if (branch) query.set('ref', branch)
+  if (refType === 'tag') query.set('refType', 'tag')
   if (path) query.set('path', path)
   if (file) query.set('view', 'file')
   if (file && commit) query.set('commit', commit)
@@ -23,7 +28,7 @@ export function sortGitEntries(entries: GetGitSpaceTree200EntriesItem[]) {
 export function gitArchiveRef(params: URLSearchParams, branch: string, treeCommit?: string) {
   const view = params.get('view')
   if (view === 'file' || view === 'commits') {
-    return params.get('commit') || (view === 'commits' ? params.get('snapshot') : '') || (branch ? `refs/heads/${branch}` : undefined)
+    return params.get('commit') || (view === 'commits' ? params.get('snapshot') : '') || (branch ? gitRevision(branch, gitRefType(params)) : undefined)
   }
   return treeCommit
 }
@@ -33,10 +38,10 @@ export function gitErrorMessage(error: unknown) {
   const storageMessage = storageErrorMessage(error)
   if (storageMessage) return storageMessage
   switch (apiStatus(error)) {
-    case 400: return 'This path or branch cannot be opened.'
+    case 400: return 'This path or reference cannot be opened.'
     case 401: return 'Please sign in to view this repository.'
     case 403: return 'You do not have access to this repository.'
-    case 404: return 'This branch or path no longer exists.'
+    case 404: return 'This reference or path no longer exists.'
     case 413: return 'This file is too large to preview. Text previews are limited to 1 MiB.'
     default: return 'Unable to load repository content. Please try again.'
   }

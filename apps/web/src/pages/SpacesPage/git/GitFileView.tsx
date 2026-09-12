@@ -9,16 +9,16 @@ import {
 import { ActionButton } from '../../../components/ui/Primitives'
 import RequestState from '../../../components/RequestState'
 import { useAuth } from '../../../context/auth'
-import { gitErrorMessage, gitLocation } from './gitBrowserApi'
+import { gitErrorMessage, gitLocation, gitRevision, type GitRefType } from './gitBrowserApi'
 import { formatFileSize } from '../object/objectFileApi'
 import { storageErrorTitle } from '../shared/storageErrors'
 
-export default function GitFileView({ account, slug, branch, path, commit }: {
-  account: string; slug: string; branch: string; path: string; commit: string
+export default function GitFileView({ account, slug, branch, path, commit, refType = 'branch' }: {
+  account: string; slug: string; branch: string; path: string; commit: string; refType?: GitRefType
 }) {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const params = { ref: commit || `refs/heads/${branch}`, path }
+  const params = { ref: commit || gitRevision(branch, refType), path }
   const info = useGetGitSpaceFileInfo(account, slug, params, { query: {
     ...gitReadRetry, gcTime: 0, refetchOnWindowFocus: false, refetchOnReconnect: false,
     queryKey: [...getGetGitSpaceFileInfoQueryKey(account, slug, params), user?.id ?? null],
@@ -30,8 +30,8 @@ export default function GitFileView({ account, slug, branch, path, commit }: {
     queryKey: [...getGetGitSpaceFileQueryKey(account, slug, previewParams), user?.id ?? null],
   } })
   useEffect(() => {
-    if (info.data && commit !== info.data.commitId) navigate(gitLocation(account, slug, branch, path, true, info.data.commitId), { replace: true })
-  }, [info.data, commit, account, slug, branch, path, navigate])
+    if (info.data && commit !== info.data.commitId) navigate(gitLocation(account, slug, branch, path, true, info.data.commitId, refType), { replace: true })
+  }, [info.data, commit, account, slug, branch, path, refType, navigate])
 
   if (info.isPending) return <RequestState loading title="Loading file..." />
   if (info.isError) return <RequestState title={storageErrorTitle(info.error, 'Unable to open file')} message={gitErrorMessage(info.error)} onRetry={() => { void info.refetch() }} />
