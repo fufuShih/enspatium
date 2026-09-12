@@ -106,7 +106,7 @@ test('production images serve HTTPS, authenticate, persist data and support real
       catch (error) { rejected = String((error as { stderr?: string }).stderr).includes('The default branch is protected') }
       expect(rejected, 'The remote must reject changes to the protected default branch').toBe(true)
     }
-    const compose = ['compose', '--env-file', 'deploy/.env.smoke', '-p', 'enspatium-smoke', '-f', 'deploy/compose.yaml']
+    const compose = ['compose', '--env-file', 'deploy/.env.smoke', '-p', 'enspatium-smoke', '-f', 'compose.yaml']
     // Elevate only this freshly generated disposable test account. The real
     // production bootstrap and account management have separate acceptance tests.
     assert.match(createdUser.id, /^[0-9a-f-]{36}$/)

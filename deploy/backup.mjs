@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 
 const repository = fileURLToPath(new URL('../', import.meta.url))
-const composeFile = join(repository, 'deploy/compose.yaml')
+const composeFile = join(repository, 'compose.yaml')
 const projectPattern = /^[a-z0-9][a-z0-9_-]{0,40}$/
 const imagePattern = /^sha256:[a-f0-9]{64}$/
 const artifacts = ['database.dump', 'content.tar.gz', 'images.tar', 'compose.yaml', 'images.json']

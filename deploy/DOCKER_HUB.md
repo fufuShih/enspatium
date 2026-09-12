@@ -1,58 +1,36 @@
-# Publish to Docker Hub
+# Docker Hub
 
-Run these commands from the repository root using Docker Desktop with Linux containers, or Docker Engine with Compose 2.20+. The root Compose file includes `deploy/compose.yaml`; both entry points use the same deployment and volume names.
+## Use the published images
 
-## 1. Create the repositories
-
-In Docker Hub, open **My Hub > Repositories > Create repository**. Select your account or organization namespace and create:
-
-- `enspatium-server`
-- `enspatium-web`
-
-Choose Public if anyone should be able to pull your images, or Private to restrict access. The migration service uses the server image; PostgreSQL uses the official image and does not need to be uploaded.
-
-## 2. Configure the image names
-
-On first setup, copy `deploy/.env.example` to `deploy/.env`. If that file already exists, edit it without replacing its secrets. Complete the database password, session key and hostname settings using the [deployment instructions](README.md#initial-installation).
-
-Set these values in `deploy/.env`, replacing `yourname` with the chosen Docker Hub namespace:
+Put the root `compose.yaml` and your own `.env` in a new directory on the deployment host. Only three settings are required:
 
 ```dotenv
-ENSPATIUM_IMAGE_PREFIX=yourname/
-ENSPATIUM_IMAGE_TAG=v0.1.0
+POSTGRES_PASSWORD=your-random-hex-password
+SESSION_KEY=your-random-64-character-hex-key
+SITE_ADDRESS=https://git.example.com
 ```
 
-The trailing `/` is required. This produces `yourname/enspatium-server:v0.1.0` and `yourname/enspatium-web:v0.1.0`. Use a new tag for each release so an existing release can be identified reliably. Leaving the prefix empty keeps the original local image names.
+Generate independent secrets; the values above are placeholders. Images default to `felixshih/enspatium-server:v0.1.0` and `felixshih/enspatium-web:v0.1.0`. Migrations use the server image automatically.
 
-## 3. Log in, build and push
+```sh
+docker compose pull
+docker compose up -d
+```
 
-In Docker account settings, open **Personal access tokens** and generate a token with Read and Write permissions. Use an expiration appropriate for your work. Log in using your personal Docker ID (also when publishing to an organization):
+Private repositories require `docker login` first. No source checkout, Dockerfile, Node.js or build is needed. Complete the initial admin setup in [Deployment](README.md#initial-installation). To update an existing service, retain its secrets and volumes and follow [Upgrades](UPGRADE.md).
+
+## Publish a new release from source
+
+Keep deployment settings in `deploy/.env` inside the source checkout, separate from its development `.env`. Set `ENSPATIUM_IMAGE_PREFIX=felixshih/` (or your namespace, including the trailing slash) and `ENSPATIUM_IMAGE_TAG` to a new release tag. Log in with an account that can write to the two Docker Hub repositories:
 
 ```powershell
 docker login --username your-docker-id
-```
-
-Paste the token at the password prompt. Keep it out of Compose files, `.env` and Git. Your account must have write access to the selected namespace.
-
-```powershell
-docker compose --env-file deploy/.env build server web
-docker compose --env-file deploy/.env config --images
+docker compose --env-file deploy/.env -f compose.yaml -f deploy/compose.build.yaml build server web
 docker compose --env-file deploy/.env push server web
 ```
 
-Check both repositories' **Tags** tabs for `v0.1.0`. Publishing uploads application images, not database records, Space contents or named volumes. The Docker build context excludes `.env` files, local `data/` and backups. This build uses the Docker engine's current Linux architecture; the target host must support that architecture.
+Use a Read/Write personal access token at the login password prompt. The build overlay is only needed for building; the root file already supplies the image names for pushing. Do not overwrite a released tag. Check each repository's Tags tab after pushing. Builds use the current Docker engine's Linux architecture; the deployment host must support it.
 
-## 4. Install the published release
+Only application images are published. Database records, Space files, volumes and local secrets are not included.
 
-On the target host, check out the project, configure its own `deploy/.env` secrets and HTTPS hostname, and set the same image prefix and release tag. For private repositories, log in there using an account/token with Read access.
-
-```powershell
-docker compose --env-file deploy/.env pull db server web
-docker compose --env-file deploy/.env up -d --no-build --pull never --wait
-```
-
-Pulling `server` also supplies the identical image used by `migrate`, which deliberately has `pull_policy: never`. The database starts first, migrations complete, then the backend and web start. The `--no-build` flag uses the published images. Finish the initial administrator setup in [Deployment](README.md#initial-installation).
-
-For an existing installation, follow the [backup and upgrade procedure](UPGRADE.md) before changing the release tag. Keep its database password and session key, and retain the named volumes.
-
-References: [Create a repository](https://docs.docker.com/docker-hub/repos/create/), [Personal access tokens](https://docs.docker.com/security/access-tokens/personal-access-tokens/), [Push images](https://docs.docker.com/docker-hub/repos/manage/hub-images/push/), [Compose include](https://docs.docker.com/reference/compose-file/include/).
+References: [Create repositories](https://docs.docker.com/docker-hub/repos/create/), [Access tokens](https://docs.docker.com/security/access-tokens/personal-access-tokens/), [Push images](https://docs.docker.com/docker-hub/repos/manage/hub-images/push/).

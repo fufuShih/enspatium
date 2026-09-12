@@ -6,13 +6,13 @@ This is a manual workflow for one backend with the existing PostgreSQL 17 and co
 
 1. Review the candidate commit and its migrations. In particular, check whether schema/content changes are compatible with the old application. Do not assume changing an image back reverses migrations.
 2. In the candidate checkout, copy the deployment environment to `deploy/.env.next` and assign a new, unique `ENSPATIUM_IMAGE_TAG`. Keep the current database password, session key, hostname, ports and data settings unless a change is intentional. Both environment files stay private and uncommitted.
-3. Build the candidate images without starting them:
+3. Pull the candidate images without starting them:
 
 ```sh
-docker compose --env-file deploy/.env.next -p enspatium -f deploy/compose.yaml build
+docker compose --env-file deploy/.env.next -p enspatium -f compose.yaml pull server web
 ```
 
-Use a different image tag for every release. Do not overwrite the tag of the currently running release. Review any Compose changes as well as application code; retain the current database image during an application-only upgrade.
+To build a candidate from source instead, run `docker compose --env-file deploy/.env.next -p enspatium -f compose.yaml -f deploy/compose.build.yaml build server web`. Use a different image tag for every release. Do not overwrite the tag of the currently running release. Review any Compose changes as well as application code; retain the current database image during an application-only upgrade.
 
 From the **currently deployed checkout**, take and verify a backup using the environment file for that deployment:
 
@@ -28,15 +28,15 @@ Use a fresh backup directory each time. This captures the previous application/d
 Stop the old web and backend, allowing admitted Git uploads/pushes or maintenance jobs to finish. The longer explicit timeout also covers an upload followed by Git processing.
 
 ```sh
-docker compose --env-file deploy/.env -p enspatium -f deploy/compose.yaml stop --timeout 660 web server
+docker compose --env-file deploy/.env -p enspatium -f compose.yaml stop --timeout 660 web server
 ```
 
 Confirm the backend exited cleanly (exit 0, no OOM). If it was forcibly stopped or did not finish normally, keep traffic stopped and investigate before proceeding. Do not use `down --volumes`.
 
-From the candidate checkout, start the built images against the existing project/volumes:
+From the candidate checkout, start the prepared images against the existing project/volumes:
 
 ```sh
-docker compose --env-file deploy/.env.next -p enspatium -f deploy/compose.yaml up -d --no-build --pull never --wait
+docker compose --env-file deploy/.env.next -p enspatium -f compose.yaml up -d --no-build --pull never --wait
 ```
 
 The migration service must exit successfully before the backend starts; the web service waits for a healthy backend. A failed migration command is a failed upgrade even if PostgreSQL is healthy. Keep traffic stopped and inspect the migration/server logs. Do not bypass dependencies with `--no-deps` or start the old image against a possibly changed schema.

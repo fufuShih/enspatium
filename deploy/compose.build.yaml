@@ -1,0 +1,11 @@
+# Optional source-build overlay. Run from the repository root:
+# docker compose --env-file deploy/.env -f compose.yaml -f deploy/compose.build.yaml build server web
+services:
+  server:
+    build:
+      context: .
+      target: server
+  web:
+    build:
+      context: .
+      target: web

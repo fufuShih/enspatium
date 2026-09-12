@@ -1,32 +1,33 @@
 # Single-server deployment
 
-This deployment runs one backend process, PostgreSQL and Caddy. It builds the real frontend and backend, applies migrations before starting the backend, serves browser routes as an SPA, and proxies `/api/*` to the backend (including Git Smart HTTP). Caddy obtains and renews public HTTPS certificates for your hostname. Only ports 80 and 443 are published; PostgreSQL and the backend stay on an internal network. Git runs as the unprivileged `node` user.
+This deployment runs one backend process, PostgreSQL and Caddy. It pulls the published frontend and backend images, applies migrations before starting the backend, serves browser routes as an SPA, and proxies `/api/*` to the backend (including Git Smart HTTP). Caddy obtains and renews public HTTPS certificates for your hostname. Only ports 80 and 443 are published; PostgreSQL and the backend stay on an internal network. Git runs as the unprivileged `node` user.
 
 ## Initial installation
 
-The root `compose.yaml` is the default entry point (Docker Compose 2.20+). Commands below retain `-f deploy/compose.yaml` for compatibility with the backup and upgrade tools; from the repository root, you can omit that flag to use the same services, build context, project name and volumes. Always pass `--env-file deploy/.env` so the development environment is not used. See [Docker Hub publishing](DOCKER_HUB.md) to build and distribute release images.
+Use Docker Engine with the Compose plugin, or Docker Desktop with Linux containers. Point your hostname at the host and allow inbound TCP 80 and 443 for HTTPS.
 
-Use a Linux host with Docker Engine and the Compose plugin, or Docker Desktop with Linux containers for local verification. Install from a reviewed Git commit. Point your hostname at the host and allow inbound TCP 80 and 443 before requesting a public certificate.
-
-1. Copy `deploy/.env.example` to `deploy/.env`.
-2. Generate two independent secrets with `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`. Set `POSTGRES_PASSWORD` and `SESSION_KEY`; use hex for the password so it is safe in the connection URL.
-3. Set `SITE_ADDRESS=https://your-hostname` and `ENSPATIUM_IMAGE_TAG` to the release/commit identifier.
-4. From the repository root, run:
+1. Put the repository's root `compose.yaml` in a new deployment directory. This is a standalone file; no `deploy/` directory or source checkout is needed.
+2. Copy this directory's `.env.example` beside it as `.env`. Set `POSTGRES_PASSWORD` and `SESSION_KEY` to two independent random 64-character hex strings, and set `SITE_ADDRESS=https://your-hostname`. On Linux, `openssl rand -hex 32` generates one secret; run it separately for each value.
+3. Start the published release:
 
 ```sh
-docker compose --env-file deploy/.env -f deploy/compose.yaml build
-docker compose --env-file deploy/.env -f deploy/compose.yaml up -d --wait
+docker compose pull
+docker compose up -d
 ```
+
+The default images are `felixshih/enspatium-server:v0.1.0` and `felixshih/enspatium-web:v0.1.0`. Override `ENSPATIUM_IMAGE_PREFIX` (including a trailing slash) or `ENSPATIUM_IMAGE_TAG` only when using another namespace or release. Migrations share the server image and run automatically before the backend starts. Public registration defaults to closed.
+
+When working inside the source checkout, preserve its development `.env`: keep deployment settings at `deploy/.env` and pass `--env-file deploy/.env`. The maintenance examples below use that layout. On a standalone host, omit that flag to use the adjacent `.env`.
 
 Open the site and check `/api/health/db`. Verify a nested browser URL after reloading, sign-in, Space creation, and clone/push through the displayed HTTPS clone URL. An access token is the Git password. The production backend refuses insecure cookies or the public development session key.
 
-Public registration is closed by default in production. For the initial administrator only, create a private `deploy/.env.admin.json` file with `displayName`, `email`, and `password` string fields, then pipe it to the one-time bootstrap command. In PowerShell:
+Public registration is closed by default in production. For the initial administrator only, create a private `.env.admin.json` file with `displayName`, `email`, and `password` string fields, then pipe it to the one-time bootstrap command. In PowerShell:
 
 ```powershell
-Get-Content -Raw -Encoding utf8 deploy/.env.admin.json | docker compose --env-file deploy/.env -f deploy/compose.yaml exec -T server node packages/server/dist/scripts/bootstrap-admin.js
+Get-Content -Raw -Encoding utf8 .env.admin.json | docker compose exec -T server node packages/server/dist/scripts/bootstrap-admin.js
 ```
 
-On Linux, use the same Docker command with `< deploy/.env.admin.json`. Remove that credential file after successful setup. The command creates a new account and personal namespace atomically and refuses to run if any administrator already exists; it never promotes an existing email. Subsequent accounts are created in **Site administration → Users**. Existing installations keep their current administrators. Bootstrap is the one installation step requiring host access; routine account administration uses the UI/API.
+On Linux, use the same Docker command with `< .env.admin.json`. Remove that credential file after successful setup. The command creates a new account and personal namespace atomically and refuses to run if any administrator already exists; it never promotes an existing email. Subsequent accounts are created in **Site administration → Users**. Existing installations keep their current administrators. Bootstrap is the one installation step requiring host access; routine account administration uses the UI/API.
 
 Administrators can search users, create accounts, and confirm disable/enable. Disabling preserves Spaces, invalidates old session cookies and revokes access tokens. Enabling requires a fresh login and new tokens; old credentials are not revived. Checks apply to new requests, not bytes already downloaded or transfers already admitted. An administrator cannot disable their own account. Public content remains publicly readable.
 
@@ -79,10 +80,10 @@ The repository browser switches between branches and commit-based tags (lightwei
 
 Set `SITE_ADDRESS=https://localhost`, `HTTP_BIND=127.0.0.1`, `HTTP_PORT=18080`, `HTTPS_PORT=18443` in a separate ignored env file. Use `-p enspatium-smoke` for an isolated Compose project with new volumes. Caddy uses its local CA; export the public root certificate from `/data/caddy/pki/authorities/local/root.crt` in the `web` container and trust it for your test client. Do not turn off session security to make production tests pass. This only verifies local HTTPS; a public deployment still needs its real DNS and certificate checked.
 
-The Vitest deployment acceptance test expects this isolated project, configured with `deploy/.env.smoke` and already built/started. Set `REGISTRATION_ENABLED=true` only in this disposable test configuration. It creates test accounts and a repository, verifies HTTPS using the exported CA, exercises push/clone, and recreates the containers to verify volume/session persistence. It refuses non-local URLs. Run from PowerShell:
+The Vitest deployment acceptance test expects this isolated project, configured with `deploy/.env.smoke` and already built/started. For local smoke images, set `ENSPATIUM_IMAGE_PREFIX=` explicitly and use the optional `-f compose.yaml -f deploy/compose.build.yaml` build overlay. Set `REGISTRATION_ENABLED=true` only in this disposable test configuration. It creates test accounts and a repository, verifies HTTPS using the exported CA, exercises push/clone, and recreates the containers to verify volume/session persistence. It refuses non-local URLs. Run from PowerShell:
 
 ```powershell
-docker compose --env-file deploy/.env.smoke -p enspatium-smoke -f deploy/compose.yaml cp web:/data/caddy/pki/authorities/local/root.crt deploy/.env.smoke-ca.pem
+docker compose --env-file deploy/.env.smoke -p enspatium-smoke cp web:/data/caddy/pki/authorities/local/root.crt deploy/.env.smoke-ca.pem
 $env:DEPLOYMENT_URL = 'https://localhost:18443'
 pnpm --filter @enspatium/server test:deployment
 ```
@@ -98,8 +99,8 @@ The backend samples every 30 seconds even when no administrator has the page ope
 Counters and the latest 20 error summaries belong to the current backend process and reset on restart. They cover HTTP 5xx responses (including capacity rejections), failed Git streams and background Object cleanup failures. Summaries contain timestamps, error categories, status codes and registered route templates, excluding request parameters, queries, credentials, bodies and exception details. Git stream failures are counted once even when their HTTP response also reports a failure. The existing private server logs remain the detailed diagnostic record.
 
 ```sh
-docker compose --env-file deploy/.env -f deploy/compose.yaml ps
-docker compose --env-file deploy/.env -f deploy/compose.yaml logs --tail 100 server
+docker compose --env-file deploy/.env ps
+docker compose --env-file deploy/.env logs --tail 100 server
 ```
 
 Logs rotate at 10 MiB with three files per container. The backend healthcheck includes a database query. Restart policies recover exited containers; an unhealthy status alone does not restart a container. Operate a single backend instance: the storage write guard is process-local. Do not scale this service or allow another process to write `DATA_ROOT`.

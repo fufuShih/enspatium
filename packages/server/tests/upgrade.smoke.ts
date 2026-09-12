@@ -26,7 +26,7 @@ test('a release upgrade preserves Git and Object data, and a failed migration re
   const previousFile = join(root, 'previous.json')
   const candidateFile = join(root, 'candidate.json')
   const failureFile = join(root, 'failure.json')
-  const composeFile = join(repository, 'deploy/compose.yaml')
+  const composeFile = join(repository, 'compose.yaml')
   let sourceCreated = false
   let recoveryCreated = false
   let origin = ''

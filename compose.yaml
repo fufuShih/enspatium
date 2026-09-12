@@ -1,6 +1,103 @@
-# Root entry point. Requires Docker Compose 2.20 or later.
-# Run with --env-file deploy/.env to use the deployment environment.
+# Standalone deployment: configure .env, then docker compose pull && docker compose up -d
 name: enspatium
 
-include:
-  - ./deploy/compose.yaml
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+x-server: &server
+  image: ${ENSPATIUM_IMAGE_PREFIX-felixshih/}enspatium-server:${ENSPATIUM_IMAGE_TAG:-v0.1.0}
+  init: true
+  logging: *logging
+  environment:
+    NODE_ENV: production
+    HOST: 0.0.0.0
+    DATABASE_URL: postgres://enspatium:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/enspatium
+    DATA_ROOT: /data
+    SESSION_KEY: ${SESSION_KEY:?Set SESSION_KEY}
+    SESSION_SECURE: "true"
+    REGISTRATION_ENABLED: ${REGISTRATION_ENABLED:-false}
+    TRUST_PROXY: "true"
+    LOGIN_RATE_LIMIT: ${LOGIN_RATE_LIMIT:-20}
+    LOGIN_ACCOUNT_RATE_LIMIT: ${LOGIN_ACCOUNT_RATE_LIMIT:-10}
+    REGISTRATION_RATE_LIMIT: ${REGISTRATION_RATE_LIMIT:-5}
+    GIT_AUTH_RATE_LIMIT: ${GIT_AUTH_RATE_LIMIT:-300}
+    GIT_MAX_CONCURRENT_PROCESSES: ${GIT_MAX_CONCURRENT_PROCESSES:-4}
+    GIT_MAX_PUSH_BYTES: ${GIT_MAX_PUSH_BYTES:-104857600}
+    GIT_REPOSITORY_MAX_BYTES: ${GIT_REPOSITORY_MAX_BYTES:-1073741824}
+    STORAGE_MIN_FREE_BYTES: ${STORAGE_MIN_FREE_BYTES:-1073741824}
+  networks: [backend]
+
+services:
+  db:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      POSTGRES_DB: enspatium
+      POSTGRES_USER: enspatium
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - database:/var/lib/postgresql/data
+    networks: [backend]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U enspatium -d enspatium"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  migrate:
+    <<: *server
+    command: [node, packages/server/dist/db/migrate.js]
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  server:
+    <<: *server
+    restart: unless-stopped
+    stop_grace_period: 6m
+    mem_limit: 1g
+    pids_limit: 256
+    volumes:
+      - content:/data
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/health/db').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 4
+
+  web:
+    image: ${ENSPATIUM_IMAGE_PREFIX-felixshih/}enspatium-web:${ENSPATIUM_IMAGE_TAG:-v0.1.0}
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?Set SITE_ADDRESS to your HTTPS hostname}
+    ports:
+      - "${HTTP_BIND:-0.0.0.0}:${HTTP_PORT:-80}:80"
+      - "${HTTP_BIND:-0.0.0.0}:${HTTPS_PORT:-443}:443"
+    volumes:
+      - certificates:/data
+      - caddy_config:/config
+    networks: [backend, edge]
+    depends_on:
+      server:
+        condition: service_healthy
+
+networks:
+  backend:
+    internal: true
+  edge:
+
+volumes:
+  database:
+  content:
+  certificates:
+  caddy_config:

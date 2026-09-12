@@ -28,14 +28,14 @@ The server exposes `GET http://127.0.0.1:3000/health`.
 
 ## Docker deployment
 
-The root `compose.yaml` includes the deployment configuration and requires Docker Compose 2.20 or later. On first setup, copy `deploy/.env.example` to `deploy/.env`, generate independent `POSTGRES_PASSWORD` and `SESSION_KEY` values, and set your HTTPS hostname as described in [Deployment](deploy/README.md). Keep the development `.env` separate; pass the deployment env file explicitly.
+On the deployment host, put the root `compose.yaml` and a `.env` file in a new directory. Use [deploy/.env.example](deploy/.env.example) as the environment template: set `POSTGRES_PASSWORD`, `SESSION_KEY` and `SITE_ADDRESS`. Images default to `felixshih/enspatium-server:v0.1.0` and `felixshih/enspatium-web:v0.1.0`.
 
-```powershell
-docker compose --env-file deploy/.env build server web
-docker compose --env-file deploy/.env up -d --no-build --pull never --wait
+```sh
+docker compose pull
+docker compose up -d
 ```
 
-To publish images, set `ENSPATIUM_IMAGE_PREFIX=yourname/` and a release tag in `deploy/.env`. Follow [Docker Hub publishing](deploy/DOCKER_HUB.md) for repository creation, login, push and installation from published images.
+No source checkout or build tools are required on that host. See [Deployment](deploy/README.md) for initial admin setup. In a development checkout, keep its existing root `.env` and use `--env-file deploy/.env` for deployment commands. Source builds and publishing use the optional [build overlay](deploy/DOCKER_HUB.md).
 
 ## Unit tests
 
