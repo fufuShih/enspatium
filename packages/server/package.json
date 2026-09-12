@@ -14,6 +14,7 @@
     "test:integration": "tsc --project tsconfig.integration.json && vitest run --config vitest.integration.config.ts",
     "test:deployment": "tsc --project tsconfig.integration.json && vitest run --config vitest.deployment.config.ts",
     "test:backup": "tsc --project tsconfig.integration.json && vitest run --config vitest.backup.config.ts",
+    "test:upgrade": "tsc --project tsconfig.integration.json && vitest run --config vitest.upgrade.config.ts",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "generate:openapi": "tsx src/scripts/generate-openapi.ts",
     "db:migrate": "node --env-file=../../.env --import=tsx src/db/migrate.ts",
