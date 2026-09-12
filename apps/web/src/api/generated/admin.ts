@@ -31,13 +31,27 @@ import type {
   CheckStorageIntegrityBody,
   CreateAdminManagedUser201,
   CreateAdminManagedUserBody,
+  GetGitMaintenance200,
+  GetGitMaintenance401,
+  GetGitMaintenance403,
   GetOperationsStatus200,
   GetOperationsStatus401,
   GetOperationsStatus403,
+  ListAdminGitSpaces200,
+  ListAdminGitSpaces401,
+  ListAdminGitSpaces403,
+  ListAdminGitSpacesParams,
   ListAdminUsers200,
   ListAdminUsersParams,
   SetUserAccess200,
-  SetUserAccessBody
+  SetUserAccessBody,
+  StartGitMaintenance202,
+  StartGitMaintenance401,
+  StartGitMaintenance403,
+  StartGitMaintenance404,
+  StartGitMaintenance409,
+  StartGitMaintenance503,
+  StartGitMaintenanceBody
 } from './api.schemas';
 
 
@@ -172,7 +186,326 @@ export function useGetOperationsStatus<TData = Awaited<ReturnType<typeof getOper
 
 
 
-export const getCheckStorageIntegrityUrl = () => {
+export const getListAdminGitSpacesUrl = (params?: ListAdminGitSpacesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/git/spaces?${stringifiedParams}` : `/api/admin/git/spaces`
+}
+
+export const listAdminGitSpaces = async (params?: ListAdminGitSpacesParams, options?: RequestInit): Promise<ListAdminGitSpaces200> => {
+
+  const res = await fetch(getListAdminGitSpacesUrl(params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: ListAdminGitSpaces200, status?: number} = new globalThis.Error();
+    const data : ListAdminGitSpaces200 = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: ListAdminGitSpaces200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getListAdminGitSpacesQueryKey = (params?: ListAdminGitSpacesParams,) => {
+    return [
+    `/api/admin/git/spaces`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAdminGitSpacesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminGitSpaces>>, TError = globalThis.Error & { info?: ListAdminGitSpaces401 | ListAdminGitSpaces403; status?: number }>(params?: ListAdminGitSpacesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminGitSpaces>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminGitSpacesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminGitSpaces>>> = ({ signal }) => listAdminGitSpaces(params, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminGitSpaces>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListAdminGitSpacesQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminGitSpaces>>>
+export type ListAdminGitSpacesQueryError = globalThis.Error & { info?: ListAdminGitSpaces401 | ListAdminGitSpaces403; status?: number }
+
+
+export function useListAdminGitSpaces<TData = Awaited<ReturnType<typeof listAdminGitSpaces>>, TError = globalThis.Error & { info?: ListAdminGitSpaces401 | ListAdminGitSpaces403; status?: number }>(
+ params: undefined |  ListAdminGitSpacesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminGitSpaces>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAdminGitSpaces>>,
+          TError,
+          Awaited<ReturnType<typeof listAdminGitSpaces>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAdminGitSpaces<TData = Awaited<ReturnType<typeof listAdminGitSpaces>>, TError = globalThis.Error & { info?: ListAdminGitSpaces401 | ListAdminGitSpaces403; status?: number }>(
+ params?: ListAdminGitSpacesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminGitSpaces>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAdminGitSpaces>>,
+          TError,
+          Awaited<ReturnType<typeof listAdminGitSpaces>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAdminGitSpaces<TData = Awaited<ReturnType<typeof listAdminGitSpaces>>, TError = globalThis.Error & { info?: ListAdminGitSpaces401 | ListAdminGitSpaces403; status?: number }>(
+ params?: ListAdminGitSpacesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminGitSpaces>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListAdminGitSpaces<TData = Awaited<ReturnType<typeof listAdminGitSpaces>>, TError = globalThis.Error & { info?: ListAdminGitSpaces401 | ListAdminGitSpaces403; status?: number }>(
+ params?: ListAdminGitSpacesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminGitSpaces>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListAdminGitSpacesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetGitMaintenanceUrl = () => {
+
+
+
+
+  return `/api/admin/git/maintenance`
+}
+
+/**
+ * Current or last maintenance job in this backend process. Completion audits persist across restarts.
+ */
+export const getGitMaintenance = async ( options?: RequestInit): Promise<GetGitMaintenance200> => {
+
+  const res = await fetch(getGetGitMaintenanceUrl(),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: GetGitMaintenance200, status?: number} = new globalThis.Error();
+    const data : GetGitMaintenance200 = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: GetGitMaintenance200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getGetGitMaintenanceQueryKey = () => {
+    return [
+    `/api/admin/git/maintenance`
+    ] as const;
+    }
+
+
+export const getGetGitMaintenanceQueryOptions = <TData = Awaited<ReturnType<typeof getGitMaintenance>>, TError = globalThis.Error & { info?: GetGitMaintenance401 | GetGitMaintenance403; status?: number }>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitMaintenance>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGitMaintenanceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGitMaintenance>>> = ({ signal }) => getGitMaintenance({ signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGitMaintenance>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetGitMaintenanceQueryResult = NonNullable<Awaited<ReturnType<typeof getGitMaintenance>>>
+export type GetGitMaintenanceQueryError = globalThis.Error & { info?: GetGitMaintenance401 | GetGitMaintenance403; status?: number }
+
+
+export function useGetGitMaintenance<TData = Awaited<ReturnType<typeof getGitMaintenance>>, TError = globalThis.Error & { info?: GetGitMaintenance401 | GetGitMaintenance403; status?: number }>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitMaintenance>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getGitMaintenance>>,
+          TError,
+          Awaited<ReturnType<typeof getGitMaintenance>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetGitMaintenance<TData = Awaited<ReturnType<typeof getGitMaintenance>>, TError = globalThis.Error & { info?: GetGitMaintenance401 | GetGitMaintenance403; status?: number }>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitMaintenance>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getGitMaintenance>>,
+          TError,
+          Awaited<ReturnType<typeof getGitMaintenance>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetGitMaintenance<TData = Awaited<ReturnType<typeof getGitMaintenance>>, TError = globalThis.Error & { info?: GetGitMaintenance401 | GetGitMaintenance403; status?: number }>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitMaintenance>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetGitMaintenance<TData = Awaited<ReturnType<typeof getGitMaintenance>>, TError = globalThis.Error & { info?: GetGitMaintenance401 | GetGitMaintenance403; status?: number }>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGitMaintenance>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetGitMaintenanceQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getStartGitMaintenanceUrl = () => {
+
+
+
+
+  return `/api/admin/git/maintenance`
+}
+
+/**
+ * Site admins only. Start one background integrity check, conservative GC and verification. Storage writes pause until completion. Git reads also pause during compaction and verification. Runs independently of the HTTP connection; poll GET for the outcome.
+ */
+export const startGitMaintenance = async (startGitMaintenanceBody: StartGitMaintenanceBody, options?: RequestInit): Promise<StartGitMaintenance202> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+const res = await fetch(getStartGitMaintenanceUrl(),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(startGitMaintenanceBody)
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: StartGitMaintenance202, status?: number} = new globalThis.Error();
+    const data : StartGitMaintenance202 = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: StartGitMaintenance202 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getStartGitMaintenanceMutationKey = () => ['startGitMaintenance'] as const;
+
+export const getStartGitMaintenanceMutationOptions = <TError = globalThis.Error & { info?: StartGitMaintenance401 | StartGitMaintenance403 | StartGitMaintenance404 | StartGitMaintenance409 | StartGitMaintenance503; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startGitMaintenance>>, TError,StartGitMaintenanceMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof startGitMaintenance>>, TError,StartGitMaintenanceMutationVariables, TContext> => {
+
+const mutationKey = getStartGitMaintenanceMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startGitMaintenance>>, StartGitMaintenanceMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  startGitMaintenance(data,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartGitMaintenanceMutationResult = NonNullable<Awaited<ReturnType<typeof startGitMaintenance>>>
+    export type StartGitMaintenanceMutationBody = StartGitMaintenanceBody
+    export type StartGitMaintenanceMutationError = globalThis.Error & { info?: StartGitMaintenance401 | StartGitMaintenance403 | StartGitMaintenance404 | StartGitMaintenance409 | StartGitMaintenance503; status?: number }
+    export type StartGitMaintenanceMutationVariables = {data: StartGitMaintenanceBody}
+
+    export const useStartGitMaintenance = <TError = globalThis.Error & { info?: StartGitMaintenance401 | StartGitMaintenance403 | StartGitMaintenance404 | StartGitMaintenance409 | StartGitMaintenance503; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startGitMaintenance>>, TError,StartGitMaintenanceMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof startGitMaintenance>>,
+        TError,
+        StartGitMaintenanceMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStartGitMaintenanceMutationOptions(options), queryClient);
+    }
+    export const getCheckStorageIntegrityUrl = () => {
 
 
 

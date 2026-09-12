@@ -786,6 +786,8 @@ export const ListSpaceAuditEvents200ItemAction = {  usercreated: 'user.created',
   spaceupdated: 'space.updated',
   spacedeleted: 'space.deleted',
   gitpushed: 'git.pushed',
+  gitmaintenance_started: 'git.maintenance_started',
+  gitmaintained: 'git.maintained',
   objectuploaded: 'object.uploaded',
   objectdeleted: 'object.deleted',
   objectmoved: 'object.moved',
@@ -1227,6 +1229,143 @@ export type GetOperationsStatus401 = {
 };
 
 export type GetOperationsStatus403 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type ListAdminGitSpacesParams = {
+/**
+ * @maxLength 100
+ */
+search?: string;
+cursor?: string;
+};
+
+export type ListAdminGitSpaces200SpacesItem = {
+  id: string;
+  namespace: string;
+  slug: string;
+  name: string;
+};
+
+export type ListAdminGitSpaces200 = {
+  spaces: ListAdminGitSpaces200SpacesItem[];
+  nextCursor: string | null;
+};
+
+export type ListAdminGitSpaces401 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type ListAdminGitSpaces403 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export const GetGitMaintenance200JobStatus = {  running: 'running',
+  completed: 'completed',
+  failed: 'failed',
+} as const
+export const GetGitMaintenance200JobPhase = {  checking: 'checking',
+  compacting: 'compacting',
+  verifying: 'verifying',
+  finished: 'finished',
+} as const
+export type GetGitMaintenance200Job = {
+  id: string;
+  spaceId: string;
+  repository: string;
+  status: typeof GetGitMaintenance200JobStatus[keyof typeof GetGitMaintenance200JobStatus];
+  phase: typeof GetGitMaintenance200JobPhase[keyof typeof GetGitMaintenance200JobPhase];
+  startedAt: string;
+  finishedAt: string | null;
+  beforeBytes: number | null;
+  afterBytes: number | null;
+  message: string;
+  auditRecorded: boolean;
+} | null;
+
+export type GetGitMaintenance200 = {
+  job: GetGitMaintenance200Job;
+};
+
+export type GetGitMaintenance401 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type GetGitMaintenance403 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type StartGitMaintenanceBody = {
+  spaceId: string;
+};
+
+export const StartGitMaintenance202Status = {  running: 'running',
+  completed: 'completed',
+  failed: 'failed',
+} as const
+export const StartGitMaintenance202Phase = {  checking: 'checking',
+  compacting: 'compacting',
+  verifying: 'verifying',
+  finished: 'finished',
+} as const
+export type StartGitMaintenance202 = {
+  id: string;
+  spaceId: string;
+  repository: string;
+  status: typeof StartGitMaintenance202Status[keyof typeof StartGitMaintenance202Status];
+  phase: typeof StartGitMaintenance202Phase[keyof typeof StartGitMaintenance202Phase];
+  startedAt: string;
+  finishedAt: string | null;
+  beforeBytes: number | null;
+  afterBytes: number | null;
+  message: string;
+  auditRecorded: boolean;
+};
+
+export type StartGitMaintenance401 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type StartGitMaintenance403 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type StartGitMaintenance404 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type StartGitMaintenance409 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type StartGitMaintenance503 = {
   statusCode: number;
   code: string;
   error: string;

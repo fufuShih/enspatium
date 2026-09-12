@@ -12,6 +12,7 @@ import { initializeStorage } from './services/space/storage.js'
 import { registerSessionAccess } from './services/session-access.js'
 import { configureGitConcurrency } from './services/git/process.js'
 import { registerOperations } from './services/operations.js'
+import { registerGitMaintenance } from './services/git/maintenance.js'
 
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7
 
@@ -33,6 +34,7 @@ export async function buildApp() {
   await initializeStorage(app.config.DATA_ROOT)
   await app.register(dbPlugin)
   registerOperations(app)
+  registerGitMaintenance(app)
   await app.register(secureSession, {
     key: Buffer.from(app.config.SESSION_KEY, 'hex'),
     cookieName: 'enspatium_session',

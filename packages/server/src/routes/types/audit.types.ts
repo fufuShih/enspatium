@@ -21,6 +21,8 @@ export const AuditActionSchema = Type.Union([
   Type.Literal('space.updated'),
   Type.Literal('space.deleted'),
   Type.Literal('git.pushed'),
+  Type.Literal('git.maintenance_started'),
+  Type.Literal('git.maintained'),
   Type.Literal('object.uploaded'),
   Type.Literal('object.deleted'),
   Type.Literal('object.moved'),

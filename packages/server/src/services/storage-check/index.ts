@@ -36,7 +36,8 @@ export function checkStorage(
   )
 }
 
-async function inspectStorage(
+/** Caller must hold acquireStorageCheck for the entire inspection. */
+export async function inspectStorage(
   db: Kysely<Database>,
   dataRoot: string,
   options: CheckOptions,

@@ -13,6 +13,8 @@ export const auditActions = [
   'space.updated',
   'space.deleted',
   'git.pushed',
+  'git.maintenance_started',
+  'git.maintained',
   'object.uploaded',
   'object.deleted',
   'object.moved',

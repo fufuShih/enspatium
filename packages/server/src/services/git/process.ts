@@ -8,6 +8,21 @@ export class GitCapacityError extends Error {
 
 let maximum = 4
 let active = 0
+let maintenance = false
+
+// Maintenance owns the whole Git pool, including readers that may hold pack files.
+export function acquireGitMaintenance(): () => void {
+  if (active || maintenance) throw new GitCapacityError()
+  maintenance = true
+  active++
+  let released = false
+  return () => {
+    if (released) return
+    released = true
+    active--
+    maintenance = false
+  }
+}
 
 export const getGitProcessStatus = () => ({ active, maximum })
 
@@ -19,7 +34,7 @@ export function configureGitConcurrency(limit: number) {
 }
 
 export function acquireGitProcess(): () => void {
-  if (active >= maximum) throw new GitCapacityError()
+  if (maintenance || active >= maximum) throw new GitCapacityError()
   active++
   let released = false
   return () => {

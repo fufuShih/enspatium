@@ -67,7 +67,7 @@ test('production images serve HTTPS, authenticate, persist data and support real
     expect((await http('GET', asset, 200)).headers['content-type']).toMatch(/javascript/)
     expect((await http('GET', '/api/not-a-route', 404)).headers['content-type']).toContain('application/json')
     const user = { email: `deployment-${randomUUID()}@example.test`, displayName: 'Deployment check', password: randomBytes(24).toString('hex') }
-    await http('POST', '/api/users', 201, user)
+    const createdUser = await json<{ id: string }>('POST', '/api/users', 201, user)
     const login = await http('POST', '/api/auth/login', 200, user)
     const setCookie = login.headers['set-cookie']?.[0]
     assert.ok(setCookie && /; Secure/i.test(setCookie) && /; HttpOnly/i.test(setCookie) && /; SameSite=Strict/i.test(setCookie), 'Expected secure session cookie')
@@ -75,7 +75,7 @@ test('production images serve HTTPS, authenticate, persist data and support real
     const namespaces = await json<{ slug: string }[]>('GET', '/api/namespaces', 200)
     const account = namespaces[0]!.slug
     const base = `/api/namespaces/${account}/spaces`
-    await http('POST', base, 201, { name: 'Deployment Git', slug: 'deployment-git', type: 'git' })
+    const space = await json<{ id: string }>('POST', base, 201, { name: 'Deployment Git', slug: 'deployment-git', type: 'git' })
     const token = await json<{ token: string }>('POST', '/api/auth/tokens', 201, { name: 'Deployment check', scopes: ['git:read', 'git:write'] })
     Object.assign(env, {
       GIT_CONFIG_COUNT: '4',
@@ -94,10 +94,22 @@ test('production images serve HTTPS, authenticate, persist data and support real
     await git(['remote', 'add', 'origin', cloneUrl])
     await git(['push', 'origin', 'main'])
     const commit = await git(['rev-parse', 'HEAD'])
-    // Recreate containers while retaining named volumes; the migration must remain repeatable.
     const compose = ['compose', '--env-file', 'deploy/.env.smoke', '-p', 'enspatium-smoke', '-f', 'deploy/compose.yaml']
+    // Elevate only this freshly generated disposable test account. The real
+    // production bootstrap and account management have separate acceptance tests.
+    assert.match(createdUser.id, /^[0-9a-f-]{36}$/)
+    await exec('docker', [...compose, 'exec', '-T', 'db', 'psql', '-U', 'enspatium', '-d', 'enspatium', '-v', 'ON_ERROR_STOP=1', '-c', `UPDATE users SET is_admin = true WHERE id = '${createdUser.id}'`], { cwd: repo, timeout: 15_000, windowsHide: true })
+    expect(await json('GET', '/api/admin/operations', 200)).toMatchObject({ databaseReady: true, storage: { available: true } })
+    await http('POST', '/api/admin/git/maintenance', 202, { spaceId: space.id })
+    type JobStatus = { job: { phase: string; status: string; auditRecorded: boolean; message: string } | null }
+    await expect.poll(async () => (await json<JobStatus>('GET', '/api/admin/git/maintenance', 200)).job?.phase, { timeout: 30_000 }).toBe('finished')
+    expect((await json<JobStatus>('GET', '/api/admin/git/maintenance', 200)).job).toMatchObject({ status: 'completed', auditRecorded: true })
+    // Recreate containers while retaining named volumes; the migration must remain repeatable.
     await exec('docker', [...compose, 'up', '-d', '--force-recreate', '--wait'], { cwd: repo, timeout: 120_000, windowsHide: true })
     await http('GET', '/api/auth/me', 200)
+    expect(await json('GET', '/api/admin/git/maintenance', 200)).toEqual({ job: null })
+    const events = await json<{ action: string; metadata: { status?: string } }[]>('GET', base + '/deployment-git/audit-events', 200)
+    expect(events.some(event => event.action === 'git.maintained' && event.metadata.status === 'completed')).toBe(true)
     await git(['clone', cloneUrl, 'clone'])
     expect(await git(['rev-parse', 'HEAD'], join(root, 'clone'))).toBe(commit)
     expect(await readFile(join(root, 'clone/README.md'), 'utf8')).toBe('# Deployment check\n')

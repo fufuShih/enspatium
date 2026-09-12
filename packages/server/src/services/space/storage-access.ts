@@ -36,6 +36,8 @@ function acquire(dataRoot: string, checking: boolean): () => void {
 export const acquireStorageWrite = (dataRoot: string) =>
   acquire(dataRoot, false)
 
+export const acquireStorageCheck = (dataRoot: string) => acquire(dataRoot, true)
+
 export async function withStorageWrite<T>(
   dataRoot: string,
   run: () => Promise<T>,
@@ -52,7 +54,7 @@ export async function withStorageCheck<T>(
   dataRoot: string,
   run: () => Promise<T>,
 ): Promise<T> {
-  const release = acquire(dataRoot, true)
+  const release = acquireStorageCheck(dataRoot)
   try {
     return await run()
   } finally {
