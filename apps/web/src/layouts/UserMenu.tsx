@@ -38,6 +38,7 @@ export default function UserMenu() {
       onSelect={({ value }) => {
         if (value === 'profile') navigate(namespacePath(user.namespace))
         if (value === 'access-tokens') navigate(accessTokensPath)
+        if (value === 'site-administration') navigate('/settings/admin')
         if (value === 'theme') setTheme(darkTheme ? 'light' : 'dark')
         if (value === 'sign-out') {
           void handleSignOut()
@@ -112,6 +113,7 @@ export default function UserMenu() {
               <Text fontSize="xs" color="var(--muted)">{darkTheme ? 'Dark' : 'Light'}</Text>
               <Box as="span" aria-hidden="true" fontSize="md" color="var(--muted)">{darkTheme ? '☾' : '☀'}</Box>
             </Menu.Item>
+            {user.isAdmin && <Menu.Item value="site-administration" closeOnSelect disabled={pending} px="3" py="2.5" borderRadius="md" _highlighted={{ bg: 'var(--surface)' }}>Site administration</Menu.Item>}
             <Menu.Separator borderColor="var(--border)" my="1.5" />
             <Menu.Item
               value="sign-out"

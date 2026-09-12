@@ -483,7 +483,8 @@
                     "email",
                     "displayName",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "isAdmin"
                   ],
                   "properties": {
                     "id": {
@@ -501,6 +502,9 @@
                     },
                     "updatedAt": {
                       "type": "string"
+                    },
+                    "isAdmin": {
+                      "type": "boolean"
                     }
                   }
                 }
@@ -528,7 +532,8 @@
                     "email",
                     "displayName",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "isAdmin"
                   ],
                   "properties": {
                     "id": {
@@ -546,6 +551,9 @@
                     },
                     "updatedAt": {
                       "type": "string"
+                    },
+                    "isAdmin": {
+                      "type": "boolean"
                     }
                   }
                 }

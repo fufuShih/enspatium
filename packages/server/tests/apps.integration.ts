@@ -17,13 +17,14 @@ test('app registry preserves existing Spaces and resolves registered built-in an
   const owner = session()
   const credentials = { email: 'apps-owner@example.com', password: 'Apps-test-1234' }
   const user = await owner.request<PublicUser>('POST', '/users', 201, { ...credentials, displayName: 'Apps owner' })
-  await owner.request('POST', '/auth/login', 200, credentials)
-  const [namespace] = await owner.request<PublicNamespace[]>('GET', '/namespaces')
+  // Seed the old schema before exercising the current session API after upgrade.
+  const namespace = await app.db.selectFrom('namespaces').select(['id', 'slug']).where('owner_user_id', '=', user.id).executeTakeFirstOrThrow()
   const base = `/namespaces/${namespace!.slug}/spaces`
   const legacy = (await sql<{ id: string }>`insert into spaces (namespace_id, created_by_user_id, name, slug, type, app) values (${namespace!.id}, ${user.id}, 'Existing media', 'existing-media', 'object', 'media') returning id`.execute(app.db)).rows[0]!
   const plain = (await sql<{ id: string }>`insert into spaces (namespace_id, created_by_user_id, name, slug, type, app) values (${namespace!.id}, ${user.id}, 'Existing files', 'existing-files', 'object', null) returning id`.execute(app.db)).rows[0]!
   const migrated = await migrateDatabase(app.db, schema)
   expect(migrated.error).toBeUndefined()
+  expect(await owner.request('POST', '/auth/login', 200, credentials)).toMatchObject({ isAdmin: false })
   expect((await migrateDatabase(app.db, schema)).results).toEqual([])
   expect(await app.db.selectFrom('spaces').select(['id', 'app_type']).where('id', 'in', [legacy.id, plain.id]).execute()).toEqual(expect.arrayContaining([{ id: legacy.id, app_type: 'media' }, { id: plain.id, app_type: null }]))
   const guest = session()

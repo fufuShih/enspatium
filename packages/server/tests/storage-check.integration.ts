@@ -143,11 +143,16 @@ test('Object inspection reconciles all retained versions without changing data a
       })
     ).statusCode,
   ).toBe(403)
+  const currentUser = () => app.inject({ url: '/auth/me', headers: { cookie } })
+  expect((await currentUser()).json().isAdmin).toBe(false)
   await app.db
     .updateTable('users')
     .set({ is_admin: true })
     .where('id', '=', adminId)
     .execute()
+  expect((await currentUser()).json().isAdmin).toBe(true)
+  expect((await app.inject({ method: 'POST', url: '/auth/login', payload: credentials })).json().isAdmin).toBe(true)
+  expect((await app.inject('/users/' + adminId)).json()).not.toHaveProperty('isAdmin')
   async function apiCheck(body: { spaceId?: string; deep?: boolean } = {}) {
     const response = await app.inject({
       method: 'POST',
@@ -325,6 +330,7 @@ test('Object inspection reconciles all retained versions without changing data a
     .set({ is_admin: false })
     .where('id', '=', adminId)
     .execute()
+  expect((await currentUser()).json().isAdmin).toBe(false)
   expect(
     (
       await app.inject({

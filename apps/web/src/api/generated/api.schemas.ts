@@ -125,6 +125,7 @@ export type Login200 = {
   displayName: string;
   createdAt: string;
   updatedAt: string;
+  isAdmin: boolean;
 };
 
 export type GetCurrentUser200 = {
@@ -133,6 +134,7 @@ export type GetCurrentUser200 = {
   displayName: string;
   createdAt: string;
   updatedAt: string;
+  isAdmin: boolean;
 };
 
 export const CreatePersonalAccessTokenBodyScopesItem = {  'git:read': 'git:read',

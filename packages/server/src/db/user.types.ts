@@ -27,6 +27,10 @@ export interface PublicUser {
   updatedAt: string
 }
 
+export interface SessionUser extends PublicUser {
+  isAdmin: boolean
+}
+
 export interface CreateUserInput {
   email: string
   password: string

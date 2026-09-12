@@ -7,7 +7,6 @@ import { migrateDatabase } from '../src/db/migrations.js'
 import { writeObjectFile } from '../src/services/object/storage.js'
 import { Readable } from 'node:stream'
 import type { PublicSpaceObject, ObjectVersionPage } from '../src/db/object.types.js'
-import type { PublicNamespace } from '../src/db/namespace.types.js'
 import { createSpaceStorage } from '../src/services/space/storage.js'
 import type { PublicUser } from '../src/db/user.types.js'
 
@@ -19,8 +18,7 @@ test('legacy objects become immutable first versions; writes, history, recovery 
   const owner = session()
   const credentials = { email: 'versions@example.com', password: 'Version-test-1234' }
   const user = await owner.request<PublicUser>('POST', '/users', 201, { ...credentials, displayName: 'Version owner' })
-  await owner.request('POST', '/auth/login', 200, credentials)
-  const namespaces = await owner.request<PublicNamespace[]>('GET', '/namespaces')
+  const namespaces = await app.db.selectFrom('namespaces').select(['id', 'slug', 'kind']).where('owner_user_id', '=', user.id).execute()
   const namespace = namespaces.find(n => n.kind === 'personal')!.slug
   const base = `/namespaces/${namespace}/spaces/versions`
   // Seed the old schema directly; the current create API requires later columns.
@@ -36,6 +34,7 @@ test('legacy objects become immutable first versions; writes, history, recovery 
     created_by_user_id: user.id }).returningAll().executeTakeFirstOrThrow()
   const migrated = await migrateDatabase(app.db, schema)
   expect(migrated.error).toBeUndefined()
+  expect(await owner.request('POST', '/auth/login', 200, credentials)).toMatchObject({ isAdmin: false })
   expect((await migrateDatabase(app.db, schema)).results).toEqual([])
 
   const login = await fetch(origin + '/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(credentials) })

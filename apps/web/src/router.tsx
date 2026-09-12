@@ -7,6 +7,7 @@ import CreateSpacePage from "./pages/SpacesPage/CreateSpacePage";
 import AccessTokensPage from "./pages/UserPage/AccessTokensPage";
 import CreateOrganizationPage from "./pages/UserPage/CreateOrganizationPage";
 import AppPage from "./pages/AppPages/AppPage";
+import AdminPage from "./pages/AdminPage/AdminPage";
 
 export const router = createBrowserRouter([
   { path: '/app/:appType/:spaceId/*', Component: AppPage },
@@ -20,6 +21,7 @@ export const router = createBrowserRouter([
       { path: "space/create", Component: CreateSpacePage },
       { path: "organization/create", Component: CreateOrganizationPage },
       { path: "settings/access-tokens", Component: AccessTokensPage },
+      { path: "settings/admin", Component: AdminPage },
       { path: ":account", Component: AccountPage },
       { path: ":account/:spaceSlug", Component: SpacePage },
       { path: ":account/:spaceSlug/settings", element: <SpacePage settings /> },

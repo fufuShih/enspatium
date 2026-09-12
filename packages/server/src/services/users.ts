@@ -5,6 +5,7 @@ import type { Database } from '../db/index.js'
 import type {
   CreateUserInput,
   PublicUser,
+  SessionUser,
   User,
   UserServiceErrorCode,
 } from '../db/user.types.js'
@@ -90,7 +91,21 @@ export async function getUser(
   db: Kysely<Database>,
   id: string,
 ): Promise<PublicUser> {
-  let user: PublicUserRow | undefined
+  return toPublicUser(await findUser(db, id))
+}
+
+export async function getSessionUser(
+  db: Kysely<Database>,
+  id: string,
+): Promise<SessionUser> {
+  return toSessionUser(await findUser(db, id))
+}
+
+async function findUser(
+  db: Kysely<Database>,
+  id: string,
+): Promise<PublicUserRow & Pick<User, 'is_admin'>> {
+  let user: (PublicUserRow & Pick<User, 'is_admin'>) | undefined
 
   try {
     user = await db
@@ -99,6 +114,7 @@ export async function getUser(
         'id',
         'email',
         'display_name',
+        'is_admin',
         'created_at',
         'updated_at',
       ])
@@ -112,14 +128,14 @@ export async function getUser(
     throw new UserServiceError('NOT_FOUND', 404, 'user not found')
   }
 
-  return toPublicUser(user)
+  return user
 }
 
 export async function authenticateUser(
   db: Kysely<Database>,
   emailInput: string,
   password: string,
-): Promise<PublicUser> {
+): Promise<SessionUser> {
   const email = emailInput.trim().toLowerCase()
 
   if (!email || !password) {
@@ -164,7 +180,7 @@ export async function authenticateUser(
     throw invalidCredentials()
   }
 
-  return toPublicUser(user)
+  return toSessionUser(user)
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -228,6 +244,10 @@ function toPublicUser(user: PublicUserRow): PublicUser {
     createdAt: user.created_at.toISOString(),
     updatedAt: user.updated_at.toISOString(),
   }
+}
+
+function toSessionUser(user: PublicUserRow & Pick<User, 'is_admin'>): SessionUser {
+  return { ...toPublicUser(user), isAdmin: user.is_admin }
 }
 
 function invalidCredentials(): UserServiceError {

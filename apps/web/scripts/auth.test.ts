@@ -3,7 +3,7 @@ import { authErrorMessage, loadSession } from '../src/context/session.ts'
 import { login } from '../src/api/generated/auth.ts'
 import { createUser } from '../src/api/generated/users.ts'
 
-const user = { id: 'user-id', displayName: 'Test User', email: 'test@example.com', createdAt: '', updatedAt: '' }
+const user = { id: 'user-id', displayName: 'Test User', email: 'test@example.com', isAdmin: true, createdAt: '', updatedAt: '' }
 
 test('session restoration uses the backend namespace instead of an email-derived slug', async () => {
   const requests: string[] = []
@@ -19,6 +19,7 @@ test('session restoration uses the backend namespace instead of an email-derived
   const session = await loadSession()
   expect(session?.namespace.account).toBe('u-real-account')
   expect(session?.name).toBe(user.displayName)
+  expect(session?.isAdmin).toBe(true)
   expect(requests).toStrictEqual(['/api/auth/me', '/api/namespaces'])
 })
 

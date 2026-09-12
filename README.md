@@ -57,7 +57,7 @@ Then, with PostgreSQL running and the same database configuration as the integra
 pnpm test:e2e
 ```
 
-Playwright type-checks and runs eight Chromium scenarios: UI registration/login and Space creation, settings persistence after reload (name, visibility and Git default branch), organization/Space membership across accounts, commit history/diff browsing across branches, Object folder navigation with file upload, preview, download and deletion, Object version uploads, historical downloads, restoration and deleted-file recovery, Media playback, seeking, photos and sharing, and Ebook EPUB/PDF reading. The tests use actual pages and HTTP requests, with no mocked API responses. Git branches for settings and history scenarios are seeded in isolated test repositories; `pnpm test:integration` continues to verify actual clone/push permissions.
+Playwright type-checks and runs nine Chromium scenarios: UI registration/login and Space creation, settings persistence after reload (name, visibility and Git default branch), organization/Space membership across accounts, commit history/diff browsing across branches, Object folder navigation with file upload, preview, download and deletion, Object version uploads, historical downloads, restoration and deleted-file recovery, Media playback, seeking, photos and sharing, Ebook EPUB/PDF reading, and admin-only storage inspection. The tests use actual pages and HTTP requests, with no mocked API responses. Git branches for settings and history scenarios are seeded in isolated test repositories; `pnpm test:integration` continues to verify actual clone/push permissions.
 
 The worker automatically starts its own Vite and backend servers on available local ports. It shares the integration suite's temporary schema, migration and storage setup; each worker gets a fresh environment and each test gets a fresh browser context. Existing dev servers are not reused or stopped. Servers, schema and temporary files are cleaned up even when an assertion fails. Tests run with one worker and no retries by default.
 
@@ -102,6 +102,8 @@ Storage-root identity checks cover disappearance or replacement during the runni
 ## Storage integrity inspection
 
 Site administrators can call `POST /admin/storage/check` with their existing login session (`/api/admin/storage/check` through the frontend proxy). It returns a JSON report directly; no command-line checker or background job is needed.
+
+Signed-in admins also have **Site administration** in the user menu, immediately above the Sign out divider. This opens `/settings/admin`, where they can run basic or deep checks for all Spaces or a single Space ID and review findings. Checks start only when requested. Login and session responses include the current `isAdmin` flag; public user profiles do not. The API rechecks the database role regardless of menu visibility.
 
 Apply migration 0016 with `pnpm --filter @enspatium/server db:migrate`. It adds `users.is_admin`, defaulting to `false` for both existing and new accounts. Provision the first administrator through a trusted database connection using the registered account's ID:
 

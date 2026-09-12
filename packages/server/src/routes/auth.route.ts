@@ -4,14 +4,13 @@ import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
 import {
   UserServiceError,
   authenticateUser,
-  getUser,
+  getSessionUser,
 } from '../services/users.js'
 import {
   authenticationRequired,
   requireCurrentUserId,
 } from './current-user.route.js'
-import { LoginBodySchema } from './types/auth.types.js'
-import { UserResponseSchema } from './types/users.types.js'
+import { LoginBodySchema, SessionUserResponseSchema } from './types/auth.types.js'
 
 export const authRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.post(
@@ -23,11 +22,12 @@ export const authRoutes: FastifyPluginAsyncTypebox = async (app) => {
         security: [],
         body: LoginBodySchema,
         response: {
-          200: UserResponseSchema,
+          200: SessionUserResponseSchema,
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
+      reply.header('cache-control', 'private, no-store')
       const user = await authenticateUser(
         app.db,
         request.body.email,
@@ -48,15 +48,16 @@ export const authRoutes: FastifyPluginAsyncTypebox = async (app) => {
         operationId: 'getCurrentUser',
         tags: ['auth'],
         response: {
-          200: UserResponseSchema,
+          200: SessionUserResponseSchema,
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
+      reply.header('cache-control', 'private, no-store')
       const userId = requireCurrentUserId(request)
 
       try {
-        return await getUser(app.db, userId)
+        return await getSessionUser(app.db, userId)
       } catch (error) {
         if (error instanceof UserServiceError && error.code === 'NOT_FOUND') {
           request.session.delete()
