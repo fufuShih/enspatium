@@ -30,7 +30,8 @@ test('app registry preserves existing Spaces and resolves registered built-in an
   const guest = session()
   const ebook = { type: 'ebook', name: 'Ebook library', kind: 'builtin', ownerUserId: null, storageType: 'object' }
   const builtin = { type: 'media', name: 'Media', kind: 'builtin', ownerUserId: null, storageType: 'object' }
-  expect(await guest.request('GET', '/apps')).toEqual([ebook, builtin])
+  const note = { type: 'note', name: 'Note', kind: 'builtin', ownerUserId: null, storageType: 'object' }
+  expect(await guest.request('GET', '/apps')).toEqual([ebook, builtin, note])
   expect(await owner.request('GET', `/apps/media/spaces/${legacy.id}`)).toMatchObject({ id: legacy.id, app: builtin })
   await guest.request('GET', `/apps/media/spaces/${legacy.id}`, 401)
   await owner.request('GET', `/apps/wiki/spaces/${legacy.id}`, 404)
@@ -66,7 +67,7 @@ test('app registry preserves existing Spaces and resolves registered built-in an
   await owner.request('GET', base + '/notes/unknown-app', 404)
   await owner.request('GET', base + '/notes/members') // The existing static resource still wins.
   expect(await owner.request('GET', '/apps')).toEqual(expect.arrayContaining([builtin, expect.objectContaining({ type: 'owner-wiki' })]))
-  expect(await guest.request('GET', '/apps')).toEqual([ebook, builtin])
+  expect(await guest.request('GET', '/apps')).toEqual([ebook, builtin, note])
   await guest.request('GET', customUrl, 401)
 
   const other = session()
@@ -74,7 +75,7 @@ test('app registry preserves existing Spaces and resolves registered built-in an
   await other.request('POST', '/users', 201, { ...otherCredentials, displayName: 'Other user' })
   await other.request('POST', '/auth/login', 200, otherCredentials)
   const [otherNamespace] = await other.request<PublicNamespace[]>('GET', '/namespaces')
-  expect(await other.request('GET', '/apps')).toEqual([ebook, builtin])
+  expect(await other.request('GET', '/apps')).toEqual([ebook, builtin, note])
   await other.request('GET', customUrl, 403)
   await other.request('POST', `/namespaces/${otherNamespace!.slug}/spaces`, 403, { name: 'Not mine', slug: 'not-mine', type: 'object', app: 'owner-wiki' })
   await owner.request('PATCH', base + '/notes', 200, { visibility: 'public' })

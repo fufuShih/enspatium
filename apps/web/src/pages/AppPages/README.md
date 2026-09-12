@@ -11,7 +11,7 @@ Space cards still open file management; **Open app** opens an App Page in a new 
 
 Media follows the site's light/dark theme, with category navigation on the left and thumbnail cards on the right. Mobile categories become a horizontal row. Selecting a card expands a player above the grid without entering fullscreen; Close or Escape stops playback and returns focus to the card. Photos load lazily, nearby video cards request a browser preview, and music uses a cover icon. Missing previews fall back to type icons. `MediaThumbnail.tsx` and `MediaPlayer.tsx` keep preview and playback behavior separate.
 
-Plugins are local TypeScript/React modules built with the frontend. A plugin declares `type`, `label`, `builtIn`, `view` and `integration`. Creation offers **Media (built-in)** and **Ebook library (built-in)**.
+Plugins are local TypeScript/React modules built with the frontend. A plugin declares `type`, `label`, `builtIn`, `view` and `integration`. Creation offers **Media (built-in)**, **Ebook library (built-in)** and **Note (built-in)**.
 
 `view` is the React page at the app's root URL. Every view receives `{ space: { id, name, account, slug }, basePath }` and uses Chakra UI. `integration` declares the storage type and Space loader, plus any plugin-specific API functions needed by the view. The loader receives an AbortSignal and must use an API that checks Space access. These are developer settings in code.
 
@@ -51,6 +51,12 @@ The backend `app_types` table owns registration metadata: `type` (unique slug), 
 Migration 0015 renames the registry to `app_types` and the Space reference to `app_type`, preserving existing IDs and storage. Server-side plugins declare format rules and share the generic Object App routes; see the [backend App guide](../../../../../packages/server/src/apps/README.md).
 
 Registration currently happens through deployment migrations. A self-service registration endpoint/UI and plugin upload/execution are future work. Static pages and wiki are future examples.
+
+## Note
+
+Migration 0018 registers `note`. `/app/note/:spaceId` opens a folder sidebar; `/app/note/:spaceId/note/:noteId` opens a Markdown note. Notes are ordinary `.md` Objects with existing permissions, versions and retention. Create notes inside folders with names such as `Journal/Today`; rename, delete and restore through Files.
+
+The CodeMirror editor uses a single live-preview surface: the selected line shows Markdown syntax, while other lines format headings, emphasis, lists, quotes, code and links. HTML is displayed as text; unsupported Markdown remains editable source. Nothing is converted to HTML for storage. Explicit Save or Ctrl/Cmd+S checks the opened version; conflicts retain the draft and offer a download. Navigation warns about unsaved changes. Public readers cannot edit. Notes must be UTF-8 and at most 1 MiB; larger files remain available through Files. Advanced Obsidian features, embedded media, table layouts and wiki links are outside this first version.
 
 ## Ebook library
 

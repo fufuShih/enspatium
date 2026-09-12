@@ -20,14 +20,14 @@ export function classifyAppObject(plugin: ObjectAppPlugin, key: string, contentT
   const mime = contentType.split(';', 1)[0]!.trim().toLowerCase()
   const extension = key.split('.').at(-1)?.toLowerCase()
   return plugin.kinds.find(rule => rule.contentTypes.some(type => type.endsWith('/*') ? mime.startsWith(type.slice(0, -1)) : mime === type)
-    || (mime === 'application/octet-stream' && key.includes('.') && rule.extensions?.includes(extension!)))
+    || ((rule.extensionContentTypes ?? ['application/octet-stream']).includes(mime) && key.includes('.') && rule.extensions?.includes(extension!)))
 }
 
 function kindCondition(rule: ObjectAppKind) {
   const mime = sql`lower(trim(split_part(content_type, ';', 1)))`
   const conditions = rule.contentTypes.map(type => type.endsWith('/*')
     ? sql`${mime} like ${escapeLikePrefix(type.slice(0, -1)) + '%'}` : sql`${mime} = ${type}`)
-  if (rule.extensions?.length) conditions.push(sql`${mime} = 'application/octet-stream'
+  if (rule.extensions?.length && (rule.extensionContentTypes ?? ['application/octet-stream']).length) conditions.push(sql`${mime} in (${sql.join(rule.extensionContentTypes ?? ['application/octet-stream'])})
     and strpos(key, '.') > 0 and lower(substring(key from '[^.]+$')) in (${sql.join(rule.extensions)})`)
   return conditions.length ? sql`(${sql.join(conditions, sql` or `)})` : sql`false`
 }

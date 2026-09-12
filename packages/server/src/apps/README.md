@@ -1,6 +1,6 @@
 # App types and Object App plugins
 
-An App type is a registered way to present a Space. A Space keeps its storage type (`git` or `object`) and optionally references one App type. Media and Ebook both use Object storage, so they share data, permissions, versions, retention and quota with file management.
+An App type is a registered way to present a Space. A Space keeps its storage type (`git` or `object`) and optionally references one App type. Media, Ebook and Note use Object storage, sharing data, permissions, versions, retention and quota with file management.
 
 ## Database
 
@@ -51,6 +51,6 @@ export const documentPlugin = {
 } satisfies ObjectAppPlugin
 ```
 
-Rules are evaluated in order. `contentTypes` contains lowercase exact MIME types or a top-level wildcard such as `audio/*`. `extensions` contains lowercase suffixes without dots and applies only to `application/octet-stream`; this supports browsers that do not identify EPUB uploads. Optional `contentType` sets the canonical streaming MIME type. The same rules generate the SQL filter and classify downloaded versions, avoiding separate detection implementations.
+Rules are evaluated in order. `contentTypes` contains lowercase exact MIME types or a top-level wildcard such as `audio/*`. `extensions` contains lowercase suffixes without dots and defaults to matching `application/octet-stream` uploads. Optional `extensionContentTypes` overrides those fallback MIME types; Note also accepts `.md`/`.markdown` uploaded as `text/plain`. Optional `contentType` sets the canonical streaming MIME type. The same rules generate the SQL filter and classify downloaded versions.
 
-Only Media and Ebook are implemented. This initial contract covers apps that browse/read Objects; plugin-specific writes or another storage backend can be added when a concrete app needs them. DB registration does not load code, and plugins are deployed TypeScript modules. There is no runtime code upload, self-service registration UI, plugin marketplace or arbitrary JSON configuration layer.
+Media, Ebook and Note are implemented. Note is registered by migration 0018; it saves Markdown through the existing Object upload API with `expectedVersion` rather than adding note-specific write routes or tables. DB registration does not load code, and plugins are deployed TypeScript modules. There is no runtime code upload, self-service registration UI, plugin marketplace or arbitrary JSON configuration layer.

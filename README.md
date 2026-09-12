@@ -8,7 +8,7 @@ A self-hosted home for Git repositories, versioned files, and content apps.
 
 - **Git** ? HTTPS clone/push, Branch/Tag browsing, commit history, version comparison, and ZIP downloads.
 - **Object storage** ? Folder uploads, previews, version restore, configurable retention, and batch file operations.
-- **App Pages** ? Built-in Media player and EPUB/PDF library, using the same files and permissions.
+- **App Pages** — Built-in Media player, EPUB/PDF library, and Markdown notes, using the same files and permissions.
 - **Administration** ? Public/private Spaces, organization access, account management, and storage checks.
 
 ## Deploy with Docker

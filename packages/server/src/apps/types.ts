@@ -3,6 +3,8 @@ export type ObjectAppKind = {
   contentTypes: readonly string[]
   // Extension fallback applies only to application/octet-stream uploads.
   extensions?: readonly string[]
+  // Optional MIME types eligible for extension fallback (e.g. Markdown uploaded as plain text).
+  extensionContentTypes?: readonly string[]
   contentType?: string
 }
 
