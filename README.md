@@ -57,7 +57,7 @@ Then, with PostgreSQL running and the same database configuration as the integra
 pnpm test:e2e
 ```
 
-Playwright type-checks and runs seven Chromium scenarios: UI registration/login and Space creation, settings persistence after reload (name, visibility and Git default branch), organization/Space membership across accounts, commit history/diff browsing across branches, Object folder navigation with file upload, preview, download and deletion, Object version uploads, historical downloads, restoration and deleted-file recovery, and Media playback, seeking, photos and sharing. The tests use actual pages and HTTP requests, with no mocked API responses. Git branches for settings and history scenarios are seeded in isolated test repositories; `pnpm test:integration` continues to verify actual clone/push permissions.
+Playwright type-checks and runs eight Chromium scenarios: UI registration/login and Space creation, settings persistence after reload (name, visibility and Git default branch), organization/Space membership across accounts, commit history/diff browsing across branches, Object folder navigation with file upload, preview, download and deletion, Object version uploads, historical downloads, restoration and deleted-file recovery, Media playback, seeking, photos and sharing, and Ebook EPUB/PDF reading. The tests use actual pages and HTTP requests, with no mocked API responses. Git branches for settings and history scenarios are seeded in isolated test repositories; `pnpm test:integration` continues to verify actual clone/push permissions.
 
 The worker automatically starts its own Vite and backend servers on available local ports. It shares the integration suite's temporary schema, migration and storage setup; each worker gets a fresh environment and each test gets a fresh browser context. Existing dev servers are not reused or stopped. Servers, schema and temporary files are cleaned up even when an assertion fails. Tests run with one worker and no retries by default.
 
@@ -75,7 +75,7 @@ Start PostgreSQL and configure the root `.env` using `.env.example` (including `
 
 Open `/register` to create an account, then sign in at `/login`. Authentication uses the generated API client and the backend's HttpOnly session cookie. Refreshing the page restores the user through `/auth/me`; the profile URL uses the personal namespace returned by `/namespaces`. The user menu signs out through `/auth/logout`.
 
-After signing in, use the navigation's Create menu to open `/space/create`. Owner choices come from the backend and include only namespaces you own. Creation supports Git repositories, object storage and Media, with private visibility by default. The URL name is editable and must contain 3–40 lowercase letters, numbers, or single hyphens.
+After signing in, use the navigation's Create menu to open `/space/create`. Owner choices come from the backend and include only namespaces you own. Creation supports Git repositories, object storage, Media and Ebook library, with private visibility by default. The URL name is editable and must contain 3–40 lowercase letters, numbers, or single hyphens.
 
 Creation updates the account list and opens `/:account/:spaceSlug`. Account profiles, organization icons, Space lists, and Space details use real API data and survive reloads. Lists require namespace membership; public Space details can be opened without signing in. Run frontend tests with `pnpm --filter @enspatium/web test`.
 
@@ -133,7 +133,7 @@ Cleanup durably marks expired versions before removing bytes, hides them from hi
 
 Choose **Media** on `/space/create` to create an Object Space with `app: media`. Git and ordinary Object Spaces keep `app: null`. Media uses the same storage, permissions, quota, version history and retention settings as Files; there is no second Space or media database.
 
-Apply migrations through 0013 before starting the updated backend:
+Apply migrations through 0015 before starting the updated backend:
 
 ```powershell
 pnpm --filter @enspatium/server db:migrate
@@ -145,15 +145,29 @@ The player has its own route, `/app/media/:spaceId`, outside the main applicatio
 
 Creating or clicking a Media Space opens `/:account/:spaceSlug` in the same tab, just like an ordinary Object Space. This page manages files and contains no player. Its **Open app** button opens the independent player in a new tab. Uploads, folders, versions, deletion, restoration and settings stay in the main application. The former `?view=files` switch is no longer needed. An open player refreshes on focus, every 30 seconds, or immediately via Reload, so it can pick up changes from the management tab. Migration 0013 adds the App registry and preserves existing Media Spaces.
 
-Standalone applications live in [App Pages](apps/web/src/pages/AppPages/README.md). The `apps` table records each globally unique type, name, kind (`builtin` or `custom`), optional creator and supported storage type. `spaces.app` references this registry; a composite foreign key also enforces storage compatibility. Migration 0013 registers Media as built-in without changing existing Space IDs or files. Adding app types no longer requires changing a Media-only API enum or database check.
+Standalone applications live in [App Pages](apps/web/src/pages/AppPages/README.md). The `app_types` table records each globally unique type, name, kind (`builtin` or `custom`), optional creator and supported storage type. `spaces.app_type` references this registry; a composite foreign key also enforces storage compatibility. Migration 0013 registers Media as built-in without changing existing Space IDs or files. Adding app types no longer requires changing a Media-only API enum or database check.
 
-`GET /apps` lists built-in apps and the signed-in user's own custom app records. Creating a Space requires a registered, compatible app; custom apps are currently usable for creation only by their creator. `GET /apps/:appType/spaces/:spaceId` resolves any registered App Space using its existing read permissions. Media-specific list and streaming APIs remain in the Media implementation. A local frontend plugin supplies the `view` and `integration`; creation options include only backend records with an available compatible frontend plugin. Unknown frontend plugins show **App not available**. Only Media is provided today. Self-service registration, plugin uploads, remote execution and a marketplace are future work.
+`GET /apps` lists built-in apps and the signed-in user's own custom app records. Creating a Space requires a registered, compatible app; custom apps are currently usable for creation only by their creator. `GET /apps/:appType/spaces/:spaceId` resolves any registered App Space using its existing read permissions. All Object App types share list, detail and streaming routes under `/namespaces/:namespaceSlug/spaces/:spaceSlug/:appType`. A local frontend plugin supplies the `view` and `integration`; creation options include only backend records with an available compatible frontend plugin. Unknown frontend plugins show **App not available**. Media and Ebook library are provided today. Self-service registration, plugin uploads, remote execution and a marketplace are future work.
 
 `GET /namespaces/:namespaceSlug/spaces/:spaceSlug/media` filters current, non-deleted media before pagination. Audio/video MIME types and supported raster image MIME types are included; HTML/SVG and unclassified files stay in Files. Content types do not guarantee decodability: unsupported or damaged media shows an error with Reload and Download options. There is no transcoding, server-side thumbnail generation, playlist service or background playback.
 
 The version-pinned `/media/content?key=...&versionId=...` endpoint supports GET, HEAD and Range. A public visitor can only read the current active version; an updated/deleted old version becomes inaccessible to that visitor. Authorized signed-in readers can use retained history. Private Spaces require access on every list and content request. Responses use `private, no-store`; the active list refreshes every 30 seconds and on window focus, and Reload checks immediately. Already downloaded bytes cannot be revoked. The existing Object version endpoint still requires sign-in.
 
 Vitest integration tests cover app validation, filtering beyond 100 ordinary files, pagination, literal searches, member permissions, versions and storage errors. The Media Playwright flow uploads synthetic MP3, H.264/AAC MP4, VP9 WebM and PNG fixtures from file management, opens the independent player in a new tab, checks playback/seek and cleanup, downloads photos, and checks public/private access and sign-in return URLs. It also verifies that card clicks stay in file management, only Open app launches a new tab, and ordinary Spaces have no player. Fixture files are included; FFmpeg is not a runtime or test dependency.
+
+## Ebook library Spaces
+
+Choose **Ebook library (built-in)** on `/space/create`, upload EPUB or PDF files in the Space, then use **Open app** to open `/app/ebook/:spaceId`. The library has filename-based book covers, EPUB/PDF filters, search and pagination. Selecting a book opens `/app/ebook/:spaceId/book/:bookId` as a separate reading page. Book URLs support direct links, refresh and sign-in return. EPUB supports chapter selection and text size; PDF supports page navigation and zoom. **Back to library** restores the shelf's filters and page, and **Download book** saves the original file.
+
+App plugins declare optional relative subroutes in their `routes` configuration, appended to `/app/<app type>/<space ID>`. The shared App Pages host handles matching, authorization and unknown-page errors. Adding a plugin page does not require changes to the main frontend router; see the [plugin subroute guide](apps/web/src/pages/AppPages/README.md#plugin-subroutes).
+
+Migration 0014 registers this built-in plugin; run `pnpm --filter @enspatium/server db:migrate`. No new environment variables or storage setup are needed. EPUB previews support unencrypted files up to 20 MiB with bounded archive extraction and sanitized chapters. PDF previews use a bundled PDF.js worker. Advanced EPUB layouts, reading progress, bookmarks and metadata editing are not included. See the [App Pages guide](apps/web/src/pages/AppPages/README.md) for limits and plugin structure.
+
+Books use existing Object versions, quotas, retention and Space permissions. Public visitors can read only current active versions. Upload a replacement in Files, then reload the library to read the latest version. Integration tests cover filtering, pagination, permissions and versioned streaming; Playwright uploads actual EPUB/PDF fixtures and verifies chapters, safe rendering, PDF pages, mobile layout and public/private access.
+
+## Shared App backend
+
+Migration 0015 preserves the App registry and Spaces while renaming the tables/columns to `app_types` and `spaces.app_type`. The public Space API still uses `app`. Media and Ebook now share one set of list, item and content routes parameterized by `appType`; Ebook uses `/ebook` instead of `/ebooks`. Each local backend plugin declares its supported MIME types and kinds. Adding another Object App requires registration and a plugin definition, without adding routes, tables or API enums. See the [backend App guide](packages/server/src/apps/README.md) for the contract, reserved route names and extension steps.
 
 ## Object streaming
 
