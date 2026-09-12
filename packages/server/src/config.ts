@@ -42,6 +42,13 @@ const configPluginCallback: FastifyPluginAsync = async (app) => {
     schema: configSchema,
     dotenv: { path: envPath },
   })
+  validateProductionConfig(app.config)
+}
+
+export function validateProductionConfig(config: Pick<AppConfig, 'NODE_ENV' | 'SESSION_SECURE' | 'SESSION_KEY'>) {
+  if (config.NODE_ENV !== 'production') return
+  if (!config.SESSION_SECURE) throw new Error('Production requires SESSION_SECURE=true and HTTPS.')
+  if (config.SESSION_KEY === '0123456789abcdef'.repeat(4)) throw new Error('Replace the example SESSION_KEY before running in production.')
 }
 
 export const configPlugin = fastifyPlugin(configPluginCallback, {

@@ -1,0 +1,14 @@
+{$SITE_ADDRESS} {
+  encode zstd gzip
+  handle_path /api/* {
+    reverse_proxy server:3000
+  }
+  handle {
+    root * /srv
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    header X-Content-Type-Options "nosniff"
+    header Referrer-Policy "same-origin"
+    file_server
+  }
+}

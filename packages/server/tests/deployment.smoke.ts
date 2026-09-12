@@ -1,0 +1,112 @@
+import { test, expect } from 'vitest'
+import assert from 'node:assert/strict'
+import { execFile } from 'node:child_process'
+import { randomBytes, randomUUID } from 'node:crypto'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { request } from 'node:https'
+import { tmpdir } from 'node:os'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { promisify } from 'node:util'
+
+const exec = promisify(execFile)
+const repo = fileURLToPath(new URL('../../../', import.meta.url))
+
+// Explicitly opt in to a disposable local deployment. Never target a public site.
+test('production images serve HTTPS, authenticate, persist data and support real Git through the proxy', async () => {
+  const origin = process.env.DEPLOYMENT_URL
+  assert.ok(origin, 'Set DEPLOYMENT_URL to the isolated local HTTPS deployment.')
+  const url = new URL(origin)
+  assert.equal(url.protocol, 'https:')
+  assert.equal(url.hostname, 'localhost')
+  const caFile = resolve(repo, 'deploy/.env.smoke-ca.pem')
+  const ca = await readFile(caFile)
+  const root = await mkdtemp(join(tmpdir(), 'enspatium-deployment-'))
+  let cookie = ''
+  async function http(method: string, path: string, status: number, body?: unknown) {
+    const bytes = body === undefined ? undefined : JSON.stringify(body)
+    return new Promise<{ text: string; headers: import('node:http').IncomingHttpHeaders }>((accept, reject) => {
+      const req = request(new URL(path, origin), { method, ca,
+        headers: { ...(bytes ? { 'content-type': 'application/json', 'content-length': Buffer.byteLength(bytes) } : {}), ...(cookie ? { cookie } : {}) },
+        timeout: 15_000,
+      }, res => {
+        const parts: Buffer[] = []
+        res.on('data', part => parts.push(Buffer.from(part)))
+        res.on('error', reject)
+        res.on('end', () => {
+          try {
+            assert.equal(res.statusCode, status, `${method} ${path}: unexpected status`)
+            accept({ text: Buffer.concat(parts).toString('utf8'), headers: res.headers })
+          } catch (error) { reject(error) }
+        })
+      })
+      req.on('timeout', () => req.destroy(new Error('Deployment request timed out')))
+      req.on('error', reject)
+      req.end(bytes)
+    })
+  }
+  async function json<T>(method: string, path: string, status: number, body?: unknown) {
+    return JSON.parse((await http(method, path, status, body)).text) as T
+  }
+  const env: NodeJS.ProcessEnv = { ...process.env }
+  for (const key of Object.keys(env)) if (key.startsWith('GIT_')) delete env[key]
+  Object.assign(env, { GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: join(root, 'gitconfig'), GIT_TERMINAL_PROMPT: '0' })
+  await writeFile(join(root, 'gitconfig'), '')
+  async function git(args: string[], cwd = root) {
+    try { return (await exec('git', args, { cwd, env, timeout: 30_000, windowsHide: true })).stdout.trim() }
+    catch { throw new Error(`Deployment Git command failed: ${args[0]}`) } // Credentials must not appear in diagnostics.
+  }
+  try {
+    await http('GET', '/api/health/db', 200)
+    const index = await http('GET', '/', 200)
+    expect(index.headers['content-type']).toContain('text/html')
+    const deep = await http('GET', '/app/ebook/nonexistent/book/test', 200)
+    expect(deep.text).toBe(index.text)
+    const asset = index.text.match(/src="([^"]+\.js)"/)?.[1]
+    assert.ok(asset, 'Built entry script is missing')
+    expect((await http('GET', asset, 200)).headers['content-type']).toMatch(/javascript/)
+    expect((await http('GET', '/api/not-a-route', 404)).headers['content-type']).toContain('application/json')
+    const user = { email: `deployment-${randomUUID()}@example.test`, displayName: 'Deployment check', password: randomBytes(24).toString('hex') }
+    await http('POST', '/api/users', 201, user)
+    const login = await http('POST', '/api/auth/login', 200, user)
+    const setCookie = login.headers['set-cookie']?.[0]
+    assert.ok(setCookie && /; Secure/i.test(setCookie) && /; HttpOnly/i.test(setCookie) && /; SameSite=Strict/i.test(setCookie), 'Expected secure session cookie')
+    cookie = setCookie.split(';')[0]!
+    const namespaces = await json<{ slug: string }[]>('GET', '/api/namespaces', 200)
+    const account = namespaces[0]!.slug
+    const base = `/api/namespaces/${account}/spaces`
+    await http('POST', base, 201, { name: 'Deployment Git', slug: 'deployment-git', type: 'git' })
+    const token = await json<{ token: string }>('POST', '/api/auth/tokens', 201, { name: 'Deployment check', scopes: ['git:read', 'git:write'] })
+    Object.assign(env, {
+      GIT_CONFIG_COUNT: '4',
+      GIT_CONFIG_KEY_0: 'http.sslBackend', GIT_CONFIG_VALUE_0: 'openssl',
+      GIT_CONFIG_KEY_1: 'http.sslCAInfo', GIT_CONFIG_VALUE_1: caFile,
+      GIT_CONFIG_KEY_2: 'http.extraHeader', GIT_CONFIG_VALUE_2: `Authorization: Basic ${Buffer.from('test:' + token.token).toString('base64')}`,
+      GIT_CONFIG_KEY_3: 'credential.helper', GIT_CONFIG_VALUE_3: '',
+    })
+    await git(['init', '--initial-branch=main'])
+    await git(['config', 'user.name', 'Deployment check'])
+    await git(['config', 'user.email', 'deployment@example.test'])
+    await writeFile(join(root, 'README.md'), '# Deployment check\n')
+    await git(['add', 'README.md'])
+    await git(['commit', '-m', 'Initial contents'])
+    const cloneUrl = `${origin}/api/git/${account}/deployment-git.git`
+    await git(['remote', 'add', 'origin', cloneUrl])
+    await git(['push', 'origin', 'main'])
+    const commit = await git(['rev-parse', 'HEAD'])
+    // Recreate containers while retaining named volumes; the migration must remain repeatable.
+    const compose = ['compose', '--env-file', 'deploy/.env.smoke', '-p', 'enspatium-smoke', '-f', 'deploy/compose.yaml']
+    await exec('docker', [...compose, 'up', '-d', '--force-recreate', '--wait'], { cwd: repo, timeout: 120_000, windowsHide: true })
+    await http('GET', '/api/auth/me', 200)
+    await git(['clone', cloneUrl, 'clone'])
+    expect(await git(['rev-parse', 'HEAD'], join(root, 'clone'))).toBe(commit)
+    expect(await readFile(join(root, 'clone/README.md'), 'utf8')).toBe('# Deployment check\n')
+    // The image must preserve its non-root storage ownership after recreation.
+    const identity = await exec('docker', [...compose, 'exec', '-T', 'server', 'id', '-u'], { cwd: repo, windowsHide: true })
+    expect(identity.stdout.trim()).not.toBe('0')
+  } finally {
+    assert.equal(dirname(resolve(root)), resolve(tmpdir()))
+    assert.ok(root.startsWith(join(tmpdir(), 'enspatium-deployment-')))
+    await rm(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
+  }
+})

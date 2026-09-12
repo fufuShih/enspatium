@@ -17,6 +17,8 @@ Enspatium is a self-hosted platform for managing content, storage, and collabora
 
 ## Development
 
+For a single-host deployment and the small-trial delivery checklist, see [Deployment](deploy/README.md).
+
 ```powershell
 pnpm install
 pnpm dev
