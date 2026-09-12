@@ -11,8 +11,14 @@ try {
     port: app.config.PORT,
   })
   stopCleanup = startObjectCleanupLoop(
-    () => cleanupObjectVersions(app.db, app.config.DATA_ROOT, (error, spaceId) => app.log.warn({ err: error, spaceId }, 'Object retention cleanup will retry')),
-    error => app.log.error({ err: error }, 'Object retention sweep failed'),
+    () => cleanupObjectVersions(app.db, app.config.DATA_ROOT, (error, spaceId) => {
+      app.operations.recordCleanupFailure()
+      app.log.warn({ err: error, spaceId }, 'Object retention cleanup will retry')
+    }),
+    error => {
+      app.operations.recordCleanupFailure()
+      app.log.error({ err: error }, 'Object retention sweep failed')
+    },
     app.config.OBJECT_CLEANUP_INTERVAL_SECONDS * 1000,
   )
   for (const signal of ['SIGINT', 'SIGTERM'] as const) {

@@ -69,6 +69,12 @@ This test requires local dependencies installed with `pnpm install`, Git and Doc
 
 ## Operations
 
+**Site administration > System** shows database availability, free space on the content filesystem, the configured disk reserve, active Git command slots and recent server error summaries. The admin-only `GET /admin/operations` API returns the same typed status with `private, no-store`. The database probe has separate five-second connection/query limits; a missing or replaced content directory is reported without recreating it. These are availability/capacity checks. Use the Storage integrity check to verify repository objects and file contents.
+
+The backend samples every 30 seconds even when no administrator has the page open. It emits structured `operations.alert` warnings when database/storage checks fail, free space falls below `STORAGE_MIN_FREE_BYTES`, or server errors occurred in the last 15 minutes. Unchanged alerts are repeated at most every 15 minutes; recovery emits `operations.recovered`. The page also supports manual refresh. A database outage can prevent admin session validation, so inspect `/api/health/db` and container logs if the page cannot be reached.
+
+Counters and the latest 20 error summaries belong to the current backend process and reset on restart. They cover HTTP 5xx responses (including capacity rejections), failed Git streams and background Object cleanup failures. Summaries contain timestamps, error categories, status codes and registered route templates, excluding request parameters, queries, credentials, bodies and exception details. Git stream failures are counted once even when their HTTP response also reports a failure. The existing private server logs remain the detailed diagnostic record.
+
 ```sh
 docker compose --env-file deploy/.env -f deploy/compose.yaml ps
 docker compose --env-file deploy/.env -f deploy/compose.yaml logs --tail 100 server
@@ -88,7 +94,7 @@ This checklist tracks delivery, not permission to expose an unfinished service p
 - [x] Access management: registration switch, authentication throttling, account disable/re-enable and session/token access enforcement. Verified by API integration, admin browser workflow, bootstrap and production deployment tests.
 - [x] Git resource controls: push size and concurrent process limits, repository usage/quota, disk headroom. Verified oversized and chunked uploads, quota rejection without ref changes, low disk, overlapping/interrupted uploads, busy responses, single-slot push/HEAD/clone, all 17 server integration cases, browser usage refresh/mobile layout, and production HTTPS push/clone after container recreation.
 - [x] Consistent backup and isolated restore verification for PostgreSQL and content. The manual tool captures stopped-writer database/content snapshots and exact images, checks hashes, and restores only into fresh projects. The backup acceptance test verifies saved commits/tags, old Object versions, HTTPS sign-in/clone/download, corrupted bytes, existing-volume protection, cleanup and an unchanged source deployment. See [backup and recovery](BACKUP.md).
-- [ ] Operations: health/disk/error visibility, controlled Git maintenance, upgrade/recovery verification.
+- [ ] Operations: health/disk/error visibility, controlled Git maintenance, upgrade/recovery verification. The admin System page, status API, bounded probes and local alerts are implemented and verified; controlled Git maintenance and upgrade rehearsal remain.
 - [ ] Default branch protection against force pushes and deletion.
 - [ ] Tag browsing with files/history and ZIP downloads.
 - [ ] Branch/tag lists with commit and update details.

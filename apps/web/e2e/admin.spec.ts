@@ -36,6 +36,7 @@ test('only admins see site administration and can inspect storage from the menu'
   page.on('request', request => { if (request.url().endsWith('/api/admin/storage/check')) checks++ })
   await page.getByRole('menuitem', { name: 'Site administration', exact: true }).click()
   await expect(page).toHaveURL(/\/settings\/admin$/)
+  await page.getByRole('button', { name: 'Storage', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Storage integrity', exact: true })).toBeVisible()
   expect(checks).toBe(0)
   await page.getByLabel('Space ID (optional)', { exact: true }).fill(metadata.id)

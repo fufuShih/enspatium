@@ -7,8 +7,21 @@ import {
 } from './types/admin.types.js'
 import { checkStorage } from '../services/storage-check/index.js'
 import { requireSiteAdmin } from '../services/admin-users.js'
+import { OperationsStatusSchema } from './types/operations.types.js'
 
 export const adminRoutes: FastifyPluginAsyncTypebox = async (app) => {
+  app.addHook('onRequest', async (request, reply) => {
+    reply.header('cache-control', 'private, no-store')
+    // Read the current role for every request, including polling requests.
+    await requireSiteAdmin(app.db, requireCurrentUserId(request))
+  })
+  app.get('/admin/operations', {
+    schema: {
+      operationId: 'getOperationsStatus', tags: ['admin'], security: [{ session: [] }],
+      description: 'Site admins only. Database/storage probes, Git capacity and the latest 20 sanitized error summaries from this backend process. Counters reset on restart. Degraded probes return HTTP 200 with status degraded.',
+      response: { 200: OperationsStatusSchema, 401: AdminErrorSchema, 403: AdminErrorSchema },
+    },
+  }, async () => app.operations.refresh())
   app.post(
     '/admin/storage/check',
     {
@@ -25,12 +38,6 @@ export const adminRoutes: FastifyPluginAsyncTypebox = async (app) => {
           403: AdminErrorSchema,
           409: AdminErrorSchema,
         },
-      },
-      onRequest: async (request, reply) => {
-        reply.header('cache-control', 'private, no-store')
-        const userId = requireCurrentUserId(request)
-        // Always read the current role; a stale session cannot retain revoked admin access.
-        await requireSiteAdmin(app.db, userId)
       },
     },
     async (request) => checkStorage(app.db, app.config.DATA_ROOT, request.body),

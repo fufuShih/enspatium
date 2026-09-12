@@ -1166,6 +1166,73 @@ key: string;
 versionId: string;
 };
 
+export const GetOperationsStatus200Status = {  ok: 'ok',
+  degraded: 'degraded',
+} as const
+export type GetOperationsStatus200Storage = {
+  available: boolean;
+  freeBytes: number | null;
+  /** @minimum 0 */
+  minimumFreeBytes: number;
+};
+
+export type GetOperationsStatus200Git = {
+  /** @minimum 0 */
+  active: number;
+  /** @minimum 1 */
+  maximum: number;
+};
+
+export const GetOperationsStatus200ErrorsRecentItemKind = {  http: 'http',
+  git: 'git',
+  cleanup: 'cleanup',
+} as const
+export type GetOperationsStatus200ErrorsRecentItem = {
+  at: string;
+  kind: typeof GetOperationsStatus200ErrorsRecentItemKind[keyof typeof GetOperationsStatus200ErrorsRecentItemKind];
+  route: string | null;
+  statusCode: number | null;
+};
+
+export type GetOperationsStatus200Errors = {
+  /** @minimum 0 */
+  total: number;
+  /** @maxItems 20 */
+  recent: GetOperationsStatus200ErrorsRecentItem[];
+};
+
+export const GetOperationsStatus200AlertsItem = {  'database-unavailable': 'database-unavailable',
+  'storage-unavailable': 'storage-unavailable',
+  'low-disk-space': 'low-disk-space',
+  'recent-server-errors': 'recent-server-errors',
+} as const
+export type GetOperationsStatus200 = {
+  status: typeof GetOperationsStatus200Status[keyof typeof GetOperationsStatus200Status];
+  checkedAt: string;
+  startedAt: string;
+  /** @minimum 0 */
+  uptimeSeconds: number;
+  databaseReady: boolean;
+  storage: GetOperationsStatus200Storage;
+  git: GetOperationsStatus200Git;
+  errors: GetOperationsStatus200Errors;
+  alerts: typeof GetOperationsStatus200AlertsItem[keyof typeof GetOperationsStatus200AlertsItem][];
+};
+
+export type GetOperationsStatus401 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type GetOperationsStatus403 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
 export type CheckStorageIntegrityBody = {
   spaceId?: string;
   deep?: boolean;

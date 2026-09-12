@@ -171,6 +171,7 @@ async function handleGitRequest(
         reply.raw.end(error.message + '\n')
         return
       }
+      app.operations?.recordRequest(request, 502, 'git')
       request.log.error({ err: error }, 'Git HTTP backend failed')
 
       if (!reply.raw.headersSent) {

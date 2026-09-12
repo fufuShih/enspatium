@@ -6558,6 +6558,288 @@
         }
       }
     },
+    "/admin/operations": {
+      "get": {
+        "operationId": "getOperationsStatus",
+        "tags": [
+          "admin"
+        ],
+        "description": "Site admins only. Database/storage probes, Git capacity and the latest 20 sanitized error summaries from this backend process. Counters reset on restart. Degraded probes return HTTP 200 with status degraded.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "checkedAt",
+                    "startedAt",
+                    "uptimeSeconds",
+                    "databaseReady",
+                    "storage",
+                    "git",
+                    "errors",
+                    "alerts"
+                  ],
+                  "properties": {
+                    "status": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "ok"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "degraded"
+                          ]
+                        }
+                      ]
+                    },
+                    "checkedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "startedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "uptimeSeconds": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "databaseReady": {
+                      "type": "boolean"
+                    },
+                    "storage": {
+                      "type": "object",
+                      "required": [
+                        "available",
+                        "freeBytes",
+                        "minimumFreeBytes"
+                      ],
+                      "properties": {
+                        "available": {
+                          "type": "boolean"
+                        },
+                        "freeBytes": {
+                          "anyOf": [
+                            {
+                              "minimum": 0,
+                              "type": "integer"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "minimumFreeBytes": {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "git": {
+                      "type": "object",
+                      "required": [
+                        "active",
+                        "maximum"
+                      ],
+                      "properties": {
+                        "active": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "maximum": {
+                          "minimum": 1,
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "errors": {
+                      "type": "object",
+                      "required": [
+                        "total",
+                        "recent"
+                      ],
+                      "properties": {
+                        "total": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "recent": {
+                          "maxItems": 20,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "at",
+                              "kind",
+                              "route",
+                              "statusCode"
+                            ],
+                            "properties": {
+                              "at": {
+                                "format": "date-time",
+                                "type": "string"
+                              },
+                              "kind": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "http"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "git"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "cleanup"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "route": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "statusCode": {
+                                "anyOf": [
+                                  {
+                                    "minimum": 500,
+                                    "maximum": 599,
+                                    "type": "integer"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "alerts": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "database-unavailable"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "storage-unavailable"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "low-disk-space"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "recent-server-errors"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/storage/check": {
       "post": {
         "operationId": "checkStorageIntegrity",

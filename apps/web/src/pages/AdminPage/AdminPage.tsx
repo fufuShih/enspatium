@@ -11,18 +11,19 @@ import { ActionButton, PageContainer, PageHeading, SelectInput, TextInput } from
 import { useAuth } from '../../context/auth'
 import { apiStatus } from '../../context/session'
 import AdminUsers from './AdminUsers'
+import AdminSystem from './AdminSystem'
 
 export default function AdminPage() {
   const { user, isLoading, error } = useAuth()
-  const [tab, setTab] = useState<'storage' | 'users'>('storage')
+  const [tab, setTab] = useState<'system' | 'storage' | 'users'>('system')
   if (isLoading || error) return <AuthStatus />
   if (!user) return <Navigate to="/login" replace state={{ from: '/settings/admin' }} />
   if (!user.isAdmin) return <PageContainer><RequestState title="Access denied" message="Site administrator access is required." /></PageContainer>
   return <PageContainer maxW="880px">
     <PageHeading>Site administration</PageHeading>
     <Text mt="10px" mb="28px" fontSize="14px" color="var(--muted)">Manage your Enspatium installation.</Text>
-    <Flex gap="8px" mb="24px"><ActionButton aria-pressed={tab === 'storage'} onClick={() => setTab('storage')}>Storage</ActionButton><ActionButton aria-pressed={tab === 'users'} onClick={() => setTab('users')}>Users</ActionButton></Flex>
-    {tab === 'users' ? <AdminUsers key={user.id} currentUserId={user.id} /> : <StorageCheck key={user.id} />}
+    <Flex gap="8px" mb="24px" wrap="wrap"><ActionButton aria-pressed={tab === 'system'} onClick={() => setTab('system')}>System</ActionButton><ActionButton aria-pressed={tab === 'storage'} onClick={() => setTab('storage')}>Storage</ActionButton><ActionButton aria-pressed={tab === 'users'} onClick={() => setTab('users')}>Users</ActionButton></Flex>
+    {tab === 'system' ? <AdminSystem key={user.id} currentUserId={user.id} /> : tab === 'users' ? <AdminUsers key={user.id} currentUserId={user.id} /> : <StorageCheck key={user.id} />}
   </PageContainer>
 }
 

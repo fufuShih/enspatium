@@ -31,6 +31,9 @@ import type {
   CheckStorageIntegrityBody,
   CreateAdminManagedUser201,
   CreateAdminManagedUserBody,
+  GetOperationsStatus200,
+  GetOperationsStatus401,
+  GetOperationsStatus403,
   ListAdminUsers200,
   ListAdminUsersParams,
   SetUserAccess200,
@@ -56,6 +59,118 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetOperationsStatusUrl = () => {
+
+
+
+
+  return `/api/admin/operations`
+}
+
+/**
+ * Site admins only. Database/storage probes, Git capacity and the latest 20 sanitized error summaries from this backend process. Counters reset on restart. Degraded probes return HTTP 200 with status degraded.
+ */
+export const getOperationsStatus = async ( options?: RequestInit): Promise<GetOperationsStatus200> => {
+
+  const res = await fetch(getGetOperationsStatusUrl(),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: GetOperationsStatus200, status?: number} = new globalThis.Error();
+    const data : GetOperationsStatus200 = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: GetOperationsStatus200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getGetOperationsStatusQueryKey = () => {
+    return [
+    `/api/admin/operations`
+    ] as const;
+    }
+
+
+export const getGetOperationsStatusQueryOptions = <TData = Awaited<ReturnType<typeof getOperationsStatus>>, TError = globalThis.Error & { info?: GetOperationsStatus401 | GetOperationsStatus403; status?: number }>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOperationsStatus>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOperationsStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOperationsStatus>>> = ({ signal }) => getOperationsStatus({ signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOperationsStatus>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOperationsStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getOperationsStatus>>>
+export type GetOperationsStatusQueryError = globalThis.Error & { info?: GetOperationsStatus401 | GetOperationsStatus403; status?: number }
+
+
+export function useGetOperationsStatus<TData = Awaited<ReturnType<typeof getOperationsStatus>>, TError = globalThis.Error & { info?: GetOperationsStatus401 | GetOperationsStatus403; status?: number }>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOperationsStatus>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOperationsStatus>>,
+          TError,
+          Awaited<ReturnType<typeof getOperationsStatus>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOperationsStatus<TData = Awaited<ReturnType<typeof getOperationsStatus>>, TError = globalThis.Error & { info?: GetOperationsStatus401 | GetOperationsStatus403; status?: number }>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOperationsStatus>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOperationsStatus>>,
+          TError,
+          Awaited<ReturnType<typeof getOperationsStatus>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOperationsStatus<TData = Awaited<ReturnType<typeof getOperationsStatus>>, TError = globalThis.Error & { info?: GetOperationsStatus401 | GetOperationsStatus403; status?: number }>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOperationsStatus>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetOperationsStatus<TData = Awaited<ReturnType<typeof getOperationsStatus>>, TError = globalThis.Error & { info?: GetOperationsStatus401 | GetOperationsStatus403; status?: number }>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOperationsStatus>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetOperationsStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
 
 export const getCheckStorageIntegrityUrl = () => {
 

@@ -9,6 +9,8 @@ export class GitCapacityError extends Error {
 let maximum = 4
 let active = 0
 
+export const getGitProcessStatus = () => ({ active, maximum })
+
 // One backend process per deployment. Bound top-level Git commands, including
 // browser reads and downloads; Git may start its own helper processes.
 export function configureGitConcurrency(limit: number) {
