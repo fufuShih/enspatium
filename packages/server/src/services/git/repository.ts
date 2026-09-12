@@ -706,7 +706,7 @@ async function resolveGitCommit(
 function validateGitRef(input: string): string {
   const ref = input.trim()
 
-  if (!ref || ref.length > 255 || ref.includes('\0')) {
+  if (!ref || ref.length > 1024 || ref.includes('\0')) {
     throw new GitStorageError('REF_NOT_FOUND', 'Git ref not found')
   }
 

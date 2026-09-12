@@ -90,9 +90,10 @@ test('production images serve HTTPS, authenticate, persist data and support real
     await writeFile(join(root, 'README.md'), '# Deployment check\n')
     await git(['add', 'README.md'])
     await git(['commit', '-m', 'Initial contents'])
+    await git(['tag', '-a', 'release/v1', '-m', 'First release'])
     const cloneUrl = `${origin}/api/git/${account}/deployment-git.git`
     await git(['remote', 'add', 'origin', cloneUrl])
-    await git(['push', 'origin', 'main'])
+    await git(['push', 'origin', 'main', '--tags'])
     const firstCommit = await git(['rev-parse', 'HEAD'])
     await writeFile(join(root, 'second.txt'), 'Fast-forward push\n')
     await git(['add', 'second.txt'])
@@ -125,6 +126,16 @@ test('production images serve HTTPS, authenticate, persist data and support real
     await git(['clone', cloneUrl, 'clone'])
     expect(await git(['rev-parse', 'HEAD'], join(root, 'clone'))).toBe(commit)
     expect(await readFile(join(root, 'clone/README.md'), 'utf8')).toBe('# Deployment check\n')
+    expect(await git(['rev-parse', 'refs/tags/release/v1^{commit}'], join(root, 'clone'))).toBe(firstCommit)
+    const gitBase = base + '/deployment-git/git'
+    expect(await json('GET', gitBase + '/refs?type=branch', 200)).toMatchObject({ total: 1, items: [{ name: 'main', commit: { id: commit, message: 'Fast-forward contents' } }] })
+    expect(await json('GET', gitBase + '/refs?type=tag', 200)).toMatchObject({ total: 1, items: [{ name: 'release/v1', commit: { id: firstCommit, message: 'Initial contents' } }] })
+    expect(await json('GET', gitBase + '/readme?' + new URLSearchParams({ ref: 'refs/tags/release/v1' }), 200)).toMatchObject({ commitId: firstCommit, content: '# Deployment check\n' })
+    const comparison = await json<{ from: { commitId: string }; to: { commitId: string }; patch: string }>('GET', gitBase + '/diff?' + new URLSearchParams({ from: 'refs/tags/release/v1', to: 'refs/heads/main' }), 200)
+    expect(comparison.from.commitId).toBe(firstCommit)
+    expect(comparison.to.commitId).toBe(commit)
+    expect(comparison.patch).toContain('+Fast-forward push')
+    expect((await http('GET', `/${account}/deployment-git?view=compare`, 200)).text).toBe(index.text)
     // The image must preserve its non-root storage ownership after recreation.
     const identity = await exec('docker', [...compose, 'exec', '-T', 'server', 'id', '-u'], { cwd: repo, windowsHide: true })
     expect(identity.stdout.trim()).not.toBe('0')

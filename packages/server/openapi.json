@@ -2371,7 +2371,7 @@
           {
             "schema": {
               "minLength": 1,
-              "maxLength": 255,
+              "maxLength": 1024,
               "type": "string"
             },
             "in": "query",
@@ -2584,7 +2584,7 @@
           {
             "schema": {
               "minLength": 1,
-              "maxLength": 255,
+              "maxLength": 1024,
               "type": "string"
             },
             "in": "query",
@@ -2719,7 +2719,7 @@
           {
             "schema": {
               "minLength": 1,
-              "maxLength": 255,
+              "maxLength": 1024,
               "type": "string"
             },
             "in": "query",
@@ -2833,7 +2833,7 @@
           {
             "schema": {
               "minLength": 1,
-              "maxLength": 255,
+              "maxLength": 1024,
               "type": "string"
             },
             "in": "query",
@@ -2844,7 +2844,7 @@
           {
             "schema": {
               "minLength": 1,
-              "maxLength": 255,
+              "maxLength": 1024,
               "type": "string"
             },
             "in": "query",
@@ -2951,7 +2951,7 @@
           {
             "schema": {
               "minLength": 1,
-              "maxLength": 255,
+              "maxLength": 1024,
               "type": "string"
             },
             "in": "query",
@@ -3066,7 +3066,7 @@
           {
             "schema": {
               "minLength": 1,
-              "maxLength": 255,
+              "maxLength": 1024,
               "type": "string"
             },
             "in": "query",
@@ -3161,7 +3161,7 @@
           {
             "schema": {
               "minLength": 1,
-              "maxLength": 255,
+              "maxLength": 1024,
               "type": "string"
             },
             "in": "query",
@@ -3268,7 +3268,7 @@
           {
             "schema": {
               "minLength": 1,
-              "maxLength": 255,
+              "maxLength": 1024,
               "type": "string"
             },
             "in": "query",
@@ -3363,7 +3363,7 @@
           {
             "schema": {
               "minLength": 1,
-              "maxLength": 255,
+              "maxLength": 1024,
               "type": "string"
             },
             "in": "query",
@@ -3439,7 +3439,7 @@
           {
             "schema": {
               "minLength": 1,
-              "maxLength": 255,
+              "maxLength": 1024,
               "type": "string"
             },
             "in": "query",
@@ -3508,7 +3508,7 @@
           {
             "schema": {
               "minLength": 1,
-              "maxLength": 255,
+              "maxLength": 1024,
               "type": "string"
             },
             "in": "query",

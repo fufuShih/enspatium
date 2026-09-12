@@ -122,6 +122,16 @@ describe('Git repository', () => {
       throw new Error('test repository has no initial commit')
     }
 
+    // A namespace prefix must not make an otherwise valid long branch unreadable.
+    const longRef = 'refs/heads/' + 'feature/'.repeat(31) + 'version'
+    await execFileAsync('git', ['--git-dir=' + repositoryPath, 'config', 'core.longpaths', 'true'])
+    await execFileAsync('git', ['--git-dir=' + repositoryPath, 'update-ref', longRef, initialCommitId])
+    expect(longRef.length).toBeGreaterThan(255)
+    expect((await getGitTree(root, spaceId, longRef)).commitId).toBe(initialCommitId)
+    expect((await getGitCommits(root, spaceId, longRef)).commitId).toBe(initialCommitId)
+    expect((await getGitDiff(root, spaceId, longRef, initialCommitId)).patch).toBe('')
+    await execFileAsync('git', ['--git-dir=' + repositoryPath, 'update-ref', '-d', longRef])
+
     await expect(getGitTags(root, spaceId)).resolves.toEqual([
       {
         name: 'v1.0.0',

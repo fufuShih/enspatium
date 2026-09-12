@@ -505,7 +505,7 @@ export type GetGitSpaceInfo200 = {
 export type GetGitSpaceTreeParams = {
 /**
  * @minLength 1
- * @maxLength 255
+ * @maxLength 1024
  */
 ref?: string;
 /**
@@ -545,7 +545,7 @@ export type GetGitSpaceTags200Item = {
 export type ListGitSpaceCommitsParams = {
 /**
  * @minLength 1
- * @maxLength 255
+ * @maxLength 1024
  */
 ref?: string;
 /**
@@ -582,7 +582,7 @@ export type ListGitSpaceCommits200 = {
 export type GetGitSpaceCommitParams = {
 /**
  * @minLength 1
- * @maxLength 255
+ * @maxLength 1024
  */
 ref?: string;
 };
@@ -608,12 +608,12 @@ export type GetGitSpaceDiffParams = {
 /**
  * Defaults to the first parent of to, or the empty tree for an initial commit.
  * @minLength 1
- * @maxLength 255
+ * @maxLength 1024
  */
 from?: string;
 /**
  * @minLength 1
- * @maxLength 255
+ * @maxLength 1024
  */
 to: string;
 };
@@ -639,7 +639,7 @@ export type GetGitSpaceDiff200 = {
 export type GetGitSpaceFileParams = {
 /**
  * @minLength 1
- * @maxLength 255
+ * @maxLength 1024
  */
 ref?: string;
 /**
@@ -667,7 +667,7 @@ export type GetGitSpaceFile200 = {
 export type GetGitSpaceFileInfoParams = {
 /**
  * @minLength 1
- * @maxLength 255
+ * @maxLength 1024
  */
 ref?: string;
 /**
@@ -690,7 +690,7 @@ export type GetGitSpaceFileInfo200 = {
 export type GetGitSpaceRawFileParams = {
 /**
  * @minLength 1
- * @maxLength 255
+ * @maxLength 1024
  */
 ref?: string;
 /**
@@ -704,7 +704,7 @@ download?: boolean;
 export type HeadGitSpaceRawFileParams = {
 /**
  * @minLength 1
- * @maxLength 255
+ * @maxLength 1024
  */
 ref?: string;
 /**
@@ -718,7 +718,7 @@ download?: boolean;
 export type DownloadGitSpaceArchiveParams = {
 /**
  * @minLength 1
- * @maxLength 255
+ * @maxLength 1024
  */
 ref?: string;
 };
@@ -726,7 +726,7 @@ ref?: string;
 export type HeadGitSpaceArchiveParams = {
 /**
  * @minLength 1
- * @maxLength 255
+ * @maxLength 1024
  */
 ref?: string;
 };
@@ -734,7 +734,7 @@ ref?: string;
 export type GetGitSpaceReadmeParams = {
 /**
  * @minLength 1
- * @maxLength 255
+ * @maxLength 1024
  */
 ref?: string;
 };

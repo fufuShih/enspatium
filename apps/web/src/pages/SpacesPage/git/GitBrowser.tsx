@@ -22,6 +22,8 @@ import { EmptyGitRepository, GitCloneMenu } from './GitRepositoryActions'
 import GitFileView from './GitFileView'
 import GitStorageUsage from './GitStorageUsage'
 import GitReferences from './GitReferences'
+import GitCompare from './GitCompare'
+import { gitCompareLocation } from './gitCompareApi'
 
 export default function GitBrowser({ account, slug }: { account: string; slug: string }) {
   const { user } = useAuth()
@@ -35,6 +37,7 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
   const branch = params.get('ref') || (refType === 'tag' ? names[0] ?? '' : info.data ? defaultGitBranch(info.data) : '')
   const path = params.get('path') || ''
   const isFile = params.get('view') === 'file'
+  const isCompare = params.get('view') === 'compare'
   const isRefs = params.get('view') === 'refs'
   const isHistory = params.get('view') === 'commits'
   const fileCommit = isFile ? params.get('commit') || '' : ''
@@ -42,10 +45,10 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
   const ready = info.isSuccess && (names.includes(branch) || Boolean(pinned))
   const revision = gitRevision(branch, refType)
   const treeParams = { ref: revision, path }
-  const tree = useGetGitSpaceTree(account, slug, treeParams, { query: { enabled: ready && !isRefs && !isHistory && !isFile, ...gitReadRetry, queryKey: [...getGetGitSpaceTreeQueryKey(account, slug, treeParams), viewer] } })
+  const tree = useGetGitSpaceTree(account, slug, treeParams, { query: { enabled: ready && !isCompare && !isRefs && !isHistory && !isFile, ...gitReadRetry, queryKey: [...getGetGitSpaceTreeQueryKey(account, slug, treeParams), viewer] } })
   // Pin README to the displayed tree so a concurrent push cannot mix revisions.
   const readmeParams = { ref: tree.data?.commitId ?? revision }
-  const readme = useGetGitSpaceReadme(account, slug, readmeParams, { query: { enabled: ready && !isRefs && !isHistory && !isFile && !path && tree.isSuccess, ...gitReadRetry, queryKey: [...getGetGitSpaceReadmeQueryKey(account, slug, readmeParams), viewer] } })
+  const readme = useGetGitSpaceReadme(account, slug, readmeParams, { query: { enabled: ready && !isCompare && !isRefs && !isHistory && !isFile && !path && tree.isSuccess, ...gitReadRetry, queryKey: [...getGetGitSpaceReadmeQueryKey(account, slug, readmeParams), viewer] } })
   const location = (path = '', file = false, commit = '') => gitLocation(account, slug, branch, path, file, commit, refType)
   const root = location()
   const segments = path.split('/').filter(Boolean)
@@ -57,36 +60,37 @@ export default function GitBrowser({ account, slug }: { account: string; slug: s
 
   if (info.isPending) return <RequestState loading title="Loading repository..." />
   if (info.isError) return <RequestState title={storageErrorTitle(info.error, 'Unable to load repository')} message={gitErrorMessage(info.error)} onRetry={() => { void info.refetch() }} />
-  if (!info.data.branches.length && !isRefs && !pinned && refType === 'branch') return <Box minW="0">
+  if (!info.data.branches.length && !isCompare && !isRefs && !pinned && refType === 'branch') return <Box minW="0">
     <Flex align="center" justify="space-between" gap="16px" mb="20px"><Text fontSize="13px" color="var(--muted)">Repository</Text><GitCloneMenu url={cloneUrl} /></Flex>
     {tags.isPending ? <RequestState loading title="Loading repository..." /> : tags.isError ? <RequestState title="Unable to load tags" message={gitErrorMessage(tags.error)} onRetry={() => { void tags.refetch() }} /> : tags.data.length ? <RequestState title="No branches" message="This repository has tagged versions you can browse."><ActionButton mt="16px" onClick={() => selectRef(tags.data[0]!.name, 'tag')}>Browse tags</ActionButton></RequestState> : <EmptyGitRepository url={cloneUrl} refreshing={info.isFetching || tags.isFetching} onRefresh={() => { void info.refetch(); void tags.refetch() }} />}
     <GitStorageUsage account={account} slug={slug} />
   </Box>
 
   const content = tree
-  const archiveRef = isRefs ? undefined : gitArchiveRef(params, branch, tree.isSuccess ? tree.data.commitId : undefined)
+  const archiveRef = isCompare || isRefs ? undefined : gitArchiveRef(params, branch, tree.isSuccess ? tree.data.commitId : undefined)
   return (
     <Box as="section" aria-label="Repository browser" minW="0">
       <Flex align="center" wrap="wrap" gap="16px" mb="20px">
-        <Flex gap="8px" w={{ base: '100%', sm: '320px' }} minW="0">
+        {!isCompare && <Flex gap="8px" w={{ base: '100%', sm: '320px' }} minW="0">
           <SelectInput aria-label="Reference type" w="110px" flexShrink="0" value={refType} onChange={event => { const type = event.target.value as GitRefType; selectRef(type === 'tag' ? tags.data?.[0]?.name ?? '' : defaultGitBranch(info.data), type) }}><option value="branch" disabled={!isRefs && !info.data.branches.length}>Branches</option><option value="tag">Tags</option></SelectInput>
           {!isRefs && <SelectInput aria-label={refType === 'tag' ? 'Tag' : 'Branch'} minW="0" value={branch} onChange={event => selectRef(event.target.value)}>
             {!names.includes(branch) && <option value={branch} disabled>{branch || (refType === 'tag' ? 'No tags' : 'No branches')}</option>}
             {names.map(name => <option key={name} value={name}>{name}</option>)}
           </SelectInput>}
-        </Flex>
-        <Box display={isHistory || isRefs ? 'none' : undefined} as="nav" aria-label="Repository path" fontSize="13px" color="var(--muted)" minW="0" flex="1" overflowWrap="anywhere">
+        </Flex>}
+        <Box display={isCompare || isHistory || isRefs ? 'none' : undefined} as="nav" aria-label="Repository path" fontSize="13px" color="var(--muted)" minW="0" flex="1" overflowWrap="anywhere">
           <PageLink to={root} aria-current={!path ? 'page' : undefined}>{slug}</PageLink>
           {segments.map((part, index) => <Fragment key={index}><Text as="span" mx="8px" aria-hidden="true">/</Text>{index === segments.length - 1 ? <Text as="span" aria-current="page" color="var(--foreground)">{part}</Text> : <PageLink to={location(segments.slice(0, index + 1).join('/'))}>{part}</PageLink>}</Fragment>)}
         </Box>
         <Box ml="auto"><GitCloneMenu url={cloneUrl} archiveRef={archiveRef} archiveUrl={archiveRef ? getDownloadGitSpaceArchiveUrl(account, slug, { ref: archiveRef }) : undefined} /></Box>
       </Flex>
       <Flex as="nav" aria-label="Repository views" gap="24px" mb="24px" borderBottom="1px solid var(--border)" fontSize="13px">
-        <PageLink to={root} pb="12px" borderBottom={!isHistory && !isRefs ? '2px solid var(--foreground)' : '2px solid transparent'} color={!isHistory && !isRefs ? 'var(--foreground)' : 'var(--muted)'} aria-current={!isHistory && !isRefs ? 'page' : undefined}>Files</PageLink>
+        <PageLink to={root} pb="12px" borderBottom={!isCompare && !isHistory && !isRefs ? '2px solid var(--foreground)' : '2px solid transparent'} color={!isCompare && !isHistory && !isRefs ? 'var(--foreground)' : 'var(--muted)'} aria-current={!isCompare && !isHistory && !isRefs ? 'page' : undefined}>Files</PageLink>
         <PageLink to={gitHistoryLocation(account, slug, branch, { refType })} pb="12px" borderBottom={isHistory ? '2px solid var(--foreground)' : '2px solid transparent'} color={isHistory ? 'var(--foreground)' : 'var(--muted)'} aria-current={isHistory ? 'page' : undefined}>Commits</PageLink>
         <PageLink to={refsLocation()} pb="12px" borderBottom={isRefs ? '2px solid var(--foreground)' : '2px solid transparent'} color={isRefs ? 'var(--foreground)' : 'var(--muted)'} aria-current={isRefs ? 'page' : undefined}>References</PageLink>
+        <PageLink to={gitCompareLocation(account, slug, { from: branch ? revision : '', to: '' })} pb="12px" borderBottom={isCompare ? '2px solid var(--foreground)' : '2px solid transparent'} color={isCompare ? 'var(--foreground)' : 'var(--muted)'} aria-current={isCompare ? 'page' : undefined}>Compare</PageLink>
       </Flex>
-      {isRefs ? <GitReferences account={account} slug={slug} type={refType} defaultBranch={info.data.defaultBranch} /> : refType === 'tag' && tags.isPending && !pinned ? <RequestState loading title="Loading tags..." /> : refType === 'tag' && tags.isError && !pinned ? <RequestState title="Unable to load tags" message={gitErrorMessage(tags.error)} onRetry={() => { void tags.refetch() }} /> : !ready ? <RequestState title={refType === 'tag' ? (branch ? 'Tag not found' : 'No tags yet') : 'Branch not found'} message={refType === 'tag' && !branch ? 'Push a Git tag to browse a saved version.' : 'Choose an existing reference to continue.'}><ActionButton mt="16px" onClick={() => { void info.refetch(); void tags.refetch() }}>Refresh references</ActionButton></RequestState> : isHistory ? <GitHistory account={account} slug={slug} branch={branch} /> : <>
+      {isCompare ? tags.isPending ? <RequestState loading title="Loading references..." /> : tags.isError ? <RequestState title="Unable to load references" message={gitErrorMessage(tags.error)} onRetry={() => { void tags.refetch() }} /> : <GitCompare account={account} slug={slug} branches={info.data.branches} tags={tags.data.map(tag => tag.name)} defaultBranch={info.data.defaultBranch} /> : isRefs ? <GitReferences account={account} slug={slug} type={refType} defaultBranch={info.data.defaultBranch} /> : refType === 'tag' && tags.isPending && !pinned ? <RequestState loading title="Loading tags..." /> : refType === 'tag' && tags.isError && !pinned ? <RequestState title="Unable to load tags" message={gitErrorMessage(tags.error)} onRetry={() => { void tags.refetch() }} /> : !ready ? <RequestState title={refType === 'tag' ? (branch ? 'Tag not found' : 'No tags yet') : 'Branch not found'} message={refType === 'tag' && !branch ? 'Push a Git tag to browse a saved version.' : 'Choose an existing reference to continue.'}><ActionButton mt="16px" onClick={() => { void info.refetch(); void tags.refetch() }}>Refresh references</ActionButton></RequestState> : isHistory ? <GitHistory account={account} slug={slug} branch={branch} /> : <>
       {path && <PageLink to={parent} display="inline-block" mb="16px" fontSize="13px" color="var(--muted)">Back to parent folder</PageLink>}
       {isFile ? <GitFileView key={`${refType}:${branch}:${path}`} account={account} slug={slug} branch={branch} path={path} commit={fileCommit} refType={refType} /> : content.isPending ? <RequestState loading title="Loading files..." /> : content.isError ? <RequestState title={storageErrorTitle(content.error, apiStatus(content.error) === 413 ? 'Preview unavailable' : 'Unable to open path')} message={gitErrorMessage(content.error)} onRetry={() => { void content.refetch() }}>
         {apiStatus(content.error) === 401 && <ActionButton asChild mt="20px" ml="12px"><PageLink to="/login" state={{ from: location(path, isFile) }}>Sign in</PageLink></ActionButton>}

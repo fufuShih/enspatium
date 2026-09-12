@@ -1,7 +1,7 @@
+import GitDiffView from './GitDiffView'
 import { gitReadRetry } from './gitReadQuery'
 import { gitRevision } from './gitBrowserApi'
 import { Box, Flex, Heading, Text, chakra } from '@chakra-ui/react'
-import { useMemo } from 'react'
 import { useSearchParams } from 'react-router'
 import {
   getListGitSpaceCommitsQueryKey, useListGitSpaceCommits,
@@ -12,7 +12,7 @@ import { ActionButton, PageLink } from '../../../components/ui/Primitives'
 import RequestState from '../../../components/RequestState'
 import { useAuth } from '../../../context/auth'
 import { storageErrorTitle } from '../shared/storageErrors'
-import { type HistoryLocation, commitPageSize, gitHistoryError, gitHistoryLocation, historyOptions, maxDiffPreviewLines, parseGitPatch } from './gitHistoryApi'
+import { type HistoryLocation, commitPageSize, gitHistoryError, gitHistoryLocation, historyOptions } from './gitHistoryApi'
 
 export default function GitHistory({ account, slug, branch }: { account: string; slug: string; branch: string }) {
   const { user } = useAuth()
@@ -34,8 +34,6 @@ export default function GitHistory({ account, slug, branch }: { account: string;
   const diff = useGetGitSpaceDiff(account, slug, diffParams, { query: {
     enabled: Boolean(commit) && detail.isSuccess, ...gitReadRetry, queryKey: [...getGetGitSpaceDiffQueryKey(account, slug, diffParams), viewer],
   } })
-  const files = useMemo(() => parseGitPatch(diff.data?.patch ?? ''), [diff.data?.patch])
-  const selected = selectedPath ? files.find(file => file.path === selectedPath) : files[0]
   const active = commit ? detail : history
 
   return <Box as="section" aria-label={commit ? 'Commit details' : 'Commit history'} minW="0">
@@ -67,28 +65,7 @@ export default function GitHistory({ account, slug, branch }: { account: string;
         <Text mt="8px" fontSize="12px" fontFamily="mono" overflowWrap="anywhere">{detail.data.id}</Text>
         <Text mt="8px" fontSize="12px" color="var(--muted)">{detail.data.parentIds.length > 1 ? 'Merge commit · Changes compared with the first parent.' : !detail.data.parentIds.length ? 'Initial commit' : 'Changes compared with the parent commit.'}</Text>
       </Box>
-      {diff.isPending ? <RequestState loading title="Loading changes..." /> : diff.isError ? <RequestState title={storageErrorTitle(diff.error, 'Diff preview unavailable')} message={gitHistoryError(diff.error)} onRetry={() => { void diff.refetch() }} /> : !files.length ? <RequestState title="No file changes" message="This commit does not change any files compared with its parent." /> : <>
-        <Heading as="h3" fontSize="14px" fontWeight="500" mb="12px">{files.length} changed {files.length === 1 ? 'file' : 'files'}</Heading>
-        <Box as="nav" aria-label="Changed files" border="1px solid var(--border)" borderRadius="8px" overflow="hidden" mb="20px" maxH="280px" overflowY="auto">
-          {files.map((file, index) => <PageLink key={index} to={location({ file: file.path })} display="flex" alignItems="center" justifyContent="space-between" gap="12px" p="12px 16px" borderTop={index ? '1px solid var(--border)' : undefined} bg={selected === file ? 'var(--surface)' : undefined} aria-current={selected === file ? 'page' : undefined} _hover={{ bg: 'var(--surface)' }}>
-            <Text fontSize="13px" overflowWrap="anywhere">{file.status === 'Renamed' ? `${file.oldPath} → ${file.path}` : file.path}</Text>
-            <Flex gap="12px" align="center" flexShrink="0" fontSize="12px"><Text color="var(--muted)">{file.status}</Text>{!file.binary && <Text fontFamily="mono">+{file.additions} −{file.deletions}</Text>}</Flex>
-          </PageLink>)}
-        </Box>
-        {!selected ? <RequestState title="File not found in this commit" message="Choose a changed file above." /> : <Box border="1px solid var(--border)" borderRadius="8px" overflow="hidden">
-          <Text px="16px" py="12px" fontSize="13px" borderBottom="1px solid var(--border)" overflowWrap="anywhere">{selected.path}</Text>
-          {selected.binary ? <RequestState title="Binary file changed" message="Text differences are not available for this file." /> : <Box role="region" aria-label="File diff" overflowX="auto" maxH="640px" tabIndex={0} fontFamily="mono" fontSize="12px" lineHeight="1.8">
-            <Box minW="max-content">
-              {selected.lines.slice(0, maxDiffPreviewLines).map((line, index) => <Flex key={index} bg={line.kind === 'added' ? 'color-mix(in srgb, #22c55e 14%, var(--background))' : line.kind === 'removed' ? 'color-mix(in srgb, #ef4444 14%, var(--background))' : line.kind === 'meta' ? 'var(--surface)' : undefined}>
-                <Text as="span" w="52px" flexShrink="0" textAlign="right" pr="8px" color="var(--muted)" userSelect="none" aria-hidden="true">{line.oldLine ?? ''}</Text>
-                <Text as="span" w="52px" flexShrink="0" textAlign="right" pr="12px" color="var(--muted)" userSelect="none" aria-hidden="true">{line.newLine ?? ''}</Text>
-                <Box as="code" display="block" whiteSpace="pre" pr="16px" fontFamily="inherit" css={{ tabSize: 2 }}>{line.text}</Box>
-              </Flex>)}
-            </Box>
-          </Box>}
-          {selected.lines.length > maxDiffPreviewLines && <Text p="16px" fontSize="12px" color="var(--muted)">Showing the first {maxDiffPreviewLines.toLocaleString('en-US')} diff lines. Clone the repository to view the full changes.</Text>}
-        </Box>}
-      </>}
+      {diff.isPending ? <RequestState loading title="Loading changes..." /> : diff.isError ? <RequestState title={storageErrorTitle(diff.error, 'Diff preview unavailable')} message={gitHistoryError(diff.error)} onRetry={() => { void diff.refetch() }} /> : <GitDiffView patch={diff.data.patch} selectedPath={selectedPath} fileLocation={file => location({ file })} emptyMessage="This commit does not change any files compared with its parent." />}
     </> : null}
   </Box>
 }

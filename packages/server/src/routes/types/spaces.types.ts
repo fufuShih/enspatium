@@ -110,16 +110,16 @@ export const GitRepositoryInfoResponseSchema = Type.Object({
 })
 
 export const GitRefQuerySchema = Type.Object({
-  ref: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+  ref: Type.Optional(Type.String({ minLength: 1, maxLength: 1024 })),
 })
 
 export const GitTreeQuerySchema = Type.Object({
-  ref: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+  ref: Type.Optional(Type.String({ minLength: 1, maxLength: 1024 })),
   path: Type.Optional(Type.String({ maxLength: 4096 })),
 })
 
 export const GitFileQuerySchema = Type.Object({
-  ref: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+  ref: Type.Optional(Type.String({ minLength: 1, maxLength: 1024 })),
   path: Type.String({ minLength: 1, maxLength: 4096 }),
 })
 
@@ -129,12 +129,12 @@ export const GitRawQuerySchema = Type.Object({
 })
 
 export const GitDiffQuerySchema = Type.Object({
-  from: Type.Optional(Type.String({ minLength: 1, maxLength: 255, description: 'Defaults to the first parent of to, or the empty tree for an initial commit.' })),
-  to: Type.String({ minLength: 1, maxLength: 255 }),
+  from: Type.Optional(Type.String({ minLength: 1, maxLength: 1024, description: 'Defaults to the first parent of to, or the empty tree for an initial commit.' })),
+  to: Type.String({ minLength: 1, maxLength: 1024 }),
 })
 
 export const GitCommitsQuerySchema = Type.Object({
-  ref: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+  ref: Type.Optional(Type.String({ minLength: 1, maxLength: 1024 })),
   offset: Type.Optional(Type.Integer({ minimum: 0, maximum: 1_000_000, default: 0 })),
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, default: 30 })),
 })
