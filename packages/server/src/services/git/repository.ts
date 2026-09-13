@@ -117,6 +117,7 @@ export interface GitTree {
   commitId: string
   path: string
   entries: GitTreeEntry[]
+  commitCount?: number | null
 }
 
 export interface GitFileInfo {
@@ -476,6 +477,15 @@ export async function getGitTree(
     type: toGitTreeEntryType(entry),
     size: entry.size,
   }))
+  let commitCount: number | null = null
+  if (includeHistory) {
+    try {
+      const count = Number((await runGit(repositoryPath, ['rev-list', '--count', commitId, '--'])).trim())
+      if (Number.isSafeInteger(count) && count >= 0) commitCount = count
+    } catch {
+      // An unavailable count must not prevent browsing repository files.
+    }
+  }
   if (includeHistory && entries.length) {
     let history = new Map<string, GitEntryCommit>()
     try {
@@ -498,6 +508,7 @@ export async function getGitTree(
     commitId,
     path,
     entries,
+    ...(includeHistory ? { commitCount } : {}),
   }
 }
 

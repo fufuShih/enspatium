@@ -2,6 +2,8 @@
 
 The file table shows the last commit that changed each entry on the selected snapshot's first-parent history, including folder changes and merge introductions. One bounded Git log read supplies the rows (up to 2,000 commits / 8 MiB); unavailable or older metadata shows `Commit unavailable` while files remain browsable. Times use the committer date, with the full local date and timezone on hover.
 
+The latest-commit row links to snapshot-pinned history and counts all reachable commits, including merged branches. If counting is unavailable, the history link remains usable. Compare and commit details share a two-column diff with aligned changes and independent line numbers; narrow screens scroll horizontally.
+
 Frontend URLs are relative to `/:account/:spaceSlug`:
 
 - `/branch/:name`, `/tag/:name`: browse a reference; append `/tree/:path` for folders.

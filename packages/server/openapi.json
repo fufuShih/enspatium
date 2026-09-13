@@ -2534,6 +2534,17 @@
                           }
                         }
                       }
+                    },
+                    "commitCount": {
+                      "anyOf": [
+                        {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   }
                 }

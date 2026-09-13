@@ -34,6 +34,10 @@ export default function GitFileTree({ account, slug, tree, commitUrl, commitStat
       <PageLink to={commitUrl} state={commitState} flex="1" minW="0" truncate fontSize="13px" title={commit.data?.message}>{commit.data?.message.split('\n')[0] || (commit.isPending ? 'Loading latest commit…' : 'View commit')}</PageLink>
       <PageLink to={commitUrl} state={commitState} aria-label={`View commit ${tree.commitId.slice(0, 7)}`} fontFamily="mono" fontSize="12px" color="var(--muted)" flexShrink="0" display={{ base: 'none', sm: 'block' }}>{tree.commitId.slice(0, 7)}</PageLink>
       {commit.data && <CommitTime value={commit.data.committedAt} now={now} />}
+      <PageLink to={gitHistoryLocation(account, slug, commitState.gitRef.name, { refType: commitState.gitRef.type, snapshot: tree.commitId })} display="flex" alignItems="center" gap="6px" flexShrink="0" borderLeft="1px solid var(--border)" pl="10px" fontSize="12px" title="View commit history">
+        <GitIcon name="commit" size={14} />
+        {tree.commitCount == null ? 'Commits' : `${tree.commitCount.toLocaleString('en-US')} ${tree.commitCount === 1 ? 'commit' : 'commits'}`}
+      </PageLink>
     </Flex>
     <Box as="ul" aria-label="Repository files" listStyleType="none" m="0" p="0">
       {parentUrl && <Box as="li" borderBottom="1px solid var(--border)"><PageLink to={parentUrl} aria-label="Back to parent folder" display="flex" alignItems="center" gap="12px" p="10px 16px" color="var(--muted)" _hover={{ bg: 'var(--surface)' }}><GitIcon name="directory" /><Text fontSize="13px">..</Text></PageLink></Box>}

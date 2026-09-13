@@ -256,6 +256,8 @@ describe('Git repository', () => {
     const secondPage = await getGitCommits(root, spaceId, firstPage.commitId, 1, 1)
     expect(secondPage).toMatchObject({ hasMore: false, commits: [{ id: initialCommitId }] })
     expect((await getGitCommits(root, spaceId, 'v1.0.0')).commits.map(commit => commit.id)).toEqual([initialCommitId])
+    expect((await getGitTree(root, spaceId, 'main', 'src', true)).commitCount).toBe(2)
+    expect((await getGitTree(root, spaceId, 'refs/tags/v1.0.0', '', true)).commitCount).toBe(1)
     await expect(getGitCommits(root, spaceId, '--all')).rejects.toMatchObject({ code: 'REF_NOT_FOUND' })
 
     await writeFile(
@@ -318,6 +320,7 @@ describe('Git repository', () => {
     const page = await getGitCommits(root, spaceId, 'main')
     expect(page.commits).toHaveLength(4)
     expect(page.commits[0]?.id).toBe(merge.id)
+    expect((await getGitTree(root, spaceId, merge.id, '', true)).commitCount).toBe(4)
     await git(['commit', '--allow-empty', '-m', 'No file changes'])
     await git(['push', 'origin', 'main'])
     expect((await getGitDiff(root, spaceId, undefined, 'main')).patch).toBe('')

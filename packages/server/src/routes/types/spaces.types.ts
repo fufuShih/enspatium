@@ -222,6 +222,7 @@ export const GitTreeResponseSchema = Type.Object({
   commitId: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
   path: Type.String(),
   entries: Type.Array(GitTreeEntryResponseSchema),
+  commitCount: Type.Optional(Type.Union([Type.Integer({ minimum: 0 }), Type.Null()])),
 })
 
 export const GitFileInfoResponseSchema = Type.Object({

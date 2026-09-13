@@ -544,6 +544,7 @@ export type GetGitSpaceTree200 = {
   commitId: string;
   path: string;
   entries: GetGitSpaceTree200EntriesItem[];
+  commitCount?: number | null;
 };
 
 export type GetGitSpaceTags200Item = {
