@@ -5,7 +5,7 @@ export async function registerOpenApi(app: FastifyInstance) {
   await app.register(swagger, {
     openapi: {
       openapi: '3.1.0',
-      info: { title: 'Enspatium API', version: '0.1.0' },
+      info: { title: 'Enspatium API', version: '0.2.0' },
       components: {
         securitySchemes: {
           session: { type: 'apiKey', in: 'cookie', name: 'enspatium_session' },

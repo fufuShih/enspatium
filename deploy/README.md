@@ -13,7 +13,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Images default to `felixshih/enspatium-server:v0.1.0` and `felixshih/enspatium-web:v0.1.0`. Migrations run automatically. No source code or build tools are needed.
+Images default to `felixshih/enspatium-server:v0.2.0` and `felixshih/enspatium-web:v0.2.0`. Migrations run automatically. No source code or build tools are needed.
 
 Inside the development checkout, preserve its root `.env`: use `deploy/.env` and add `--env-file deploy/.env` to Compose commands.
 
@@ -59,7 +59,7 @@ Check HTTPS, `/api/health/db`, sign-in and Git clone/push after installation. Us
 - [x] System monitoring, Git maintenance and upgrade/recovery verification.
 - [x] Default branch protection against force pushes and deletion.
 - [x] Branch/Tag browsing, history and ZIP downloads.
-- [x] Branch/Tag lists with latest commit details.
+- [x] Branch/Tag switching with file commit details.
 - [x] Version comparison with changed files and diff.
 
 Start with invited users. Validate the real domain/certificate before launch. Email verification, password recovery and per-account Space/storage limits remain prerequisites for unrestricted public registration.
