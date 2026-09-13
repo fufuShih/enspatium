@@ -10,7 +10,6 @@ test('Git path identities round-trip encoded slash and literal percent names wit
     { view: 'commits', commit: hash, file: 'docs/changes #%.md' },
     { view: 'commits', ref: 'feature/docs', snapshot: hash },
     { view: 'compare', from: 'refs/heads/a/b', to: 'refs/tags/a/b', base: hash, head: other, file: 'diff/中文.txt' },
-    { view: 'refs', refType: 'tag' },
   ]
   for (const value of cases) {
     const params = new URLSearchParams(value)
@@ -23,6 +22,12 @@ test('Git path identities round-trip encoded slash and literal percent names wit
 })
 
 test('legacy redirects are explicit and path identities cannot be overridden by search', () => {
+  for (const [path, target] of [['branches', '/owner/repo'], ['tags', '/owner/repo/tag']]) {
+    const result = parseGitRoute('/owner/repo/' + path, '?search=old&offset=30')
+    expect(result.legacy).toBe(true)
+    expect(gitRouteLocation('owner', 'repo', result.params)).toBe(target)
+  }
+  expect(gitRouteLocation('owner', 'repo', new URLSearchParams('view=refs&refType=tag'))).toBe('/owner/repo/tag')
   expect(parseGitRoute('/owner/repo', '?view=file&ref=main&path=README.md').legacy).toBe(true)
   expect(parseGitRoute('/owner/repo/branch/main', '?ref=other&view=commits').params.get('ref')).toBe('main')
   expect(parseGitRoute('/owner/repo/branch/main', '?ref=other&view=commits').params.has('view')).toBe(false)

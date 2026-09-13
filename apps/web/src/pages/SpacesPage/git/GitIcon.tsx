@@ -1,4 +1,4 @@
-export type GitIconName = 'file' | 'directory' | 'symlink' | 'submodule' | 'branch' | 'tag' | 'commit' | 'compare' | 'code' | 'chevron'
+export type GitIconName = 'file' | 'directory' | 'symlink' | 'submodule' | 'branch' | 'tag' | 'commit' | 'compare' | 'code' | 'chevron' | 'settings'
 
 export default function GitIcon({ name, size = 16 }: { name: GitIconName; size?: number }) {
   const paths: Record<GitIconName, string> = {
@@ -12,6 +12,7 @@ export default function GitIcon({ name, size = 16 }: { name: GitIconName; size?:
     compare: 'M7 3v16m-4-4 4 4 4-4M17 21V5m-4 4 4-4 4 4',
     code: 'm8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18',
     chevron: 'm6 9 6 6 6-6',
+    settings: 'M4 7h7m4 0h5M4 17h3m4 0h9M13 4v6M9 14v6',
   }
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}><path d={paths[name]} /></svg>
 }

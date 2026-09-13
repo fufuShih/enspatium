@@ -11,8 +11,7 @@ export function gitRouteLocation(account: string, slug: string, params: URLSearc
   const commit = params.get('commit')
   const snapshot = params.get('snapshot')
   let route = root
-  if (view === 'refs') route += type === 'tag' ? '/tags' : '/branches'
-  else if (view === 'compare') {
+  if (view === 'compare') {
     route += '/compare'
     if (params.get('from') || params.get('to')) route += `/${encode(params.get('from') || '-')}/${encode(params.get('to') || '-')}`
     if (params.get('base') && params.get('head')) route += `/at/${encode(params.get('base')!)}/${encode(params.get('head')!)}`
@@ -33,13 +32,8 @@ export function gitRouteLocation(account: string, slug: string, params: URLSearc
     }
   }
   const filters = new URLSearchParams()
-  if (view === 'refs' && params.get('search')) filters.set('search', params.get('search')!)
-  if ((view === 'refs' || (view === 'commits' && !commit)) && params.get('offset')) filters.set('offset', params.get('offset')!)
+  if (view === 'commits' && !commit && params.get('offset')) filters.set('offset', params.get('offset')!)
   return route + (filters.size ? `?${filters}` : '')
-}
-
-export function gitReferencesLocation(account: string, slug: string, type: 'branch' | 'tag', search = '', offset = 0) {
-  return gitRouteLocation(account, slug, new URLSearchParams({ view: 'refs', refType: type, search, ...(offset ? { offset: String(offset) } : {}) }))
 }
 
 export function parseGitRoute(pathname: string, search = '') {
@@ -57,7 +51,9 @@ export function parseGitRoute(pathname: string, search = '') {
   let valid = true
   const first = read()
   if (first === 'branches' || first === 'tags') {
-    params.set('view', 'refs'); params.set('refType', first === 'tags' ? 'tag' : 'branch')
+    // Old list URLs now open the file browser instead of a separate page.
+    params.set('refType', first === 'tags' ? 'tag' : 'branch')
+    return { params, valid: !parts.length, legacy: true }
   } else if (first === 'commit') {
     params.set('view', 'commits')
     const id = read()
@@ -109,7 +105,6 @@ export function parseGitRoute(pathname: string, search = '') {
   }
   valid = valid && !parts.length
   // Only list controls are taken from search; query strings cannot override path identity.
-  if (params.get('view') === 'refs' && query.has('search')) params.set('search', query.get('search')!)
-  if (['refs', 'commits'].includes(params.get('view') || '') && query.has('offset')) params.set('offset', query.get('offset')!)
+  if (params.get('view') === 'commits' && query.has('offset')) params.set('offset', query.get('offset')!)
   return { params, valid, legacy: false }
 }

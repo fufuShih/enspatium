@@ -1,19 +1,17 @@
-import { parseGitRoute } from '../src/pages/SpacesPage/git/gitRoutes.js'
-const routeParams = (href: string) => { const url = new URL(href); return parseGitRoute(url.pathname, url.search).params }
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { GetSpace200, ListGitSpaceReferences200 } from '../src/api/generated/api.schemas.js'
 import { test, expect } from './fixtures.js'
 import { createSpace, register, signIn } from './helpers.js'
 
-test('reference lists show paged commit metadata and preserve branch/tag navigation', async ({ page, environment, request }, testInfo) => {
+test('old reference pages redirect to files and branch/tag selectors remain available', async ({ page, environment, request }) => {
   const user = await register(page, 'Reference owner')
   await signIn(page, user)
   const space = await createSpace(page, 'References repository')
   const base = `/api/namespaces/${space.account}/spaces/${space.slug}`
   const metadata = await (await page.request.get(base)).json() as GetSpace200
   await page.goto(space.url + '?view=refs')
-  await expect(page.getByRole('heading', { name: 'No references found', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Push your first commit', exact: true })).toBeVisible()
   const work = join(environment.root, 'refs-seed')
   await environment.git(['clone', join(environment.root, 'data', metadata.id), work])
   const git = (args: string[]) => environment.git(['-C', work, ...args])
@@ -41,34 +39,20 @@ test('reference lists show paged commit metadata and preserve branch/tag navigat
   expect(branches.total).toBe(31); expect(branches.hasMore).toBe(true)
   expect(branches.items.map(ref => ref.name)).toEqual(['topic/00', 'topic/01'])
   expect(branches.items[0]!.commit.id).toBe(current)
-  await page.reload()
-  const list = page.getByRole('region', { name: 'Reference list', exact: true })
-  await expect(list.getByRole('heading', { name: 'Branches (33)', exact: true })).toBeVisible()
-  await expect(list.getByText('Default', { exact: true })).toBeVisible()
-  await expect(list.locator('time').first()).toHaveAttribute('datetime', /\d{4}-\d{2}-\d{2}T/)
-  await list.getByRole('button', { name: 'Next', exact: true }).click()
-  await expect(list.getByText('Page 2', { exact: true })).toBeVisible()
-  await expect(list.getByRole('link', { name: 'topic/30', exact: true })).toBeVisible()
-  await page.reload()
-  await expect(list.getByText('Page 2', { exact: true })).toBeVisible()
-  await list.getByLabel('Search references', { exact: true }).fill('release/')
-  await list.getByRole('button', { name: 'Search', exact: true }).click()
-  await expect(list.getByRole('heading', { name: 'Branches (1)', exact: true })).toBeVisible()
-  await list.getByRole('link', { name: 'release/首版', exact: true }).click()
+  await page.goto(space.url + '/branches?search=old&offset=30')
+  await expect(page).toHaveURL(environment.webOrigin + space.url)
   await expect(page.getByRole('heading', { name: 'Development', exact: true })).toBeVisible()
-  await page.getByRole('navigation', { name: 'Repository views' }).getByRole('link', { name: 'References', exact: true }).click()
-  await expect(list.getByRole('heading', { name: 'Branches (33)', exact: true })).toBeVisible()
-  await page.getByLabel('Reference type', { exact: true }).selectOption('tag')
-  await expect(list.getByRole('heading', { name: 'Tags (2)', exact: true })).toBeVisible()
-  await page.screenshot({ path: testInfo.outputPath('reference-list.png'), fullPage: true })
-  await page.setViewportSize({ width: 390, height: 844 })
-  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-  await page.screenshot({ path: testInfo.outputPath('reference-list-mobile.png'), fullPage: true })
-  await list.getByRole('link', { name: /Release commit/ }).last().click()
-  await expect(page.getByRole('region', { name: 'File diff', exact: true })).toContainText('+# Reference release')
-  await expect(page.getByLabel('Reference type', { exact: true })).toHaveValue('tag')
-  expect(routeParams(page.url()).get('commit')).toBe(release)
-  await page.getByRole('navigation', { name: 'Repository views' }).getByRole('link', { name: 'References', exact: true }).click()
-  await list.getByRole('link', { name: 'release/首版', exact: true }).click()
+  const views = page.getByRole('navigation', { name: 'Repository views' })
+  await expect(views.getByRole('link')).toHaveText(['Files', 'Commits', 'Compare'])
+  await expect(page.getByRole('region', { name: 'Reference list', exact: true })).toHaveCount(0)
+  await page.goto(space.url + '/tags')
+  await expect(page).toHaveURL(environment.webOrigin + space.url + '/tag')
   await expect(page.getByRole('heading', { name: 'Reference release', exact: true })).toBeVisible()
+  await page.getByLabel('Tag', { exact: true }).selectOption('release/首版')
+  await expect(page.getByRole('heading', { name: 'Reference release', exact: true })).toBeVisible()
+  await page.getByLabel('Reference type', { exact: true }).selectOption('branch')
+  await page.getByLabel('Branch', { exact: true }).selectOption('topic/30')
+  await expect(page.getByRole('heading', { name: 'Development', exact: true })).toBeVisible()
+  await page.reload()
+  await expect(views.getByRole('link')).toHaveText(['Files', 'Commits', 'Compare'])
 })
