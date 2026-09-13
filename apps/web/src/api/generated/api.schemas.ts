@@ -106,6 +106,32 @@ export type GetUser200 = {
   updatedAt: string;
 };
 
+export type UpdateCurrentUserBody = {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  displayName: string;
+};
+
+export type UpdateCurrentUser200 = {
+  id: string;
+  email: string;
+  displayName: string;
+  createdAt: string;
+  updatedAt: string;
+  isAdmin: boolean;
+};
+
+export type GetCurrentUser200 = {
+  id: string;
+  email: string;
+  displayName: string;
+  createdAt: string;
+  updatedAt: string;
+  isAdmin: boolean;
+};
+
 export type GetAuthSettings200 = {
   registrationEnabled: boolean;
 };
@@ -124,15 +150,6 @@ export type LoginBody = {
 };
 
 export type Login200 = {
-  id: string;
-  email: string;
-  displayName: string;
-  createdAt: string;
-  updatedAt: string;
-  isAdmin: boolean;
-};
-
-export type GetCurrentUser200 = {
   id: string;
   email: string;
   displayName: string;

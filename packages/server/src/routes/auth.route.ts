@@ -6,14 +6,21 @@ import {
   UserServiceError,
   authenticateUser,
   getSessionUser,
+  updateUserProfile,
 } from '../services/users.js'
 import {
   authenticationRequired,
   requireCurrentUserId,
 } from './current-user.route.js'
-import { LoginBodySchema, SessionUserResponseSchema } from './types/auth.types.js'
+import { LoginBodySchema, SessionUserResponseSchema, UpdateCurrentUserBodySchema } from './types/auth.types.js'
 
 export const authRoutes: FastifyPluginAsyncTypebox = async (app) => {
+  app.patch('/auth/me', {
+    schema: { operationId: 'updateCurrentUser', tags: ['auth'], body: UpdateCurrentUserBodySchema, response: { 200: SessionUserResponseSchema } },
+  }, async (request, reply) => {
+    reply.header('cache-control', 'private, no-store')
+    return updateUserProfile(app.db, requireCurrentUserId(request), request.body)
+  })
   app.get('/auth/settings', {
     schema: { operationId: 'getAuthSettings', tags: ['auth'], security: [], response: { 200: Type.Object({ registrationEnabled: Type.Boolean() }) } },
   }, async (_request, reply) => {

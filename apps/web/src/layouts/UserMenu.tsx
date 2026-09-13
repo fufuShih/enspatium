@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useTheme } from 'next-themes'
 import { useAuth } from '../context/auth'
 import { authErrorMessage } from '../context/session'
-import { accessTokensPath } from '../pages/UserPage/tokenApi'
 import { namespacePath } from '../pages/UserPage/namespaces'
 
 export default function UserMenu() {
@@ -37,7 +36,7 @@ export default function UserMenu() {
       positioning={{ placement: 'bottom-end', gutter: 10 }}
       onSelect={({ value }) => {
         if (value === 'profile') navigate(namespacePath(user.namespace))
-        if (value === 'access-tokens') navigate(accessTokensPath)
+        if (value === 'settings') navigate('/settings')
         if (value === 'site-administration') navigate('/settings/admin')
         if (value === 'theme') setTheme(darkTheme ? 'light' : 'dark')
         if (value === 'sign-out') {
@@ -98,7 +97,7 @@ export default function UserMenu() {
             </Box>
             <Menu.Separator borderColor="var(--border)" />
             <Menu.Item value="profile" closeOnSelect disabled={pending} px="3" py="2.5" borderRadius="md" _highlighted={{ bg: 'var(--surface)' }}>Profile</Menu.Item>
-            <Menu.Item value="access-tokens" closeOnSelect disabled={pending} px="3" py="2.5" borderRadius="md" _highlighted={{ bg: 'var(--surface)' }}>Access tokens</Menu.Item>
+            <Menu.Item value="settings" closeOnSelect disabled={pending} px="3" py="2.5" borderRadius="md" _highlighted={{ bg: 'var(--surface)' }}>Settings</Menu.Item>
             <Menu.Item
               value="theme"
               aria-label={`Switch to ${darkTheme ? 'light' : 'dark'} theme`}

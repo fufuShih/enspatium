@@ -1,7 +1,7 @@
 import type { CreatePersonalAccessTokenBody, ListPersonalAccessTokens200Item } from '../../api/generated/api.schemas.ts'
 import { apiStatus } from '../../context/session.ts'
 
-export const accessTokensPath = '/settings/access-tokens'
+export const accessTokensPath = '/settings/applications'
 
 export function newTokenInput(name: string, write: boolean, days: number, now = Date.now()): CreatePersonalAccessTokenBody {
   return {

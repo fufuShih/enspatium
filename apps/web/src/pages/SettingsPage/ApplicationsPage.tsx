@@ -2,21 +2,18 @@ import { Box, Flex, Heading, Text, chakra } from '@chakra-ui/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Navigate } from 'react-router'
 import type { CreatePersonalAccessToken201 } from '../../api/generated/api.schemas'
 import { createPersonalAccessToken, getListPersonalAccessTokensQueryKey, revokePersonalAccessToken, useListPersonalAccessTokens } from '../../api/generated/tokens'
-import AuthStatus from '../../components/AuthStatus'
 import RequestState from '../../components/RequestState'
 import CopyButton from '../../components/ui/CopyButton'
-import { ActionButton, PageContainer, PageHeading, SelectInput, TextInput } from '../../components/ui/Primitives'
+import { ActionButton, PageHeading, SelectInput, TextInput } from '../../components/ui/Primitives'
 import { useAuth } from '../../context/auth'
 import { apiStatus } from '../../context/session'
-import { accessTokensPath, newTokenInput, tokenErrorMessage, tokenStatus } from './tokenApi'
+import { newTokenInput, tokenErrorMessage, tokenStatus } from '../UserPage/tokenApi'
 
-export default function AccessTokensPage() {
-  const { user, isLoading, error } = useAuth()
-  if (isLoading || (error && !user)) return <AuthStatus />
-  if (!user) return <Navigate to="/login" replace state={{ from: accessTokensPath }} />
+export default function ApplicationsPage() {
+  const { user } = useAuth()
+  if (!user) return null
   return <TokenSettings key={user.id} userId={user.id} />
 }
 
@@ -87,8 +84,9 @@ function TokenSettings({ userId }: { userId: string }) {
     }
   }
 
-  return <PageContainer maxW="800px">
-    <PageHeading>Access tokens</PageHeading>
+  return <Box as="section" aria-label="Applications">
+    <PageHeading>Applications</PageHeading>
+    <Heading as="h2" mt="28px" fontSize="18px" fontWeight="500">Access tokens</Heading>
     <Text mt="10px" mb="28px" fontSize="14px" color="var(--muted)" lineHeight="1.7">Use a token as your password to clone and push Git repositories.</Text>
     {created ? <Box as="section" aria-label="New access token" mb="28px" p={{ base: '20px', md: '24px' }} border="1px solid var(--border)" borderRadius="8px">
       <Heading as="h2" fontSize="17px" fontWeight="500">Your token is ready</Heading>
@@ -123,5 +121,5 @@ function TokenSettings({ userId }: { userId: string }) {
         {confirmId === token.id && <Box mt="16px" pt="16px" borderTop="1px solid var(--border)"><Text fontSize="13px" mb="12px">Revoke this token? Git clients using it will lose access immediately.</Text><Flex gap="10px" justify="flex-end"><ActionButton disabled={pending !== null} onClick={() => setConfirmId(null)}>Cancel</ActionButton><ActionButton disabled={pending !== null && pending !== token.id} loading={pending === token.id} loadingText="Revoking..." onClick={() => { void revoke(token.id) }}>Revoke token</ActionButton></Flex></Box>}
       </Box>)}
     </Box>}
-  </PageContainer>
+  </Box>
 }

@@ -10,3 +10,7 @@ export const LoginBodySchema = Type.Object({
   email: Type.String({ minLength: 1, maxLength: 320 }),
   password: Type.String({ minLength: 1, maxLength: 1024 }),
 })
+
+export const UpdateCurrentUserBodySchema = Type.Object({
+  displayName: Type.String({ minLength: 1, maxLength: 100 }),
+}, { additionalProperties: false })

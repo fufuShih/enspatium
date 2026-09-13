@@ -117,6 +117,20 @@ export async function getSessionUser(
   return toSessionUser(await findUser(db, id))
 }
 
+export async function updateUserProfile(db: Kysely<Database>, id: string, input: { displayName: string }): Promise<SessionUser> {
+  const displayName = input.displayName.trim()
+  if (!displayName || displayName.length > 100) throw new UserServiceError('INVALID_INPUT', 400, 'Display name must contain 1 to 100 characters.')
+  return db.transaction().execute(async transaction => {
+    const user = await transaction.updateTable('users').set({ display_name: displayName, updated_at: new Date() })
+      .where('id', '=', id).where('is_disabled', '=', false)
+      .returning(['id', 'email', 'display_name', 'is_admin', 'created_at', 'updated_at']).executeTakeFirst()
+    if (!user) throw new UserServiceError('INVALID_CREDENTIALS', 401, 'authentication required')
+    await transaction.updateTable('namespaces').set({ name: displayName })
+      .where('owner_user_id', '=', id).where('kind', '=', 'personal').execute()
+    return toSessionUser(user)
+  })
+}
+
 async function findUser(
   db: Kysely<Database>,
   id: string,
