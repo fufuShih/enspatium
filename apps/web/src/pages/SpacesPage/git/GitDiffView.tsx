@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { useLocation } from 'react-router'
 import { PageLink } from '../../../components/ui/Primitives'
 import RequestState from '../../../components/RequestState'
-import GitSplitDiff from './GitSplitDiff'
+import GitSideBySideDiff from './GitSideBySideDiff.tsx'
 import { maxDiffPreviewLines, parseGitPatch } from './gitHistoryApi'
 
 export default function GitDiffView({ patch, selectedPath, fileLocation, emptyMessage }: { patch: string; selectedPath?: string; fileLocation: (path: string) => string; emptyMessage: string }) {
@@ -21,7 +21,7 @@ export default function GitDiffView({ patch, selectedPath, fileLocation, emptyMe
     </Box>
     {!selected ? <RequestState title="File not found in these changes" message="Choose a changed file above." /> : <Box border="1px solid var(--border)" borderRadius="8px" overflow="hidden">
       <Text px="16px" py="12px" fontSize="13px" borderBottom="1px solid var(--border)" overflowWrap="anywhere">{selected.path}</Text>
-      {selected.binary ? <RequestState title="Binary file changed" message="Text differences are not available for this file." /> : <GitSplitDiff lines={selected.lines} />}
+      {selected.binary ? <RequestState title="Binary file changed" message="Text differences are not available for this file." /> : <GitSideBySideDiff lines={selected.lines} />}
       {selected.lines.length > maxDiffPreviewLines && <Text p="16px" fontSize="12px" color="var(--muted)">Showing the first {maxDiffPreviewLines.toLocaleString('en-US')} diff lines. Clone the repository to view the full changes.</Text>}
     </Box>}
   </>

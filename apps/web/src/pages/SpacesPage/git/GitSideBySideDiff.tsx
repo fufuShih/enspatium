@@ -14,7 +14,7 @@ function Cell({ line, side }: { line?: SplitDiffCell; side: 'before' | 'after' }
   </Flex>
 }
 
-export default function GitSplitDiff({ lines }: { lines: DiffLine[] }) {
+export default function GitSideBySideDiff({ lines }: { lines: DiffLine[] }) {
   const rows = useMemo(() => splitDiffLines(lines.slice(0, maxDiffPreviewLines)), [lines])
   return <Box role="region" aria-label="File diff" overflow="auto" maxH="640px" tabIndex={0} fontFamily="mono" fontSize="12px" lineHeight="1.8">
     <Box minW="600px">

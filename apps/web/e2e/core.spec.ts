@@ -16,6 +16,7 @@ test('register, sign in, create a Space and restore the session on reload', asyn
   await page.reload()
   await expect(page.getByRole('button', { name: 'User menu for ' + user.name, exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Browser project', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Push your first commit', exact: true })).toBeVisible()
   await signOut(page, user)
   await page.goto(space.url)
   await expect(page.getByRole('heading', { name: 'Sign in to view this Space', exact: true })).toBeVisible()
