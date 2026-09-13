@@ -5,7 +5,7 @@ import type { GetSpace200 } from '../src/api/generated/api.schemas.js'
 import { test, expect } from './fixtures.js'
 import { createSpace, openSettings, register, signIn, signOut } from './helpers.js'
 
-test('register, sign in, create a Space and restore the session on reload', async ({ page }) => {
+test('register, sign in, create a Space and restore the session on reload', async ({ page }, testInfo) => {
   const user = await register(page, 'Browser owner')
   await page.getByLabel('Password', { exact: true }).fill('wrong-password')
   await page.getByRole('main').getByRole('button', { name: 'Sign in', exact: true }).click()
@@ -20,6 +20,11 @@ test('register, sign in, create a Space and restore the session on reload', asyn
   await expect(page.getByRole('button', { name: 'User menu for ' + user.name, exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Browser project', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Push your first commit', exact: true })).toBeVisible()
+  await page.goto('/' + space.account)
+  await expect(page.getByRole('region', { name: 'Space list' }).getByRole('heading', { name: 'Browser project', exact: true })).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('space-list.png'), fullPage: true })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.screenshot({ path: testInfo.outputPath('space-list-mobile.png'), fullPage: true })
   await signOut(page, user)
   await page.goto(space.url)
   await expect(page.getByRole('heading', { name: 'Sign in to view this Space', exact: true })).toBeVisible()
