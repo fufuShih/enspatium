@@ -450,7 +450,7 @@ export async function getGitSpaceTree(
   )
 
   try {
-    return await getGitTree(dataRoot, space.id, inputRef, inputPath)
+    return await getGitTree(dataRoot, space.id, inputRef, inputPath, true)
   } catch (error) {
     throwGitStorageError(error, 'failed to read Git tree')
   }

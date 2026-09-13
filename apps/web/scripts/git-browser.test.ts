@@ -1,3 +1,5 @@
+import { parseGitRoute } from '../src/pages/SpacesPage/git/gitRoutes'
+const routeParams = (url: URL) => parseGitRoute(url.pathname, url.search).params
 import { expect, test, vi } from 'vitest'
 import type { GetGitSpaceTree200EntriesItem } from '../src/api/generated/api.schemas.ts'
 import { getGitSpaceFile, getGetGitSpaceRawFileUrl, getGitSpaceRawFile, getDownloadGitSpaceArchiveUrl, downloadGitSpaceArchive } from '../src/api/generated/spaces.ts'
@@ -6,34 +8,35 @@ import { gitHistoryLocation, historyOptions } from '../src/pages/SpacesPage/git/
 
 test('repository links retain branch, path, and file mode without interpreting special characters', () => {
   const url = new URL(gitLocation('my-account', 'repo', 'feature/docs', 'docs/a #?.md', true), 'https://example.test')
-  expect(url.pathname).toBe('/my-account/repo')
-  expect(url.searchParams.get('ref')).toBe('feature/docs')
-  expect(url.searchParams.get('path')).toBe('docs/a #?.md')
-  expect(url.searchParams.get('view')).toBe('file')
+  expect(url.pathname).toBe('/my-account/repo/branch/feature%2Fdocs/file/docs/a%20%23%3F.md')
+  expect(url.search).toBe('')
+  expect(routeParams(url).get('ref')).toBe('feature/docs')
+  expect(routeParams(url).get('path')).toBe('docs/a #?.md')
+  expect(routeParams(url).get('view')).toBe('file')
   expect(url.hash).toBe('')
   const root = new URL(gitLocation('my-account', 'repo', 'main'), 'https://example.test')
-  expect(root.searchParams.has('path')).toBe(false)
-  expect(root.searchParams.has('view')).toBe(false)
+  expect(routeParams(root).has('path')).toBe(false)
+  expect(routeParams(root).has('view')).toBe(false)
 })
 
 test('tag names remain distinct from identical branch names across file, history and archive links', () => {
   const name = 'release/首版#%'
   const file = new URL(gitLocation('owner', 'repo', name, 'docs/readme.md', true, 'a'.repeat(40), 'tag'), 'https://example.test')
-  expect(gitRefType(file.searchParams)).toBe('tag')
-  expect(file.searchParams.get('ref')).toBe(name)
+  expect(gitRefType(routeParams(file))).toBe('tag')
+  expect(routeParams(file).get('ref')).toBe(name)
   expect(gitRevision(name, 'tag')).toBe('refs/tags/' + name)
   expect(gitRevision(name)).toBe('refs/heads/' + name)
   const history = new URL(gitHistoryLocation('owner', 'repo', name, { refType: 'tag' }), file)
-  expect(historyOptions(history.searchParams).refType).toBe('tag')
-  expect(gitArchiveRef(history.searchParams, name)).toBe('refs/tags/' + name)
-  expect(gitArchiveRef(file.searchParams, name)).toBe('a'.repeat(40))
+  expect(historyOptions(routeParams(history)).refType).toBe('tag')
+  expect(gitArchiveRef(routeParams(history), name)).toBe('refs/tags/' + name)
+  expect(gitArchiveRef(routeParams(file), name)).toBe('a'.repeat(40))
 })
 
 test('file snapshots and raw URLs preserve commit and path; generated downloads return exact binary bytes', async () => {
   const commit = 'a'.repeat(40)
   const path = 'docs/中文 #%.bin'
   const location = new URL(gitLocation('owner', 'repo', 'feature/docs', path, true, commit), 'https://example.test')
-  expect(location.searchParams.get('commit')).toBe(commit)
+  expect(routeParams(location).get('commit')).toBe(commit)
   expect(new URL(gitLocation('owner', 'repo', 'main', '', false, commit), location).searchParams.has('commit')).toBe(false)
   const url = new URL(getGetGitSpaceRawFileUrl('owner', 'repo', { ref: commit, path, download: true }), location)
   expect(url.pathname).toBe('/api/namespaces/owner/spaces/repo/git/raw')

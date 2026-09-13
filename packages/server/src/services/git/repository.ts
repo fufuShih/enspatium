@@ -4,6 +4,7 @@ import { TextDecoder } from 'node:util'
 
 import { requireSpaceStorage } from '../space/storage.js'
 import { acquireGitProcess, execGit, GitCapacityError, terminateGitTree } from './process.js'
+import { parseTreeHistory, type GitEntryCommit } from './tree-history.js'
 
 const gitFieldSeparator = '\u001f'
 const gitRecordSeparator = '\u001e'
@@ -108,6 +109,7 @@ export interface GitTreeEntry {
   path: string
   type: GitTreeEntryType
   size: number | null
+  lastCommit?: GitEntryCommit | null
 }
 
 export interface GitTree {
@@ -433,6 +435,7 @@ export async function getGitTree(
   spaceId: string,
   inputRef?: string,
   inputPath = '',
+  includeHistory = false,
 ): Promise<GitTree> {
   const repositoryPath = await requireSpaceStorage(dataRoot, spaceId, 'git')
   const path = normalizeGitPath(inputPath, true)
@@ -466,18 +469,35 @@ export async function getGitTree(
   }
 
   const output = await runGit(repositoryPath, ['ls-tree', '-z', '-l', treeId])
+  const entries: GitTreeEntry[] = parseGitTreeEntries(output).map((entry) => ({
+    id: entry.objectId,
+    name: entry.path,
+    path: path ? path + '/' + entry.path : entry.path,
+    type: toGitTreeEntryType(entry),
+    size: entry.size,
+  }))
+  if (includeHistory && entries.length) {
+    let history = new Map<string, GitEntryCommit>()
+    try {
+      // A single bounded history walk, never one Git process per table row.
+      // First-parent diffs attribute changes introduced by a merge to that merge.
+      const log = await runGit(repositoryPath, [
+        'log', '--first-parent', '--raw', '-r', '--root', '-z', '--no-renames', '--no-abbrev',
+        '--max-count=2000', '--format=%x00%H%x00%h%x00%cI%x00%s', commitId, '--',
+        ...(path ? [':(literal)' + path] : []),
+      ], 8 * 1024 * 1024)
+      history = parseTreeHistory(log, path, entries.map(entry => entry.name))
+    } catch {
+      // History is supplementary: busy/oversized histories must not hide files.
+    }
+    for (const entry of entries) entry.lastCommit = history.get(entry.name) ?? null
+  }
 
   return {
     ref,
     commitId,
     path,
-    entries: parseGitTreeEntries(output).map((entry) => ({
-      id: entry.objectId,
-      name: entry.path,
-      path: path ? path + '/' + entry.path : entry.path,
-      type: toGitTreeEntryType(entry),
-      size: entry.size,
-    })),
+    entries,
   }
 }
 

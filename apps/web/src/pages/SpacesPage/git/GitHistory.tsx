@@ -2,7 +2,8 @@ import GitDiffView from './GitDiffView'
 import { gitReadRetry } from './gitReadQuery'
 import { gitRevision } from './gitBrowserApi'
 import { Box, Flex, Heading, Text, chakra } from '@chakra-ui/react'
-import { useSearchParams } from 'react-router'
+import { useGitRoute } from './useGitRoute'
+import { useLocation } from 'react-router'
 import {
   getListGitSpaceCommitsQueryKey, useListGitSpaceCommits,
   getGetGitSpaceCommitQueryKey, useGetGitSpaceCommit,
@@ -16,8 +17,9 @@ import { type HistoryLocation, commitPageSize, gitHistoryError, gitHistoryLocati
 
 export default function GitHistory({ account, slug, branch }: { account: string; slug: string; branch: string }) {
   const { user } = useAuth()
+  const current = useLocation()
   const viewer = user?.id ?? null
-  const [params] = useSearchParams()
+  const { params } = useGitRoute()
   const options = historyOptions(params)
   const { commit, offset = 0, snapshot, file: selectedPath } = options
   const location = (changes: HistoryLocation = {}) => gitHistoryLocation(account, slug, branch, { ...options, ...changes })
@@ -37,7 +39,7 @@ export default function GitHistory({ account, slug, branch }: { account: string;
   const active = commit ? detail : history
 
   return <Box as="section" aria-label={commit ? 'Commit details' : 'Commit history'} minW="0">
-    {commit && <PageLink to={location({ commit: undefined, file: undefined })} display="inline-block" mb="20px" fontSize="13px">Back to commits</PageLink>}
+    {commit && <PageLink to={typeof current.state?.gitHistory === 'string' && current.state.gitHistory.startsWith('/') && !current.state.gitHistory.startsWith('//') ? current.state.gitHistory : location({ commit: undefined, file: undefined })} display="inline-block" mb="20px" fontSize="13px">Back to commits</PageLink>}
     {active.isPending ? <RequestState loading title={commit ? 'Loading commit...' : 'Loading commits...'} /> : active.isError ? <RequestState title={storageErrorTitle(active.error, 'Unable to load commits')} message={gitHistoryError(active.error)} onRetry={() => { void active.refetch() }} /> : !commit && history.data ? <>
       <Flex justify="space-between" align="center" gap="16px" mb="16px">
         <Heading as="h2" fontSize="16px" fontWeight="500">Commits</Heading>
@@ -45,7 +47,7 @@ export default function GitHistory({ account, slug, branch }: { account: string;
       </Flex>
       {!history.data.commits.length ? <RequestState title="No commits on this page" /> : <Box as="ul" listStyleType="none" m="0" p="0" border="1px solid var(--border)" borderRadius="8px" overflow="hidden">
         {history.data.commits.map((item, index) => <Box as="li" key={item.id} borderTop={index ? '1px solid var(--border)' : undefined}>
-          <PageLink to={location({ commit: item.id, snapshot: history.data.commitId })} display="block" p="16px" _hover={{ bg: 'var(--surface)' }}>
+          <PageLink to={location({ commit: item.id, snapshot: history.data.commitId })} state={{ gitRef: { name: branch, type: options.refType || 'branch' }, gitHistory: location({ snapshot: history.data.commitId }) }} display="block" p="16px" _hover={{ bg: 'var(--surface)' }}>
             <Flex justify="space-between" align="baseline" gap="16px"><Text fontSize="14px" fontWeight="500" overflowWrap="anywhere">{item.message || 'Untitled commit'}</Text><Text fontFamily="mono" fontSize="12px" flexShrink="0" color="var(--muted)">{item.shortId}</Text></Flex>
             <Text mt="6px" fontSize="12px" color="var(--muted)" overflowWrap="anywhere">{item.authorName} · <chakra.time dateTime={item.authoredAt}>{new Date(item.authoredAt).toLocaleString('en-US')}</chakra.time></Text>
           </PageLink>

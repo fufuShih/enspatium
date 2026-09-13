@@ -1,4 +1,4 @@
-import { spacePath } from '../shared/spaceApi'
+import { gitRouteLocation } from './gitRoutes'
 import type { GitRefType } from './gitBrowserApi'
 
 export function parseComparisonRef(ref: string): { name: string; type: GitRefType } | undefined {
@@ -21,5 +21,5 @@ export function gitCompareLocation(account: string, slug: string, options: Compa
   if (options.to) params.set('to', options.to)
   if (options.base && options.head) { params.set('base', options.base); params.set('head', options.head) }
   if (options.file) params.set('file', options.file)
-  return `${spacePath(account, slug)}?${params}`
+  return gitRouteLocation(account, slug, params)
 }

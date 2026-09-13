@@ -12,6 +12,7 @@ import { useAuth } from '../../../context/auth'
 import { gitErrorMessage, gitLocation, gitRevision, type GitRefType } from './gitBrowserApi'
 import { formatFileSize } from '../object/objectFileApi'
 import { storageErrorTitle } from '../shared/storageErrors'
+import GitIcon from './GitIcon'
 
 export default function GitFileView({ account, slug, branch, path, commit, refType = 'branch' }: {
   account: string; slug: string; branch: string; path: string; commit: string; refType?: GitRefType
@@ -39,7 +40,8 @@ export default function GitFileView({ account, slug, branch, path, commit, refTy
   const raw = getGetGitSpaceRawFileUrl(account, slug, { ref: file.commitId, path: file.path })
   const download = getGetGitSpaceRawFileUrl(account, slug, { ref: file.commitId, path: file.path, download: true })
   return <Box as="section" aria-label="Repository file" border="1px solid var(--border)" borderRadius="8px" overflow="hidden">
-    <Flex px="16px" py="12px" borderBottom="1px solid var(--border)" justify="space-between" align="center" gap="16px" wrap="wrap">
+    <Flex px="16px" py="12px" bg="var(--surface)" borderBottom="1px solid var(--border)" justify="space-between" align="center" gap="16px" wrap="wrap">
+      <Box color="var(--muted)"><GitIcon name="file" /></Box>
       <Box minW="0" flex="1">
         <Text fontSize="13px" overflowWrap="anywhere">{file.name}</Text>
         <Text mt="4px" fontSize="11px" color="var(--muted)">{formatFileSize(file.size)}<Text as="span" mx="8px">·</Text><Text as="span" title={file.commitId}>Commit {file.commitId.slice(0, 7)}</Text></Text>

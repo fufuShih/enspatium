@@ -1,6 +1,6 @@
 import type { GetGitSpaceInfo200, GetGitSpaceTree200EntriesItem } from '../../../api/generated/api.schemas.ts'
 import { apiCode, apiStatus } from '../../../context/session.ts'
-import { spacePath } from '../shared/spaceApi.ts'
+import { gitRouteLocation } from './gitRoutes'
 import { storageErrorMessage } from '../shared/storageErrors.ts'
 
 export function defaultGitBranch(info: GetGitSpaceInfo200) {
@@ -18,7 +18,7 @@ export function gitLocation(account: string, slug: string, branch: string, path 
   if (path) query.set('path', path)
   if (file) query.set('view', 'file')
   if (file && commit) query.set('commit', commit)
-  return `${spacePath(account, slug)}${query.size ? `?${query}` : ''}`
+  return gitRouteLocation(account, slug, query)
 }
 
 export function sortGitEntries(entries: GetGitSpaceTree200EntriesItem[]) {

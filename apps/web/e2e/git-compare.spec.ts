@@ -1,3 +1,5 @@
+import { parseGitRoute } from '../src/pages/SpacesPage/git/gitRoutes.js'
+const routeParams = (href: string) => { const url = new URL(href); return parseGitRoute(url.pathname, url.search).params }
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { GetSpace200 } from '../src/api/generated/api.schemas.js'
@@ -41,8 +43,8 @@ test('compare branch/tag snapshots, navigate changed files, swap and refresh aft
   const diff = page.getByRole('region', { name: 'File diff', exact: true })
   await expect(comparison.getByRole('heading', { name: '5 changed files', exact: true })).toBeVisible()
   await expect(diff).toContainText('-# Before'); await expect(diff).toContainText('+# After')
-  await expect.poll(() => new URL(page.url()).searchParams.get('base')).toBe(base)
-  await expect.poll(() => new URL(page.url()).searchParams.get('head')).toBe(target)
+  await expect.poll(() => routeParams(page.url()).get('base')).toBe(base)
+  await expect.poll(() => routeParams(page.url()).get('head')).toBe(target)
   await changes.getByRole('link').filter({ hasText: '中文 #%.txt' }).click()
   await expect(diff).toContainText('+New Unicode file')
   await page.reload(); await expect(diff).toContainText('+New Unicode file')
@@ -71,7 +73,7 @@ test('compare branch/tag snapshots, navigate changed files, swap and refresh aft
   await expect(diff).toContainText('+# After'); await expect(diff).not.toContainText('New push')
   await comparison.getByRole('button', { name: 'Refresh comparison', exact: true }).click()
   await expect(diff).toContainText('+# New push')
-  await expect.poll(() => new URL(page.url()).searchParams.get('head')).toBe(latest)
+  await expect.poll(() => routeParams(page.url()).get('head')).toBe(latest)
   await comparison.getByRole('button', { name: 'Swap', exact: true }).click()
   await expect(diff).toContainText('-# New push'); await expect(diff).toContainText('+# Before')
   await comparison.getByLabel('Base', { exact: true }).selectOption('refs/tags/release/首版')

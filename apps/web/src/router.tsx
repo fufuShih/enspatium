@@ -24,6 +24,7 @@ export const router = createBrowserRouter([
       { path: "settings/admin", Component: AdminPage },
       { path: ":account", Component: AccountPage },
       { path: ":account/:spaceSlug", Component: SpacePage },
+      { path: ":account/:spaceSlug/*", Component: SpacePage },
       { path: ":account/:spaceSlug/settings", element: <SpacePage settings /> },
     ]
   },

@@ -1,3 +1,5 @@
+import { parseGitRoute } from '../src/pages/SpacesPage/git/gitRoutes.js'
+const routeParams = (href: string) => { const url = new URL(href); return parseGitRoute(url.pathname, url.search).params }
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { strFromU8, unzipSync } from 'fflate'
@@ -36,8 +38,10 @@ test('tags retain their own files, history, links and ZIP when a branch has the 
   await page.reload()
   await page.getByLabel('Tag', { exact: true }).selectOption('v1')
   await expect(page.getByRole('heading', { name: 'Tagged release', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Tagged commit', exact: true })).toHaveAttribute('href', new RegExp('/commit/' + tagged + '$'))
+  await expect(page.getByRole('link', { name: 'Branch commit', exact: true })).toHaveCount(0)
   await page.getByRole('link', { name: /^docs\/\s*Folder$/ }).click()
-  expect(new URL(page.url()).searchParams.get('refType')).toBe('tag')
+  expect(routeParams(page.url()).get('refType')).toBe('tag')
   await page.getByRole('link', { name: /^version.txt/ }).click()
   await expect(page.getByLabel('File contents', { exact: true })).toContainText('Tag bytes')
   await page.reload()
@@ -62,6 +66,7 @@ test('tags retain their own files, history, links and ZIP when a branch has the 
   await page.getByLabel('Branch', { exact: true }).selectOption('v1')
   await page.getByRole('navigation', { name: 'Repository views' }).getByRole('link', { name: 'Files', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Branch development', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Branch commit', exact: true })).toBeVisible()
   await page.goto(space.url + '?refType=tag&ref=missing')
   await expect(page.getByRole('heading', { name: 'Tag not found', exact: true })).toBeVisible()
   await page.getByLabel('Tag', { exact: true }).selectOption('release/首版')

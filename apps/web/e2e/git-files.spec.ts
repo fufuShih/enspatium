@@ -33,7 +33,7 @@ test('Raw and Download use the displayed commit for text, binary, large and empt
   await page.reload()
   await page.getByRole('link', { name: 'View source', exact: true }).click()
   await expect(page.getByLabel('File contents')).toContainText('First version')
-  await expect(page).toHaveURL(new RegExp(`commit=${first}$`))
+  await expect(page).toHaveURL(new RegExp(`/at/${first}/file/`))
   const file = page.getByRole('region', { name: 'Repository file', exact: true })
   const rawLink = file.getByRole('link', { name: 'Raw', exact: true })
   const downloadLink = file.getByRole('link', { name: 'Download', exact: true })
@@ -61,13 +61,13 @@ test('Raw and Download use the displayed commit for text, binary, large and empt
   await page.screenshot({ path: testInfo.outputPath('git-file-download.png'), fullPage: true })
 
   // Branch-only deep links resolve and pin a snapshot, including large files.
-  const url = new URL(page.url())
+  const url = new URL(space.url + '?view=file', page.url())
   url.searchParams.delete('commit')
   url.searchParams.set('ref', 'original')
   url.searchParams.set('path', 'large.txt')
   await page.goto(url.href)
   await expect(page.getByRole('heading', { name: 'Preview unavailable', exact: true })).toBeVisible()
-  await expect(page).toHaveURL(new RegExp(`commit=${first}$`))
+  await expect(page).toHaveURL(new RegExp(`/at/${first}/file/`))
   await download(large, 'large.txt')
   for (const [path, heading, contents] of [['binary.bin', 'Binary file', binary], ['empty.txt', 'This file is empty', Buffer.alloc(0)]] as const) {
     url.searchParams.set('path', path)

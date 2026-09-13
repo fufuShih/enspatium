@@ -1,5 +1,7 @@
 import { Box, Flex, Heading, Text, chakra } from '@chakra-ui/react'
-import { useSearchParams } from 'react-router'
+import { useNavigate } from 'react-router'
+import { useGitRoute } from './useGitRoute'
+import { gitReferencesLocation } from './gitRoutes'
 import { getListGitSpaceReferencesQueryKey, useListGitSpaceReferences } from '../../../api/generated/spaces'
 import { ActionButton, PageLink, TextInput } from '../../../components/ui/Primitives'
 import RequestState from '../../../components/RequestState'
@@ -10,17 +12,14 @@ import { gitReadRetry } from './gitReadQuery'
 
 export default function GitReferences({ account, slug, type, defaultBranch }: { account: string; slug: string; type: GitRefType; defaultBranch: string }) {
   const { user } = useAuth()
-  const [params, setParams] = useSearchParams()
+  const { params } = useGitRoute()
+  const navigate = useNavigate()
   const offset = Math.min(1_000_000, Math.max(0, Number(params.get('offset')) || 0))
   const search = params.get('search') || ''
   const query = { type, search, offset: Math.floor(offset), limit: 30 }
   const refs = useListGitSpaceReferences(account, slug, query, { query: { ...gitReadRetry, queryKey: [...getListGitSpaceReferencesQueryKey(account, slug, query), user?.id ?? null] } })
   const update = (search: string, offset: number) => {
-    const next = new URLSearchParams(params)
-    next.delete('offset'); next.delete('search')
-    if (offset) next.set('offset', String(offset))
-    if (search) next.set('search', search)
-    setParams(next)
+    navigate(gitReferencesLocation(account, slug, type, search, offset))
   }
   return <Box as="section" aria-label="Reference list" minW="0">
     <Flex justify="space-between" align="center" mb="16px" gap="12px">
@@ -37,7 +36,7 @@ export default function GitReferences({ account, slug, type, defaultBranch }: { 
             <PageLink to={gitLocation(account, slug, ref.name, '', false, '', type)} fontSize="14px" fontWeight="500" overflowWrap="anywhere">{ref.name}</PageLink>
             {type === 'branch' && ref.name === defaultBranch && <Text fontSize="11px" color="var(--muted)">Default</Text>}
           </Flex>
-          <PageLink to={gitHistoryLocation(account, slug, ref.name, { refType: type, commit: ref.commit.id, snapshot: ref.commit.id })} display="block" mt="8px" fontSize="13px" overflowWrap="anywhere"><Text as="span" fontFamily="mono" mr="8px" color="var(--muted)">{ref.commit.shortId}</Text>{ref.commit.message || 'Untitled commit'}</PageLink>
+          <PageLink to={gitHistoryLocation(account, slug, ref.name, { refType: type, commit: ref.commit.id, snapshot: ref.commit.id })} state={{ gitRef: { name: ref.name, type } }} display="block" mt="8px" fontSize="13px" overflowWrap="anywhere"><Text as="span" fontFamily="mono" mr="8px" color="var(--muted)">{ref.commit.shortId}</Text>{ref.commit.message || 'Untitled commit'}</PageLink>
           <Flex mt="8px" gap="12px" justify="space-between" align="baseline" wrap="wrap" fontSize="12px" color="var(--muted)">
             <Text overflowWrap="anywhere">{ref.commit.authorName} · Last commit <chakra.time dateTime={ref.commit.committedAt}>{new Date(ref.commit.committedAt).toLocaleString('en-US')}</chakra.time></Text>
             <PageLink to={gitHistoryLocation(account, slug, ref.name, { refType: type })}>History</PageLink>

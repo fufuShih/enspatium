@@ -1,6 +1,7 @@
 import { Box, Flex, Heading, Text, chakra } from '@chakra-ui/react'
 import { useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
+import { useNavigate } from 'react-router'
+import { useGitRoute } from './useGitRoute'
 import { getGetGitSpaceDiffQueryKey, useGetGitSpaceDiff } from '../../../api/generated/spaces'
 import { ActionButton, PageLink, SelectInput } from '../../../components/ui/Primitives'
 import RequestState from '../../../components/RequestState'
@@ -14,7 +15,7 @@ import GitDiffView from './GitDiffView'
 export default function GitCompare({ account, slug, branches, tags, defaultBranch }: { account: string; slug: string; branches: string[]; tags: string[]; defaultBranch: string }) {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [params] = useSearchParams()
+  const { params } = useGitRoute()
   const names = [...branches.map(name => gitRevision(name)), ...tags.map(name => gitRevision(name, 'tag'))]
   const defaultFrom = branches.includes(defaultBranch) ? gitRevision(defaultBranch) : names[0] || ''
   const options = comparisonOptions(params, defaultFrom, names.find(name => name !== defaultFrom) || defaultFrom)

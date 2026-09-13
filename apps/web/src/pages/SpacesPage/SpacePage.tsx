@@ -1,4 +1,4 @@
-import { Box, Flex, Text } from '@chakra-ui/react'
+import { Box, Flex, Text, chakra } from '@chakra-ui/react'
 import { useLocation, useParams } from 'react-router'
 import { lazy, Suspense } from 'react'
 import { getGetSpaceQueryKey, useGetSpace } from '../../api/generated/spaces'
@@ -16,7 +16,7 @@ import SpaceSettings from './settings/SpaceSettings'
 const GitBrowser = lazy(() => import('./git/GitBrowser'))
 
 export default function SpacePage({ settings = false }: { settings?: boolean }) {
-  const { account = '', spaceSlug = '' } = useParams()
+  const { account = '', spaceSlug = '', '*': childPath } = useParams()
   const location = useLocation()
   const { user, isLoading, error: sessionError } = useAuth()
   const query = useGetSpace(account, spaceSlug, { query: {
@@ -34,6 +34,7 @@ export default function SpacePage({ settings = false }: { settings?: boolean }) 
     </RequestState></PageContainer>
   }
   const space = query.data
+  if (childPath && space.type !== 'git') return <PageContainer><RequestState title="Page not found" message="This Space page does not exist." /></PageContainer>
   const plugin = getAppPlugin(space.app)
   if (settings && !space.canManage) return <PageContainer><RequestState title="Access denied" message="Only a Space owner can manage settings."><PageLink to={spacePath(account, spaceSlug)} display="block" mt="20px">Back to Space</PageLink></RequestState></PageContainer>
   const details = [
@@ -44,11 +45,11 @@ export default function SpacePage({ settings = false }: { settings?: boolean }) 
     ['Updated', new Date(space.updatedAt).toLocaleString('en-US')],
   ]
   return (
-    <PageContainer>
+    <PageContainer maxW={space.type === 'git' && !settings ? '1120px' : '960px'}>
       <Box as="nav" aria-label="Breadcrumb" fontSize="13px" color="var(--muted)" overflowWrap="anywhere">
         <PageLink to={namespacePath({ account })}>{account}</PageLink><Text as="span" mx="10px">/</Text>{settings ? <><PageLink to={spacePath(account, space.slug)}>{space.slug}</PageLink><Text as="span" mx="10px">/</Text><Text as="span" aria-current="page">Settings</Text></> : <Text as="span" aria-current="page">{space.slug}</Text>}
       </Box>
-      <Flex align={{ base: 'flex-start', sm: 'center' }} justify="space-between" direction={{ base: 'column', sm: 'row' }} gap="20px" mt="24px" mb="32px">
+      <Flex align={{ base: 'flex-start', sm: 'center' }} justify="space-between" direction={{ base: 'column', sm: 'row' }} gap="20px" mt="18px" mb="28px">
         <Flex align="center" gap="12px" wrap="wrap" minW="0">
           <PageHeading>{settings ? 'Space settings' : space.name}</PageHeading>
           <Text fontSize="12px" color="var(--muted)" border="1px solid var(--border)" borderRadius="full" px="10px" py="3px">{space.visibility === 'public' ? 'Public' : 'Private'}</Text>
@@ -62,9 +63,12 @@ export default function SpacePage({ settings = false }: { settings?: boolean }) 
       {space.type === 'object' && <ObjectFileList key={`${space.id}:${user?.id ?? 'anonymous'}`} account={account} slug={space.slug} />}
       {space.type === 'git' && <Suspense fallback={<RequestState loading title="Loading repository..." />}><GitBrowser key={`${space.id}:${user?.id ?? 'anonymous'}`} account={account} slug={space.slug} /></Suspense>}
       <Box as="section" aria-label="Space details" mt="32px" border="1px solid color-mix(in srgb, var(--border) 60%, transparent)" borderRadius="8px" p={{ base: '20px', md: '28px' }}>
-        <Box as="dl" display="grid" gridTemplateColumns={{ base: '1fr', sm: '120px minmax(0, 1fr)' }} columnGap="24px" rowGap="12px" fontSize="13px" m="0">
+        <chakra.details open={space.type !== 'git' ? true : undefined}>
+        <chakra.summary display={space.type === 'git' ? 'list-item' : 'none'} cursor="pointer" fontSize="13px" color="var(--muted)">Repository details</chakra.summary>
+        <Box as="dl" display="grid" gridTemplateColumns={{ base: '1fr', sm: '120px minmax(0, 1fr)' }} columnGap="24px" rowGap="12px" fontSize="13px" m="0" mt={space.type === 'git' ? '20px' : '0'}>
           {details.map(([label, value]) => <Box key={label} display="contents"><Box as="dt" color="var(--muted)">{label}</Box><Box as="dd" m="0" overflowWrap="anywhere" mb={{ base: '8px', sm: '0' }}>{value}</Box></Box>)}
         </Box>
+        </chakra.details>
       </Box>
       </>}
     </PageContainer>

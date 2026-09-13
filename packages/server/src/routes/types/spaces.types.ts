@@ -209,6 +209,12 @@ export const GitTreeEntryResponseSchema = Type.Object({
     Type.Literal('submodule'),
   ]),
   size: Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]),
+  lastCommit: Type.Optional(Type.Union([Type.Object({
+    id: Type.String({ pattern: '^[0-9a-f]{40,64}$' }),
+    shortId: Type.String({ pattern: '^[0-9a-f]+$' }),
+    committedAt: Type.String({ format: 'date-time' }),
+    message: Type.String(),
+  }), Type.Null()])),
 })
 
 export const GitTreeResponseSchema = Type.Object({

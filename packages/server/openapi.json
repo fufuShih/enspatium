@@ -2498,6 +2498,39 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "lastCommit": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "shortId",
+                                  "committedAt",
+                                  "message"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "pattern": "^[0-9a-f]{40,64}$",
+                                    "type": "string"
+                                  },
+                                  "shortId": {
+                                    "pattern": "^[0-9a-f]+$",
+                                    "type": "string"
+                                  },
+                                  "committedAt": {
+                                    "format": "date-time",
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         }
                       }

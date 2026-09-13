@@ -1,5 +1,5 @@
 import { gitReadRetry } from './gitReadQuery'
-import { Box, Text } from '@chakra-ui/react'
+import { Box, Flex, Text } from '@chakra-ui/react'
 import { getGetGitSpaceStorageQueryKey, useGetGitSpaceStorage } from '../../../api/generated/spaces'
 import { useAuth } from '../../../context/auth'
 import { ActionButton } from '../../../components/ui/Primitives'
@@ -10,12 +10,13 @@ export default function GitStorageUsage({ account, slug }: { account: string; sl
   const usage = useGetGitSpaceStorage(account, slug, { query: {
     queryKey: [...getGetGitSpaceStorageQueryKey(account, slug), user?.id ?? null], ...gitReadRetry, staleTime: 30_000,
   } })
-  return <Box as="section" mt="24px" fontSize="12px" color="var(--muted)" aria-label="Repository storage">
+  return <Box as="section" mt="24px" pt="16px" borderTop="1px solid var(--border)" fontSize="12px" color="var(--muted)" aria-label="Repository storage"><Flex align="center" justify="space-between" gap="12px" flexWrap="wrap">
     {usage.data ? <Text>
       Git objects: {formatFileSize(usage.data.usedBytes)} / {formatFileSize(usage.data.maxBytes)}
       {' · '}Push limit: {formatFileSize(usage.data.maxPushBytes)}
       {usage.data.usedBytes >= usage.data.maxBytes && ' · Storage limit reached. Contact the administrator.'}
     </Text> : usage.isError ? <Text>Storage usage unavailable.</Text> : <Text>Loading storage usage...</Text>}
-    <ActionButton variant="ghost" size="xs" mt="4px" disabled={usage.isFetching} onClick={() => { void usage.refetch() }}>Refresh storage usage</ActionButton>
+    <ActionButton variant="ghost" size="xs" border="0" p="0" color="var(--muted)" disabled={usage.isFetching} onClick={() => { void usage.refetch() }}>Refresh storage usage</ActionButton>
+    </Flex>
   </Box>
 }

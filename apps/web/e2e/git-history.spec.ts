@@ -72,7 +72,8 @@ test('browse branch history, initial and later changes, and reload a selected di
 
   // Invalid deep links should offer recovery without showing stale content.
   const invalid = new URL(page.url())
-  invalid.searchParams.set('commit', '0'.repeat(40))
+  invalid.pathname = space.url + '/commit/' + '0'.repeat(40)
+  invalid.search = ''
   await page.goto(invalid.href)
   await expect(page.getByRole('heading', { name: 'Unable to load commits', exact: true })).toBeVisible()
   await expect(page.getByRole('region', { name: 'File diff', exact: true })).toHaveCount(0)

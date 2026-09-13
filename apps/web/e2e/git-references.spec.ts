@@ -1,3 +1,5 @@
+import { parseGitRoute } from '../src/pages/SpacesPage/git/gitRoutes.js'
+const routeParams = (href: string) => { const url = new URL(href); return parseGitRoute(url.pathname, url.search).params }
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { GetSpace200, ListGitSpaceReferences200 } from '../src/api/generated/api.schemas.js'
@@ -64,8 +66,8 @@ test('reference lists show paged commit metadata and preserve branch/tag navigat
   await page.screenshot({ path: testInfo.outputPath('reference-list-mobile.png'), fullPage: true })
   await list.getByRole('link', { name: /Release commit/ }).last().click()
   await expect(page.getByRole('region', { name: 'File diff', exact: true })).toContainText('+# Reference release')
-  expect(new URL(page.url()).searchParams.get('refType')).toBe('tag')
-  expect(new URL(page.url()).searchParams.get('commit')).toBe(release)
+  await expect(page.getByLabel('Reference type', { exact: true })).toHaveValue('tag')
+  expect(routeParams(page.url()).get('commit')).toBe(release)
   await page.getByRole('navigation', { name: 'Repository views' }).getByRole('link', { name: 'References', exact: true }).click()
   await list.getByRole('link', { name: 'release/首版', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Reference release', exact: true })).toBeVisible()

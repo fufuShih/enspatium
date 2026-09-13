@@ -519,6 +519,15 @@ export const GetGitSpaceTree200EntriesItemType = {  file: 'file',
   symlink: 'symlink',
   submodule: 'submodule',
 } as const
+export type GetGitSpaceTree200EntriesItemLastCommit = {
+  /** @pattern ^[0-9a-f]{40,64}$ */
+  id: string;
+  /** @pattern ^[0-9a-f]+$ */
+  shortId: string;
+  committedAt: string;
+  message: string;
+} | null;
+
 export type GetGitSpaceTree200EntriesItem = {
   /** @pattern ^[0-9a-f]{40,64}$ */
   id: string;
@@ -526,6 +535,7 @@ export type GetGitSpaceTree200EntriesItem = {
   path: string;
   type: typeof GetGitSpaceTree200EntriesItemType[keyof typeof GetGitSpaceTree200EntriesItemType];
   size: number | null;
+  lastCommit?: GetGitSpaceTree200EntriesItemLastCommit;
 };
 
 export type GetGitSpaceTree200 = {

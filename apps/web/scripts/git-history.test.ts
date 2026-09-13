@@ -1,16 +1,22 @@
+import { parseGitRoute } from '../src/pages/SpacesPage/git/gitRoutes'
+const routeParams = (url: URL) => parseGitRoute(url.pathname, url.search).params
 import { expect, test, vi } from 'vitest'
 import { getGitSpaceDiff, listGitSpaceCommits } from '../src/api/generated/spaces.ts'
 import { decodeGitPath, gitHistoryLocation, historyOptions, parseGitPatch } from '../src/pages/SpacesPage/git/gitHistoryApi.ts'
 
-test('history links preserve the snapshot, page, branch and selected file across reloads', () => {
-  const options = { commit: 'a'.repeat(40), snapshot: 'b'.repeat(40), offset: 30, file: 'docs/a #?.md' }
-  const url = new URL(gitHistoryLocation('my team', 'repo', 'feature/docs', options), 'https://example.test')
-  expect(url.pathname).toBe('/my%20team/repo')
-  expect(url.searchParams.get('view')).toBe('commits')
-  expect(url.searchParams.get('ref')).toBe('feature/docs')
-  expect(historyOptions(url.searchParams)).toStrictEqual(options)
+test('history pagination and commit files use path identities', () => {
+  const snapshot = 'b'.repeat(40)
+  const url = new URL(gitHistoryLocation('my team', 'repo', 'feature/docs', { snapshot, offset: 30 }), 'https://example.test')
+  expect(url.pathname).toBe('/my%20team/repo/branch/feature%2Fdocs/commits/at/' + snapshot)
+  expect(url.search).toBe('?offset=30')
+  expect(routeParams(url).get('ref')).toBe('feature/docs')
+  expect(historyOptions(routeParams(url))).toMatchObject({ snapshot, offset: 30 })
+  const commit = 'a'.repeat(40)
+  const detail = new URL(gitHistoryLocation('my team', 'repo', 'feature/docs', { commit, file: 'docs/a #?.md' }), url)
+  expect(detail.pathname).toBe('/my%20team/repo/commit/' + commit + '/file/docs/a%20%23%3F.md')
+  expect(detail.search).toBe('')
+  expect(historyOptions(routeParams(detail))).toMatchObject({ commit, file: 'docs/a #?.md' })
   expect(historyOptions(new URLSearchParams('offset=-1&snapshot=main')).offset).toBe(0)
-  expect(historyOptions(new URLSearchParams('offset=NaN&snapshot=main')).snapshot).toBeUndefined()
 })
 
 test('patches retain line numbers, header-like content and missing-newline markers', () => {

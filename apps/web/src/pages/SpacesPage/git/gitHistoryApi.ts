@@ -1,5 +1,6 @@
 import { apiStatus } from '../../../context/session.ts'
-import { gitErrorMessage, gitLocation, type GitRefType } from './gitBrowserApi.ts'
+import { gitErrorMessage, type GitRefType } from './gitBrowserApi.ts'
+import { gitRouteLocation } from './gitRoutes'
 
 export const commitPageSize = 30
 export const maxDiffPreviewLines = 3000
@@ -7,14 +8,13 @@ export const maxDiffPreviewLines = 3000
 export type HistoryLocation = { commit?: string; offset?: number; snapshot?: string; file?: string; refType?: GitRefType }
 
 export function gitHistoryLocation(account: string, slug: string, branch: string, options: HistoryLocation = {}) {
-  const [pathname, search] = gitLocation(account, slug, branch, '', false, '', options.refType).split('?')
-  const params = new URLSearchParams(search)
+  const params = new URLSearchParams({ ref: branch, refType: options.refType || 'branch' })
   params.set('view', 'commits')
   if (options.commit) params.set('commit', options.commit)
   if (options.offset) params.set('offset', String(options.offset))
   if (options.snapshot) params.set('snapshot', options.snapshot)
   if (options.file) params.set('file', options.file)
-  return `${pathname}?${params}`
+  return gitRouteLocation(account, slug, params)
 }
 
 export function historyOptions(params: URLSearchParams): HistoryLocation {

@@ -2,12 +2,13 @@ import { Box, Flex, Heading, Popover, Portal, Text, chakra } from '@chakra-ui/re
 import CopyButton from '../../../components/ui/CopyButton'
 import { ActionButton, PageLink, TextInput } from '../../../components/ui/Primitives'
 import { accessTokensPath } from '../../UserPage/tokenApi'
+import GitIcon from './GitIcon'
 
 export function GitCloneMenu({ url, archiveUrl, archiveRef }: { url: string; archiveUrl?: string; archiveRef?: string }) {
   return (
     <Popover.Root positioning={{ placement: 'bottom-end', gutter: 8 }} lazyMount unmountOnExit>
       <Popover.Trigger asChild>
-        <ActionButton bg="var(--foreground)" color="var(--background)" gap="10px">Clone</ActionButton>
+        <ActionButton bg="var(--foreground)" color="var(--background)" gap="10px"><GitIcon name="code" />Clone<GitIcon name="chevron" size={13} /></ActionButton>
       </Popover.Trigger>
       <Portal>
         <Popover.Positioner>
@@ -34,6 +35,7 @@ export function EmptyGitRepository({ url, refreshing, onRefresh }: { url: string
   const command = `git push "${url}" HEAD:main`
   return (
     <Box as="section" aria-label="Repository setup" border="1px solid var(--border)" borderRadius="8px" p={{ base: '20px', md: '28px' }}>
+      <Flex w="40px" h="40px" align="center" justify="center" bg="var(--surface)" color="var(--accent-ink)" borderRadius="10px" mb="18px"><GitIcon name="code" size={22} /></Flex>
       <Heading as="h2" fontSize="18px" fontWeight="500">Push your first commit</Heading>
       <Text mt="8px" fontSize="13px" lineHeight="1.8" color="var(--muted)">Run this in a local repository with at least one commit to add your files.</Text>
       <Box mt="20px" border="1px solid var(--border)" borderRadius="6px" overflow="hidden">

@@ -1,17 +1,19 @@
 import { Box, Flex, Heading, Text } from '@chakra-ui/react'
 import { useMemo } from 'react'
+import { useLocation } from 'react-router'
 import { PageLink } from '../../../components/ui/Primitives'
 import RequestState from '../../../components/RequestState'
 import { maxDiffPreviewLines, parseGitPatch } from './gitHistoryApi'
 
 export default function GitDiffView({ patch, selectedPath, fileLocation, emptyMessage }: { patch: string; selectedPath?: string; fileLocation: (path: string) => string; emptyMessage: string }) {
+  const location = useLocation()
   const files = useMemo(() => parseGitPatch(patch), [patch])
   const selected = selectedPath ? files.find(file => file.path === selectedPath) : files[0]
   if (!files.length) return <RequestState title="No file changes" message={emptyMessage} />
   return <>
     <Heading as="h3" fontSize="14px" fontWeight="500" mb="12px">{files.length} changed {files.length === 1 ? 'file' : 'files'}</Heading>
     <Box as="nav" aria-label="Changed files" border="1px solid var(--border)" borderRadius="8px" overflow="hidden" mb="20px" maxH="280px" overflowY="auto">
-      {files.map((file, index) => <PageLink key={index} to={fileLocation(file.path)} display="flex" alignItems="center" justifyContent="space-between" gap="12px" p="12px 16px" borderTop={index ? '1px solid var(--border)' : undefined} bg={selected === file ? 'var(--surface)' : undefined} aria-current={selected === file ? 'page' : undefined} _hover={{ bg: 'var(--surface)' }}>
+      {files.map((file, index) => <PageLink key={index} to={fileLocation(file.path)} state={location.state} display="flex" alignItems="center" justifyContent="space-between" gap="12px" p="12px 16px" borderTop={index ? '1px solid var(--border)' : undefined} bg={selected === file ? 'var(--surface)' : undefined} aria-current={selected === file ? 'page' : undefined} _hover={{ bg: 'var(--surface)' }}>
         <Text fontSize="13px" overflowWrap="anywhere">{file.status === 'Renamed' ? `${file.oldPath} → ${file.path}` : file.path}</Text>
         <Flex gap="12px" align="center" flexShrink="0" fontSize="12px"><Text color="var(--muted)">{file.status}</Text>{!file.binary && <Text fontFamily="mono">+{file.additions} −{file.deletions}</Text>}</Flex>
       </PageLink>)}
