@@ -16,7 +16,7 @@ export default function ObjectVersions({ account, slug, fileKey, selectedId, onS
   const { user } = useAuth()
   const client = useQueryClient()
   const [cursor, setCursor] = useState<number>()
-  const [restoreId, setRestoreId] = useState<string>()
+  const [confirmation, setConfirmation] = useState<{ versionId: string; expectedVersion: string }>()
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const params = { key: fileKey, limit: 20, ...(cursor ? { cursor } : {}) }
@@ -25,16 +25,20 @@ export default function ObjectVersions({ account, slug, fileKey, selectedId, onS
     queryKey: [...getListObjectVersionsQueryKey(account, slug, params), user?.id],
   } })
   async function restore() {
-    if (!restoreId || !history.data || pending) return
+    if (!confirmation || pending) return
     setPending(true); onBusy(true); setError('')
     try {
-      await restoreObjectVersion(account, slug, { key: fileKey, versionId: restoreId, expectedVersion: history.data.object.versionId })
+      // Background refreshes must not change an already-confirmed target head.
+      await restoreObjectVersion(account, slug, { key: fileKey, ...confirmation })
       await refreshObjectLists(client, account, slug)
       onRestored()
     } catch (failure) {
       setError(fileErrorMessage(failure, 'restore'))
       if (apiStatus(failure) === 401) void client.invalidateQueries({ queryKey: ['session'] })
-      if (apiStatus(failure) === 409) void history.refetch()
+      if (apiStatus(failure) === 409) {
+        setConfirmation(undefined)
+        await history.refetch()
+      }
     } finally { setPending(false); onBusy(false) }
   }
   if (history.isPending) return <RequestState loading title="Loading versions..." />
@@ -48,16 +52,16 @@ export default function ObjectVersions({ account, slug, fileKey, selectedId, onS
       </Box>
       {!version.isDeleted && <Flex gap="8px">
         <ActionButton aria-label={`Preview version ${version.revision}`} aria-pressed={selectedId === version.versionId} disabled={pending} onClick={() => onSelect(version)}>Preview</ActionButton>
-        {version.versionId !== history.data.object.versionId && <ActionButton aria-label={`Restore version ${version.revision}`} disabled={pending} onClick={() => { setRestoreId(version.versionId); setError('') }}>Restore</ActionButton>}
+        {version.versionId !== history.data.object.versionId && <ActionButton aria-label={`Restore version ${version.revision}`} disabled={pending} onClick={() => { setConfirmation({ versionId: version.versionId, expectedVersion: history.data.object.versionId }); setError('') }}>Restore</ActionButton>}
       </Flex>}
     </Flex>)}
     {(cursor || history.data.nextCursor) && <Flex justify="flex-end" gap="8px" mt="12px">
-      {cursor && <ActionButton disabled={pending} onClick={() => { setCursor(undefined); setRestoreId(undefined) }}>Latest versions</ActionButton>}
-      {history.data.nextCursor && <ActionButton disabled={pending} onClick={() => { setCursor(history.data.nextCursor!); setRestoreId(undefined) }}>Older versions</ActionButton>}
+      {cursor && <ActionButton disabled={pending} onClick={() => { setCursor(undefined); setConfirmation(undefined) }}>Latest versions</ActionButton>}
+      {history.data.nextCursor && <ActionButton disabled={pending} onClick={() => { setCursor(history.data.nextCursor!); setConfirmation(undefined) }}>Older versions</ActionButton>}
     </Flex>}
-    {restoreId && <Box mt="16px" p="12px" border="1px solid var(--border)" borderRadius="8px">
+    {confirmation && <Box mt="16px" p="12px" border="1px solid var(--border)" borderRadius="8px">
       <Text fontSize="13px">Restore this content as a new version? Older versions remain subject to retention settings.</Text>
-      <Flex gap="8px" mt="12px"><ActionButton disabled={pending} onClick={() => setRestoreId(undefined)}>Cancel restore</ActionButton><ActionButton loading={pending} loadingText="Restoring..." onClick={() => { void restore() }}>Confirm restore</ActionButton></Flex>
+      <Flex gap="8px" mt="12px"><ActionButton disabled={pending} onClick={() => setConfirmation(undefined)}>Cancel restore</ActionButton><ActionButton loading={pending} loadingText="Restoring..." onClick={() => { void restore() }}>Confirm restore</ActionButton></Flex>
     </Box>}
     {error && <Text role="alert" mt="12px" fontSize="13px" color="fg.error">{error}</Text>}
   </Box>
