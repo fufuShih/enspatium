@@ -6,7 +6,7 @@ import { request } from 'node:https'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { parseEnv, promisify } from 'node:util'
+import { promisify } from 'node:util'
 import { expect, test } from 'vitest'
 
 const exec = promisify(execFile)
@@ -16,7 +16,7 @@ const imageId = /^sha256:[0-9a-f]{64}$/
 
 // Only fresh projects, loopback listeners and named volumes created by this
 // test. Never upgrade the operator's normal or smoke deployment in place.
-test('a release upgrade preserves Git and Object data, and a failed migration recovers from the old snapshot', async () => {
+test('restarts, container recreation and upgrades preserve data, and a failed migration recovers from the old snapshot', async () => {
   assert.equal(process.env.UPGRADE_TEST, 'true', 'Set UPGRADE_TEST=true and provide the two release image pairs.')
   const root = await mkdtemp(join(tmpdir(), 'enspatium-upgrade-test-'))
   const project = 'ensp-upgrade-' + randomUUID().replaceAll('-', '').slice(0, 12)
@@ -110,7 +110,10 @@ test('a release upgrade preserves Git and Object data, and a failed migration re
       expect(await docker(['volume', 'ls', '-q', '--filter', 'name=^' + name + '_'])).toBe('')
       expect(await docker(['network', 'ls', '-q', '--filter', 'name=^' + name + '_'])).toBe('')
     }
-    const config = { ...parseEnv(await readFile(join(repository, 'deploy/.env.smoke'), 'utf8')), SITE_ADDRESS: 'https://localhost', HTTP_BIND: '127.0.0.1', HTTP_PORT: '0', HTTPS_PORT: '0', REGISTRATION_ENABLED: 'true' }
+    const config = {
+      POSTGRES_PASSWORD: randomBytes(32).toString('hex'), SESSION_KEY: randomBytes(32).toString('hex'),
+      SITE_ADDRESS: 'https://localhost', HTTP_BIND: '127.0.0.1', HTTP_PORT: '0', HTTPS_PORT: '0', REGISTRATION_ENABLED: 'true',
+    }
     await writeFile(envFile, Object.entries(config).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join('\n'), { mode: 0o600 })
     await writeFile(join(root, 'gitconfig'), '')
     const override = (server: string, web: string) => ({ services: {
@@ -132,11 +135,17 @@ test('a release upgrade preserves Git and Object data, and a failed migration re
     const base = `/api/namespaces/${account}/spaces`
     const space = await json<{ id: string }>('POST', base, 201, { name: 'Upgrade Git', slug: 'upgrade-git', type: 'git' })
     assert.match(space.id, uuid)
-    await http('POST', base, 201, { name: 'Upgrade objects', slug: 'upgrade-objects', type: 'object' })
+    const objectSpace = await json<{ id: string }>('POST', base, 201, { name: 'Upgrade objects', slug: 'upgrade-objects', type: 'object' })
+    await http('PATCH', base + '/upgrade-objects', 200, { objectVersionLimit: 5, objectRetentionDays: 14 })
     const object = base + '/upgrade-objects/objects/version.txt'
     const first = await json<{ versionId: string }>('PUT', object + '?expectedVersion=none', 201, 'Version before upgrade')
     const second = await json<{ versionId: string }>('PUT', object + '?expectedVersion=' + first.versionId, 201, 'Current before upgrade')
-    const token = await json<{ token: string }>('POST', '/api/auth/tokens', 201, { name: 'Upgrade token', scopes: ['git:read', 'git:write'] })
+    const deleted = await json<{ versionId: string }>('PUT', base + '/upgrade-objects/objects/deleted.txt?expectedVersion=none', 201, 'Recoverable deleted content')
+    await http('DELETE', base + '/upgrade-objects/objects/deleted.txt?expectedVersion=' + deleted.versionId, 204)
+    const usage = await json('GET', base + '/upgrade-objects/storage')
+    const token = await json<{ id: string; token: string }>('POST', '/api/auth/tokens', 201, { name: 'Upgrade token', scopes: ['git:read', 'git:write'] })
+    const revoked = await json<{ id: string }>('POST', '/api/auth/tokens', 201, { name: 'Revoked token', scopes: ['git:read'] })
+    await http('DELETE', '/api/auth/tokens/' + revoked.id, 204)
     Object.assign(gitEnv, {
       GIT_CONFIG_COUNT: '4', GIT_CONFIG_KEY_0: 'http.sslBackend', GIT_CONFIG_VALUE_0: 'openssl',
       GIT_CONFIG_KEY_1: 'http.sslCAInfo', GIT_CONFIG_VALUE_1: currentCaFile,
@@ -152,6 +161,56 @@ test('a release upgrade preserves Git and Object data, and a failed migration re
     await git(['push', origin + remote, 'main', '--tags'])
     const before = await git(['rev-parse', 'HEAD'])
     await docker([...activeCompose, 'exec', '-T', 'db', 'psql', '-U', 'enspatium', '-d', 'enspatium', '-v', 'ON_ERROR_STOP=1', '-c', `UPDATE users SET is_admin = true WHERE id = '${createdUser.id}'`])
+    const volumes = async () => (await docker(['volume', 'ls', '-q', '--filter', 'label=com.docker.compose.project=' + project])).split('\n').sort()
+    const originalVolumes = await volumes()
+    expect(originalVolumes).toEqual(['caddy_config', 'certificates', 'content', 'database'].map(name => project + '_' + name).sort())
+    const initialCa = Buffer.from(ca)
+    async function verifyPersisted(label: string) {
+      expect(await json('GET', '/api/auth/me')).toMatchObject({ id: createdUser.id, displayName: user.displayName, isAdmin: true })
+      expect(await json('GET', base + '/upgrade-git')).toMatchObject({ id: space.id, visibility: 'private' })
+      expect(await json('GET', base + '/upgrade-objects')).toMatchObject({ id: objectSpace.id, objectVersionLimit: 5, objectRetentionDays: 14 })
+      expect(await json('GET', base + '/upgrade-objects/storage')).toEqual(usage)
+      expect((await http('GET', object)).toString()).toBe('Current before upgrade')
+      expect((await http('GET', base + '/upgrade-objects/object-versions/content?key=version.txt&versionId=' + first.versionId)).toString()).toBe('Version before upgrade')
+      expect(await json('GET', base + '/upgrade-objects/object-versions?key=version.txt')).toMatchObject({
+        object: { versionId: second.versionId, revision: 2 },
+        versions: [{ versionId: second.versionId }, { versionId: first.versionId }],
+      })
+      await http('GET', base + '/upgrade-objects/objects/deleted.txt', 404)
+      expect(await json('GET', base + '/upgrade-objects/object-versions?key=deleted.txt')).toMatchObject({ object: { isDeleted: true, revision: 2 } })
+      expect((await http('GET', base + '/upgrade-objects/object-versions/content?key=deleted.txt&versionId=' + deleted.versionId)).toString()).toBe('Recoverable deleted content')
+      const tokens = await json<{ id: string; revokedAt: string | null }[]>('GET', '/api/auth/tokens')
+      expect(tokens.find(item => item.id === token.id)).toMatchObject({ revokedAt: null })
+      expect(tokens.find(item => item.id === revoked.id)?.revokedAt).toEqual(expect.any(String))
+      const checkout = join(root, label + '-clone')
+      await git(['clone', origin + remote, checkout])
+      expect(await git(['branch', '--show-current'], checkout)).toBe('main')
+      expect(await git(['rev-parse', 'HEAD'], checkout)).toBe(before)
+      expect(await git(['rev-parse', 'refs/tags/before-upgrade'], checkout)).toBe(before)
+      expect(await readFile(join(checkout, 'README.md'), 'utf8')).toBe('# Before upgrade\n')
+      // Also verify stored password hashes, not just the existing session cookie.
+      cookie = ''
+      await http('POST', '/api/auth/login', 200, user)
+      await http('GET', '/api/admin/operations')
+      progress(label + ': account, tokens, Git, Object versions, deleted content and retention settings verified.')
+    }
+    progress('Restarting the database, backend and HTTPS proxy without replacing volumes.')
+    await docker([...activeCompose, 'restart', '--timeout', '360', 'db', 'server', 'web'], 390_000)
+    await docker([...activeCompose, 'up', '-d', '--no-build', '--wait'])
+    await connect(sourceCompose(previousFile), 'restarted')
+    expect(ca.equals(initialCa)).toBe(true)
+    expect(await volumes()).toEqual(originalVolumes)
+    await verifyPersisted('restarted')
+    const oldContainer = await docker([...activeCompose, 'ps', '-q', 'db'])
+    progress('Removing containers, then recreating them with the same named volumes.')
+    await docker([...activeCompose, 'down', '--timeout', '360'], 390_000)
+    expect(await volumes()).toEqual(originalVolumes)
+    await docker([...sourceCompose(previousFile), 'up', '-d', '--no-build', '--wait'])
+    await connect(sourceCompose(previousFile), 'recreated')
+    expect(await docker([...activeCompose, 'ps', '-q', 'db'])).not.toBe(oldContainer)
+    expect(ca.equals(initialCa)).toBe(true)
+    expect(await volumes()).toEqual(originalVolumes)
+    await verifyPersisted('recreated')
     progress('Taking and verifying the previous release snapshot.')
     expect((await tool(['create', '--env-file', envFile, '--project', project, '--output', snapshot])).status).toBe('created')
     expect((await tool(['verify', '--env-file', envFile, '--backup', snapshot])).status).toBe('verified')
@@ -162,6 +221,9 @@ test('a release upgrade preserves Git and Object data, and a failed migration re
     expect((await inspectService(activeCompose, 'server')).image).toBe(images.UPGRADE_TO_SERVER_IMAGE)
     expect((await inspectService(activeCompose, 'web')).image).toBe(images.UPGRADE_TO_WEB_IMAGE)
     expect((await inspectService(activeCompose, 'migrate')).exitCode).toBe(0)
+    expect(ca.equals(initialCa)).toBe(true)
+    expect(await volumes()).toEqual(originalVolumes)
+    await verifyPersisted('candidate')
     await http('GET', '/api/auth/me') // the existing session survives replacement
     await http('POST', '/api/auth/login', 200, user)
     await http('GET', '/api/admin/operations')

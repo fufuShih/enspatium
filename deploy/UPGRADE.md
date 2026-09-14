@@ -37,3 +37,25 @@ After acceptance, use the new environment for future commands. Keep the old envi
 Keep traffic stopped. A failed migration may already have changed the database; switching only the image back is insufficient.
 
 [Restore the pre-upgrade backup](BACKUP.md) and saved images into a fresh project on separate ports. Verify it before switching traffic, and retain the failed deployment's volumes for any newer data. Do not merge the two installations automatically.
+
+## Local persistence test
+
+With dependencies installed, Docker running in Linux mode and Git available, build the candidate images:
+
+```sh
+docker build --target server -t enspatium-server:persistence-check .
+docker build --target web -t enspatium-web:persistence-check .
+```
+
+PowerShell example (change the previous image pair to the release you are upgrading from; all images must already be available locally, including `postgres:17-bookworm`):
+
+```powershell
+$env:UPGRADE_TEST = "true"
+$env:UPGRADE_FROM_SERVER_IMAGE = "felixshih/enspatium-server:v0.2.0"
+$env:UPGRADE_FROM_WEB_IMAGE = "felixshih/enspatium-web:v0.2.0"
+$env:UPGRADE_TO_SERVER_IMAGE = "enspatium-server:persistence-check"
+$env:UPGRADE_TO_WEB_IMAGE = "enspatium-web:persistence-check"
+pnpm --filter @enspatium/server test:upgrade
+```
+
+The test generates temporary secrets and uses isolated projects, random localhost ports and its own volumes. It checks restart, container recreation, image upgrade and recovery after a failed migration, then removes its test data. Accounts, tokens, Git commits/tags, Object versions, deleted files and retention settings must survive. No deployment `.env` is needed. This does not verify power-loss recovery or a PostgreSQL major-version upgrade.
