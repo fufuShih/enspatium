@@ -1,11 +1,13 @@
 import { test, expect } from './fixtures.js'
-import { register, signIn, signOut } from './helpers.js'
+import { createSpace, register, signIn, signOut } from './helpers.js'
 
 test('user settings save a profile and manage tokens under Applications', async ({ page, request }, testInfo) => {
   expect((await request.patch('/api/auth/me', { data: { displayName: 'Anonymous' } })).status()).toBe(401)
   const user = await register(page, 'Settings owner')
   await signIn(page, user)
   const accountUrl = page.url()
+  const space = await createSpace(page, 'Token acceptance')
+  const gitUrl = `/api/git/${space.account}/${space.slug}.git/info/refs`
   await page.getByRole('button', { name: 'User menu for ' + user.name, exact: true }).click()
   await expect(page.getByRole('menuitem', { name: 'Access tokens', exact: true })).toHaveCount(0)
   await page.getByRole('menuitem', { name: 'Settings', exact: true }).click()
@@ -30,12 +32,26 @@ test('user settings save a profile and manage tokens under Applications', async 
   await page.getByLabel('Name', { exact: true }).fill('Settings test token')
   await page.getByRole('button', { name: 'Create token', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Your token is ready', exact: true })).toBeVisible()
+  const secret = await page.getByRole('textbox', { name: 'New access token', exact: true }).inputValue()
+  const authorization = 'Basic ' + Buffer.from('git:' + secret).toString('base64')
+  // Use an independent request context so a session cookie cannot mask bad token auth.
+  expect((await request.get(gitUrl + '?service=git-upload-pack')).status()).toBe(401)
+  expect((await request.get(gitUrl + '?service=git-upload-pack', { headers: { authorization } })).status()).toBe(200)
+  expect((await request.get(gitUrl + '?service=git-receive-pack', { headers: { authorization } })).status()).toBe(403)
+  const tokenList = await (await page.request.get('/api/auth/tokens')).json()
+  expect(tokenList).toHaveLength(1)
+  expect(tokenList[0].scopes).toEqual(['git:read'])
+  expect(tokenList[0].expiresAt).not.toBeNull()
+  expect(tokenList[0]).not.toHaveProperty('token')
+  expect(tokenList[0]).not.toHaveProperty('tokenHash')
+  expect(tokenList[0]).not.toHaveProperty('token_hash')
   await expect(page.getByRole('button', { name: 'Copy access token', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Done', exact: true }).click()
   await expect(page.getByLabel('New access token', { exact: true })).toHaveCount(0)
   await page.getByRole('button', { name: 'Revoke Settings test token', exact: true }).click()
   await page.getByRole('button', { name: 'Revoke token', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('Token revoked.')
+  expect((await request.get(gitUrl + '?service=git-upload-pack', { headers: { authorization } })).status()).toBe(401)
   await page.goto('/settings/access-tokens')
   await expect(page).toHaveURL(/\/settings\/applications$/)
   await expect(page.getByText('Revoked', { exact: true })).toBeVisible()
