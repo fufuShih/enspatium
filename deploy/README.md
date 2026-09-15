@@ -13,7 +13,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Images default to `felixshih/enspatium-server:v0.2.0` and `felixshih/enspatium-web:v0.2.0`. Migrations run automatically. No source code or build tools are needed.
+Images default to `felixshih/enspatium-server:v0.2.1` and `felixshih/enspatium-web:v0.2.1`. Migrations run automatically. No source code or build tools are needed.
 
 Inside the development checkout, preserve its root `.env`: use `deploy/.env` and add `--env-file deploy/.env` to Compose commands.
 
