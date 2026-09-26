@@ -1,15 +1,21 @@
 import { buildApp } from './app.js'
+import { JobWorker } from './services/jobs/runner.js'
 import { cleanupObjectVersions, startObjectCleanupLoop } from './services/object/retention.js'
 
 const app = await buildApp()
+const jobWorker = new JobWorker(app)
 let stopCleanup: (() => Promise<void>) | undefined
-app.addHook('preClose', async () => { await stopCleanup?.() })
+app.addHook('preClose', async () => {
+  try { await stopCleanup?.() }
+  finally { await jobWorker.close() }
+})
 
 try {
   await app.listen({
     host: app.config.HOST,
     port: app.config.PORT,
   })
+  jobWorker.start()
   stopCleanup = startObjectCleanupLoop(
     () => cleanupObjectVersions(app.db, app.config.DATA_ROOT, (error, spaceId) => {
       app.operations.recordCleanupFailure()
