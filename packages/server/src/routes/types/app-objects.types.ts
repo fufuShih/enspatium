@@ -1,9 +1,10 @@
 import { Type } from '@sinclair/typebox'
-import { AppTypeSchema } from './apps.types.js'
+import { AppInstanceParamsSchema, AppTypeSchema } from './apps.types.js'
 import { ObjectSpaceParamsSchema, SpaceObjectResponseSchema } from './objects.types.js'
 
 export const AppObjectSpaceParamsSchema = Type.Object({ ...ObjectSpaceParamsSchema.properties, appType: AppTypeSchema })
 export const AppObjectParamsSchema = Type.Object({ ...AppObjectSpaceParamsSchema.properties, itemId: Type.String({ format: 'uuid' }) })
+export const AppInstanceObjectParamsSchema = Type.Object({ ...AppInstanceParamsSchema.properties, itemId: Type.String({ format: 'uuid' }) })
 export const AppObjectSchema = Type.Object({ ...SpaceObjectResponseSchema.properties, kind: Type.String() })
 export const AppObjectsQuerySchema = Type.Object({
   kind: Type.Optional(Type.String({ minLength: 1, maxLength: 60 })),

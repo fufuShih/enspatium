@@ -18,13 +18,13 @@ export default function AppPage() {
 }
 
 function AppContent({ plugin }: { plugin: AppPagePlugin }) {
-  const { spaceId = '' } = useParams()
+  const { appId = '' } = useParams()
   const location = useLocation()
   const { user, isLoading, error: sessionError } = useAuth()
   const query = useQuery({
-    queryKey: ['app-space', plugin.type, spaceId, user?.id ?? null],
-    queryFn: ({ signal }) => plugin.integration.loadSpace(spaceId, signal),
-    enabled: !isLoading && Boolean(spaceId), retry: false,
+    queryKey: ['app-instance', plugin.type, appId, user?.id ?? null],
+    queryFn: ({ signal }) => plugin.integration.loadInstance(appId, signal),
+    enabled: !isLoading && Boolean(appId), retry: false, gcTime: 0, staleTime: 0, refetchOnMount: 'always',
   })
   const name = query.data?.name
   useEffect(() => {
@@ -43,7 +43,7 @@ function AppContent({ plugin }: { plugin: AppPagePlugin }) {
       {status === 401 && <ActionButton asChild mt="20px"><PageLink to="/login" state={{ from: location.pathname + location.search }}>Sign in</PageLink></ActionButton>}
     </RequestState></PageContainer>
   }
-  const props = { space: query.data, basePath: appPath(plugin.type, query.data.id) }
+  const props = { instance: query.data, basePath: appPath(plugin.type, query.data.id) }
   return <Suspense fallback={<PageContainer><RequestState loading title="Loading app..." /></PageContainer>}>
     <Routes key={`${query.data.id}:${user?.id ?? 'anonymous'}`}>
       <Route index element={<plugin.view {...props} />} />

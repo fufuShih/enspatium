@@ -1,11 +1,11 @@
 import type { ComponentType } from 'react'
-import type { CreateSpaceBody } from '../../api/generated/api.schemas'
+import type { CreateSpaceBody, GetAppInstance200 } from '../../api/generated/api.schemas'
 
-export type AppSpace = { id: string; name: string; account: string; slug: string }
-export type AppPageProps = { space: AppSpace; basePath: string }
+export type AppInstance = GetAppInstance200
+export type AppPageProps = { instance: AppInstance; basePath: string }
 
 export type AppPageRoute = {
-  // Relative to /app/:appType/:spaceId, e.g. book/:bookId or book/:bookId/notes.
+  // Relative to /app/:appType/:appId, e.g. book/:bookId or book/:bookId/notes.
   path: string
   view: ComponentType<AppPageProps>
 }
@@ -19,6 +19,6 @@ export type AppPagePlugin = {
   routes?: readonly AppPageRoute[]
   integration: {
     storageType: CreateSpaceBody['type']
-    loadSpace: (spaceId: string, signal: AbortSignal) => Promise<AppSpace>
+    loadInstance: (appId: string, signal: AbortSignal) => Promise<AppInstance>
   }
 }

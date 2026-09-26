@@ -26,6 +26,54 @@ export type GetDatabaseHealth200 = {
   status: GetDatabaseHealth200Status;
 };
 
+export const GetAppInstance200AppKind = {  builtin: 'builtin',
+  custom: 'custom',
+} as const
+export const GetAppInstance200AppStorageType = {  git: 'git',
+  object: 'object',
+} as const
+export type GetAppInstance200App = {
+  /**
+     * @minLength 3
+     * @maxLength 60
+     * @pattern ^[a-z0-9]+(-[a-z0-9]+)*$
+     */
+  type: string;
+  name: string;
+  kind: typeof GetAppInstance200AppKind[keyof typeof GetAppInstance200AppKind];
+  ownerUserId: string | null;
+  storageType: typeof GetAppInstance200AppStorageType[keyof typeof GetAppInstance200AppStorageType];
+};
+
+export type GetAppInstance200Config = {[key: string]: unknown};
+
+export type GetAppInstance200PwaOfflinePolicy = typeof GetAppInstance200PwaOfflinePolicy[keyof typeof GetAppInstance200PwaOfflinePolicy];
+
+
+export const GetAppInstance200PwaOfflinePolicy = {
+  shell: 'shell',
+} as const;
+
+export type GetAppInstance200Pwa = {
+  enabled: boolean;
+  iconObjectId: string | null;
+  themeColor: string | null;
+  offlinePolicy: GetAppInstance200PwaOfflinePolicy;
+};
+
+export type GetAppInstance200 = {
+  id: string;
+  spaceId: string;
+  name: string;
+  account: string;
+  slug: string;
+  app: GetAppInstance200App;
+  config: GetAppInstance200Config;
+  pwa: GetAppInstance200Pwa;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export const ListApps200ItemKind = {  builtin: 'builtin',
   custom: 'custom',
 } as const
@@ -1238,6 +1286,89 @@ versionId: string;
 };
 
 export type HeadAppContentParams = {
+/**
+ * @minLength 1
+ * @maxLength 1024
+ */
+key: string;
+versionId: string;
+};
+
+export type ListAppInstanceObjectsParams = {
+/**
+ * @minLength 1
+ * @maxLength 60
+ */
+kind?: string;
+/**
+ * @maxLength 128
+ */
+search?: string;
+/**
+ * @maxLength 1024
+ */
+cursor?: string;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type ListAppInstanceObjects200ObjectsItem = {
+  id: string;
+  spaceId: string;
+  createdByUserId: string | null;
+  key: string;
+  contentType: string;
+  /** @minimum 0 */
+  sizeBytes: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  checksumSha256: string;
+  createdAt: string;
+  updatedAt: string;
+  versionId: string;
+  /** @minimum 1 */
+  revision: number;
+  isDeleted: boolean;
+  kind: string;
+};
+
+export type ListAppInstanceObjects200 = {
+  canUpload: boolean;
+  objects: ListAppInstanceObjects200ObjectsItem[];
+  nextCursor: string | null;
+};
+
+export type GetAppInstanceObject200 = {
+  id: string;
+  spaceId: string;
+  createdByUserId: string | null;
+  key: string;
+  contentType: string;
+  /** @minimum 0 */
+  sizeBytes: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  checksumSha256: string;
+  createdAt: string;
+  updatedAt: string;
+  versionId: string;
+  /** @minimum 1 */
+  revision: number;
+  isDeleted: boolean;
+  kind: string;
+};
+
+export type DownloadAppInstanceContentParams = {
+/**
+ * @minLength 1
+ * @maxLength 1024
+ */
+key: string;
+versionId: string;
+};
+
+export type HeadAppInstanceContentParams = {
 /**
  * @minLength 1
  * @maxLength 1024

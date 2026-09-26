@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  GetAppInstance200,
   GetAppSpace200,
   ListApps200Item
 } from './api.schemas';
@@ -43,6 +44,123 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetAppInstanceUrl = (appType: string,
+    appId: string,) => {
+
+
+
+
+  return `/api/apps/${encodeURIComponent(String(appType))}/instances/${encodeURIComponent(String(appId))}`
+}
+
+export const getAppInstance = async (appType: string,
+    appId: string, options?: RequestInit): Promise<GetAppInstance200> => {
+
+  const res = await fetch(getGetAppInstanceUrl(appType,appId),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: GetAppInstance200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getGetAppInstanceQueryKey = (appType: string,
+    appId: string,) => {
+    return [
+    `/api/apps/${appType}/instances/${appId}`
+    ] as const;
+    }
+
+
+export const getGetAppInstanceQueryOptions = <TData = Awaited<ReturnType<typeof getAppInstance>>, TError = globalThis.Error & { info?: unknown; status?: number }>(appType: string,
+    appId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAppInstance>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAppInstanceQueryKey(appType,appId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAppInstance>>> = ({ signal }) => getAppInstance(appType,appId, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: appType !== null && appType !== undefined && appId !== null && appId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAppInstance>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAppInstanceQueryResult = NonNullable<Awaited<ReturnType<typeof getAppInstance>>>
+export type GetAppInstanceQueryError = globalThis.Error & { info?: unknown; status?: number }
+
+
+export function useGetAppInstance<TData = Awaited<ReturnType<typeof getAppInstance>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ appType: string,
+    appId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAppInstance>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAppInstance>>,
+          TError,
+          Awaited<ReturnType<typeof getAppInstance>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAppInstance<TData = Awaited<ReturnType<typeof getAppInstance>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ appType: string,
+    appId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAppInstance>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAppInstance>>,
+          TError,
+          Awaited<ReturnType<typeof getAppInstance>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAppInstance<TData = Awaited<ReturnType<typeof getAppInstance>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ appType: string,
+    appId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAppInstance>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetAppInstance<TData = Awaited<ReturnType<typeof getAppInstance>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ appType: string,
+    appId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAppInstance>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAppInstanceQueryOptions(appType,appId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
 
 export const getListAppsUrl = () => {
 

@@ -6,14 +6,28 @@ import type { ObjectAppKind, ObjectAppPlugin } from '../apps/types.js'
 import { getSpaceBySlug, getWritableObjectSpace, SpaceServiceError } from './space/space.js'
 import { requireSpaceStorage } from './space/storage.js'
 import { escapeLikePrefix, ObjectServiceError, openObjectDownload, toPublicSpaceObject } from './object/object.js'
+import { getAppInstance } from './app-instances.js'
 
-async function requireAppSpace(db: Kysely<Database>, userId: string | undefined, account: string, slug: string, appType: string) {
-  const space = await getSpaceBySlug(db, userId, account, slug)
+type AppObjectSource = { appType: string } & ({ appId: string } | { account: string; slug: string })
+
+async function requireAppSpace(db: Kysely<Database>, userId: string | undefined, source: AppObjectSource) {
+  const { appType } = source
+  // Legacy content endpoints only resolve the original instance, never another
+  // instance of the same type. Instance endpoints derive Space solely on server.
+  let instance
+  if ('appId' in source) {
+    instance = await getAppInstance(db, userId, appType, source.appId)
+  } else {
+    const space = await getSpaceBySlug(db, userId, source.account, source.slug)
+    if (space.app !== appType) throw new ObjectServiceError('NOT_FOUND', 404, 'App is not available for this Space.')
+    instance = await getAppInstance(db, userId, appType, space.id)
+    if (instance.space_id !== space.id) throw new ObjectServiceError('NOT_FOUND', 404, 'App is not available for this Space.')
+  }
   const plugin = getObjectAppPlugin(appType)
-  if (!plugin || space.app !== appType || space.type !== plugin.storageType) {
+  if (!plugin || instance.storage_type !== plugin.storageType) {
     throw new ObjectServiceError('NOT_FOUND', 404, 'App is not available for this Space.')
   }
-  return { space, plugin }
+  return { spaceId: instance.space_id, plugin, account: instance.account, slug: instance.spaceSlug }
 }
 
 export function classifyAppObject(plugin: ObjectAppPlugin, key: string, contentType: string) {
@@ -33,14 +47,14 @@ function kindCondition(rule: ObjectAppKind) {
 }
 
 export async function listAppObjects(
-  db: Kysely<Database>, dataRoot: string, userId: string | undefined, account: string, slug: string, appType: string,
+  db: Kysely<Database>, dataRoot: string, userId: string | undefined, source: AppObjectSource,
   input: { kind?: string; search?: string; cursor?: string; limit?: number },
 ) {
-  const { space, plugin } = await requireAppSpace(db, userId, account, slug, appType)
+  const { spaceId, plugin, account, slug } = await requireAppSpace(db, userId, source)
   if (input.kind && !plugin.kinds.some(rule => rule.kind === input.kind)) {
     throw new ObjectServiceError('INVALID_INPUT', 400, 'This kind is not supported by this app.')
   }
-  await requireSpaceStorage(dataRoot, space.id, 'object')
+  await requireSpaceStorage(dataRoot, spaceId, 'object')
   let canUpload = false
   if (userId) {
     try { await getWritableObjectSpace(db, userId, account, slug); canUpload = true } catch (error) {
@@ -53,7 +67,7 @@ export async function listAppObjects(
   const result = await sql<SpaceObject & { kind: string }>`
     with items as (
       select objects.*, ${kind} as kind from space_objects objects
-      where space_id = ${space.id} and not is_deleted
+      where space_id = ${spaceId} and not is_deleted
     )
     select * from items where kind is not null
       ${input.kind ? sql`and kind = ${input.kind}` : sql``}
@@ -67,22 +81,22 @@ export async function listAppObjects(
 }
 
 export async function getAppObject(
-  db: Kysely<Database>, dataRoot: string, userId: string | undefined, account: string, slug: string, appType: string, itemId: string,
+  db: Kysely<Database>, dataRoot: string, userId: string | undefined, source: AppObjectSource, itemId: string,
 ) {
-  const { space, plugin } = await requireAppSpace(db, userId, account, slug, appType)
-  await requireSpaceStorage(dataRoot, space.id, 'object')
+  const { spaceId, plugin } = await requireAppSpace(db, userId, source)
+  await requireSpaceStorage(dataRoot, spaceId, 'object')
   const item = await db.selectFrom('space_objects').selectAll()
-    .where('space_id', '=', space.id).where('id', '=', itemId).where('is_deleted', '=', false).executeTakeFirst()
+    .where('space_id', '=', spaceId).where('id', '=', itemId).where('is_deleted', '=', false).executeTakeFirst()
   const rule = item && classifyAppObject(plugin, item.key, item.content_type)
   if (!item || !rule) throw new ObjectServiceError('NOT_FOUND', 404, 'App item was not found.')
   return { ...toPublicSpaceObject(item), kind: rule.kind }
 }
 
 export async function openAppContent(
-  db: Kysely<Database>, dataRoot: string, userId: string | undefined, account: string, slug: string, appType: string,
+  db: Kysely<Database>, dataRoot: string, userId: string | undefined, source: AppObjectSource,
   key: string, versionId: string,
 ) {
-  const { plugin } = await requireAppSpace(db, userId, account, slug, appType)
+  const { plugin, account, slug } = await requireAppSpace(db, userId, source)
   const content = await openObjectDownload(db, dataRoot, userId, account, slug, key, versionId)
   const rule = classifyAppObject(plugin, content.object.key, content.object.contentType)
   if (!rule) {

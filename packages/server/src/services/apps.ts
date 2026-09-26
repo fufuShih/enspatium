@@ -2,6 +2,7 @@ import type { Kysely } from 'kysely'
 import type { Database } from '../db/index.js'
 import type { AppType } from '../db/types/app.types.js'
 import { getSpaceBySlug, SpaceServiceError } from './space/space.js'
+import { getAppInstance } from './app-instances.js'
 
 function publicApp(app: AppType) {
   return { type: app.type, name: app.name, kind: app.kind, ownerUserId: app.owner_user_id, storageType: app.storage_type }
@@ -18,12 +19,25 @@ export async function listApps(db: Kysely<Database>, userId: string | undefined)
 
 export async function getAppSpace(db: Kysely<Database>, userId: string | undefined, appType: string, spaceId: string) {
   const reference = await db.selectFrom('spaces')
+    .innerJoin('space_apps', join => join.onRef('space_apps.space_id', '=', 'spaces.id').onRef('space_apps.id', '=', 'spaces.id'))
     .innerJoin('namespaces', 'namespaces.id', 'spaces.namespace_id')
     .select(['namespaces.slug as account', 'spaces.slug'])
+    .where('space_apps.app_type', '=', appType)
     .where('spaces.id', '=', spaceId).where('spaces.app_type', '=', appType).executeTakeFirst()
   if (!reference) throw new SpaceServiceError('NOT_FOUND', 404, 'App Space was not found.')
   const space = await getSpaceBySlug(db, userId, reference.account, reference.slug)
   if (space.id !== spaceId || space.app !== appType) throw new SpaceServiceError('NOT_FOUND', 404, 'App Space was not found.')
   const app = await db.selectFrom('app_types').selectAll().where('type', '=', appType).executeTakeFirstOrThrow()
   return { id: space.id, name: space.name, slug: space.slug, account: reference.account, app: publicApp(app) }
+}
+
+export async function getAppInstanceDetails(db: Kysely<Database>, userId: string | undefined, appType: string, appId: string) {
+  const instance = await getAppInstance(db, userId, appType, appId)
+  const app = await db.selectFrom('app_types').selectAll().where('type', '=', instance.app_type).executeTakeFirstOrThrow()
+  return {
+    id: instance.id, spaceId: instance.space_id, name: instance.name,
+    account: instance.account, slug: instance.spaceSlug, app: publicApp(app),
+    config: instance.config, pwa: instance.pwa,
+    createdAt: instance.created_at.toISOString(), updatedAt: instance.updated_at.toISOString(),
+  }
 }

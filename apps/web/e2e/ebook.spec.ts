@@ -16,7 +16,7 @@ test('Ebook Space opens a library with EPUB chapters, safe content and PDF page 
   const page = await popup
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
-  await expect(page).toHaveURL(`${environment.webOrigin}/app/ebook/${id}`)
+  await expect(page).toHaveURL(`${environment.webOrigin}/app/ebook/${id}/`)
   await expect(page.getByRole('heading', { name: 'Your bookshelf is ready' })).toBeVisible()
   for (const [name, mimeType, buffer] of [
     ['A quiet journey.epub', 'application/octet-stream', epubFixture()],
@@ -90,14 +90,14 @@ test('Ebook Space opens a library with EPUB chapters, safe content and PDF page 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   await page.screenshot({ path: testInfo.outputPath('ebook-mobile.png'), fullPage: true, animations: 'disabled' })
   await page.getByRole('link', { name: /Back to library/ }).click()
-  await expect(page).toHaveURL(`${environment.webOrigin}/app/ebook/${id}?format=pdf`)
+  await expect(page).toHaveURL(`${environment.webOrigin}/app/ebook/${id}/?format=pdf`)
   await page.getByRole('button', { name: 'All books', exact: true }).click()
   await page.getByLabel('Search books').fill('quiet')
   await page.getByRole('button', { name: 'Search', exact: true }).click()
   await expect(page.getByRole('list', { name: 'Books' }).getByRole('link')).toHaveCount(1)
   await book.click()
   await page.getByRole('link', { name: /Back to library/ }).click()
-  await expect(page).toHaveURL(`${environment.webOrigin}/app/ebook/${id}?search=quiet`)
+  await expect(page).toHaveURL(`${environment.webOrigin}/app/ebook/${id}/?search=quiet`)
   const guestContext = await browser.newContext()
   try {
     const guest = await guestContext.newPage()
@@ -154,7 +154,7 @@ test('Ebook Space opens a library with EPUB chapters, safe content and PDF page 
   await page.goto(`${environment.webOrigin}${bookPath}/unknown`)
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
   await page.getByRole('link', { name: 'Back to app' }).click()
-  await expect(page).toHaveURL(`${environment.webOrigin}/app/ebook/${id}`)
+  await expect(page).toHaveURL(`${environment.webOrigin}/app/ebook/${id}/`)
   expect(errors, 'Uncaught reader errors').toEqual([])
   await page.close()
 })

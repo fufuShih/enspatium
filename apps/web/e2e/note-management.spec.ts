@@ -98,7 +98,7 @@ test('Note actions rename, move and soft-delete with stable links, versions and 
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0)
   await page.screenshot({ path: testInfo.outputPath('note-delete-mobile.png'), fullPage: true, animations: 'disabled' })
   await dialog.getByRole('button', { name: 'Confirm delete' }).click()
-  await expect(page).toHaveURL(new RegExp(appPath + '$'))
+  await expect(page).toHaveURL(new RegExp(appPath + '/$'))
   await expect(page.getByRole('link', { name: `Open ${key}`, exact: true })).toHaveCount(0)
   await expect(page.getByRole('alertdialog')).toHaveCount(0)
   const deleted = await (await page.request.get(historyPath)).json()

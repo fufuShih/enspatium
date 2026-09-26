@@ -12,3 +12,22 @@ export const AppSpaceResponseSchema = Type.Object({
   id: Type.String({ format: 'uuid' }), name: Type.String(), slug: Type.String(), account: Type.String(),
   app: AppResponseSchema,
 })
+
+export const AppInstanceParamsSchema = Type.Object({
+  appType: AppTypeSchema, appId: Type.String({ format: 'uuid' }),
+})
+export const AppInstanceResponseSchema = Type.Object({
+  id: Type.String({ format: 'uuid' }),
+  spaceId: Type.String({ format: 'uuid' }),
+  name: Type.String(), account: Type.String(), slug: Type.String(),
+  app: AppResponseSchema,
+  config: Type.Record(Type.String(), Type.Unknown()),
+  pwa: Type.Object({
+    enabled: Type.Boolean(),
+    iconObjectId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+    themeColor: Type.Union([Type.String(), Type.Null()]),
+    offlinePolicy: Type.Literal('shell'),
+  }),
+  createdAt: Type.String({ format: 'date-time' }),
+  updatedAt: Type.String({ format: 'date-time' }),
+})

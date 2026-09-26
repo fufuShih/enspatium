@@ -1,14 +1,14 @@
 import { Box, Heading, Text, chakra } from '@chakra-ui/react'
 import { useEffect, useRef, useState } from 'react'
-import type { ListAppObjects200ObjectsItem } from '../../../../api/generated/api.schemas'
+import type { ListAppInstanceObjects200ObjectsItem } from '../../../../api/generated/api.schemas'
 import { ActionButton } from '../../../../components/ui/Primitives'
 import { fileErrorMessage } from '../../../SpacesPage/object/objectFileApi'
 import { imagePreviewLimit } from '../../../SpacesPage/object/objectPreview'
 import { MediaIcon } from './MediaThumbnail'
 import { mediaIntegration } from './integration'
 
-export default function MediaPlayer({ account, slug, file }: { account: string; slug: string; file: ListAppObjects200ObjectsItem }) {
-  const source = mediaIntegration.contentUrl(account, slug, { key: file.key, versionId: file.versionId })
+export default function MediaPlayer({ appId, file }: { appId: string; file: ListAppInstanceObjects200ObjectsItem }) {
+  const source = mediaIntegration.contentUrl(appId, { key: file.key, versionId: file.versionId })
   const player = useRef<HTMLMediaElement | null>(null)
   const probe = useRef<AbortController | null>(null)
   const [failure, setFailure] = useState('')
@@ -25,7 +25,7 @@ export default function MediaPlayer({ account, slug, file }: { account: string; 
     const controller = new AbortController()
     probe.current?.abort(); probe.current = controller
     setFailure('Cannot play this file. This format may not be supported by your browser.')
-    try { await mediaIntegration.headContent(account, slug, { key: file.key, versionId: file.versionId }, { signal: controller.signal }) } catch (error) {
+    try { await mediaIntegration.headContent(appId, { key: file.key, versionId: file.versionId }, { signal: controller.signal }) } catch (error) {
       if (!controller.signal.aborted) setFailure(fileErrorMessage(error, 'preview'))
     }
   }

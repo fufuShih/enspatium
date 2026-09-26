@@ -4,8 +4,8 @@ import type { CreateAppInstanceInput, UpdateAppInstanceInput } from '../db/types
 import { validateAppInstanceConfig, validateAppInstanceName } from './app-instance-config.js'
 import { getSpaceBySlug, requireSpaceOwnerAccess, SpaceServiceError } from './space/space.js'
 
-// Internal data-layer operations. HTTP schemas and instance-based routes follow
-// separately; every read still derives its permissions from the owning Space.
+// Data-layer operations. Every read derives its permissions from the owning Space;
+// instance management is not exposed through HTTP until the management UI stage.
 export async function listAppInstances(db: Kysely<Database>, actorUserId: string | undefined, account: string, spaceSlug: string) {
   const space = await getSpaceBySlug(db, actorUserId, account, spaceSlug)
   return db.selectFrom('space_apps').selectAll().where('space_id', '=', space.id)

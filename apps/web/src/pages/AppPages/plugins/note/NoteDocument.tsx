@@ -6,28 +6,28 @@ import { ActionButton } from '../../../../components/ui/Primitives'
 import RequestState from '../../../../components/RequestState'
 import { useAuth } from '../../../../context/auth'
 import { refreshObjectLists } from '../../../SpacesPage/object/objectFileApi'
-import type { AppSpace } from '../../types'
+import type { AppInstance } from '../../types'
 import { loadNote, saveNote } from './integration'
 import { noteError } from './noteErrors'
 import NoteEditor from './NoteEditor'
 import NoteActions from './NoteActions'
 import { appPath } from '../../paths'
 
-export default function NoteDocument({ space, id, editable }: { space: AppSpace; id: string; editable: boolean }) {
+export default function NoteDocument({ instance, id, editable }: { instance: AppInstance; id: string; editable: boolean }) {
   const { user } = useAuth()
   const [reload, setReload] = useState(0)
   const note = useQuery({
-    queryKey: ['note-document', space.id, id, user?.id ?? null, reload],
-    queryFn: ({ signal }) => loadNote(space, id, signal), retry: false, gcTime: 0,
+    queryKey: ['note-document', instance.id, id, user?.id ?? null, reload],
+    queryFn: ({ signal }) => loadNote(instance, id, signal), retry: false, gcTime: 0,
     // A live editor owns its draft. Focus/background refresh must never replace it.
     staleTime: Infinity, refetchOnWindowFocus: false,
   })
   if (note.isPending) return <RequestState loading title="Opening note..." />
   if (note.isError) return <RequestState title="Unable to open note" message={noteError(note.error)} onRetry={() => { void note.refetch() }} />
-  return <OpenNote key={`${id}:${reload}`} space={space} loaded={note.data} editable={editable} onReload={() => setReload(value => value + 1)} />
+  return <OpenNote key={`${id}:${reload}`} instance={instance} loaded={note.data} editable={editable} onReload={() => setReload(value => value + 1)} />
 }
 
-function OpenNote({ space, loaded, editable, onReload }: { space: AppSpace; loaded: Awaited<ReturnType<typeof loadNote>>; editable: boolean; onReload: () => void }) {
+function OpenNote({ instance, loaded, editable, onReload }: { instance: AppInstance; loaded: Awaited<ReturnType<typeof loadNote>>; editable: boolean; onReload: () => void }) {
   const client = useQueryClient()
   const navigate = useNavigate()
   const [content, setContent] = useState(loaded.content)
@@ -43,8 +43,8 @@ function OpenNote({ space, loaded, editable, onReload }: { space: AppSpace; load
   const working = busy || managing
   const blocker = useBlocker(({ currentLocation, nextLocation }) => !deleted && (dirty || working) && currentLocation.pathname !== nextLocation.pathname)
   useEffect(() => {
-    if (deleted) navigate(appPath('note', space.id), { replace: true })
-  }, [deleted, navigate, space.id])
+    if (deleted) navigate(appPath('note', instance.id), { replace: true })
+  }, [deleted, navigate, instance.id])
   useEffect(() => {
     if (deleted || (!dirty && !working)) return
     const protect = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
@@ -56,9 +56,9 @@ function OpenNote({ space, loaded, editable, onReload }: { space: AppSpace; load
     if (!editable || !dirty || working || deleted || saving.current) return
     saving.current = true; setBusy(true); setError('')
     try {
-      const updated = await saveNote(space, file.key, content, file.versionId)
+      const updated = await saveNote(instance, file.key, content, file.versionId)
       setFile(previous => ({ ...previous, ...updated })); setSaved(content)
-      await refreshObjectLists(client, space.account, space.slug)
+      await refreshObjectLists(client, instance.account, instance.slug)
     } catch (failure) { setError(noteError(failure)) }
     finally { saving.current = false; setBusy(false) }
   }
@@ -79,7 +79,7 @@ function OpenNote({ space, loaded, editable, onReload }: { space: AppSpace; load
       <ActionButton onClick={reload} disabled={working || deleted}>Reload note</ActionButton>
       {editable && <>
         <ActionButton onClick={() => { void save() }} disabled={!dirty || working || deleted} bg="var(--surface-strong)">Save</ActionButton>
-        <NoteActions space={space} file={file} dirty={dirty} disabled={working || deleted} onBusy={setManaging} onMoved={moved => { setFile(previous => ({ ...previous, ...moved })); setError('') }} onDeleted={() => setDeleted(true)} />
+        <NoteActions instance={instance} file={file} dirty={dirty} disabled={working || deleted} onBusy={setManaging} onMoved={moved => { setFile(previous => ({ ...previous, ...moved })); setError('') }} onDeleted={() => setDeleted(true)} />
       </>}
     </Flex>
     {error && <Box mb="20px" border="1px solid var(--border)" borderRadius="8px" p="14px"><Text role="alert" color="fg.error" fontSize="13px">{error}</Text>{dirty && <ActionButton mt="10px" onClick={downloadDraft}>Download draft</ActionButton>}</Box>}

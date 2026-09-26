@@ -19,23 +19,23 @@ export default function BookPage(props: AppPageProps) {
   return <BookContent key={bookId} {...props} bookId={bookId} />
 }
 
-function BookContent({ space, basePath, bookId }: AppPageProps & { bookId: string }) {
+function BookContent({ instance, basePath, bookId }: AppPageProps & { bookId: string }) {
   const { user } = useAuth()
   const location = useLocation()
   const [reload, setReload] = useState(0)
-  const book = ebookIntegration.useItem(space.account, space.slug, bookId, { query: {
-    queryKey: [...ebookIntegration.itemQueryKey(space.account, space.slug, bookId), user?.id ?? null],
+  const book = ebookIntegration.useItem(instance.id, bookId, { query: {
+    queryKey: [...ebookIntegration.itemQueryKey(instance.id, bookId), user?.id ?? null],
     retry: false, gcTime: 0, staleTime: 0, refetchOnMount: 'always', refetchInterval: 30_000,
   } })
   const file = book.isError ? undefined : book.data
-  const source = file ? ebookIntegration.contentUrl(space.account, space.slug, { key: file.key, versionId: file.versionId }) : ''
+  const source = file ? ebookIntegration.contentUrl(instance.id, { key: file.key, versionId: file.versionId }) : ''
   const status = apiStatus(book.error)
   const missing = status === 400 || status === 404
   // Retain the shelf's filters for in-app navigation; shared URLs return to the full shelf.
   const librarySearch = typeof location.state?.librarySearch === 'string' ? location.state.librarySearch : ''
   const libraryPath = basePath + (librarySearch ? `?${librarySearch}` : '')
 
-  return <EbookLayout space={space} basePath={basePath} onReload={() => { setReload(value => value + 1); void book.refetch() }}>
+  return <EbookLayout instance={instance} basePath={basePath} onReload={() => { setReload(value => value + 1); void book.refetch() }}>
     <Box maxW="1040px" mx="auto" p={{ base: '24px 20px 40px', md: '32px 40px 48px' }}>
       <PageLink to={libraryPath} fontSize="13px" color="var(--muted)" display="inline-flex" mb="24px">← Back to library</PageLink>
       {book.isPending ? <RequestState loading title="Loading book..." /> : book.isError ? <RequestState

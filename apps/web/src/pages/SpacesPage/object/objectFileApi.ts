@@ -51,6 +51,7 @@ export async function uploadFile(account: string, slug: string, file: File, sign
 
 export async function refreshObjectLists(client: QueryClient, account: string, slug: string) {
   const keys = [...appPlugins.map(plugin => getListAppObjectsQueryKey(account, slug, plugin.type)), getBrowseObjectsQueryKey(account, slug), getListObjectsQueryKey(account, slug), getGetObjectStorageUsageQueryKey(account, slug), getListObjectVersionsQueryKey(account, slug), getGetObjectHeadQueryKey(account, slug)]
-  await Promise.all(keys.map(queryKey => client.cancelQueries({ queryKey })))
-  await Promise.all(keys.map(queryKey => client.invalidateQueries({ queryKey })))
+  const instanceLists = { predicate: (query: { meta?: Record<string, unknown> }) => query.meta?.appObjectSpace === `${account}/${slug}` }
+  await Promise.all([...keys.map(queryKey => client.cancelQueries({ queryKey })), client.cancelQueries(instanceLists)])
+  await Promise.all([...keys.map(queryKey => client.invalidateQueries({ queryKey })), client.invalidateQueries(instanceLists)])
 }

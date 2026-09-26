@@ -1,7 +1,7 @@
-import { getAppObject } from '../../../../api/generated/app-objects'
+import { getAppInstanceObject } from '../../../../api/generated/app-objects'
 import { uploadObject } from '../../../../api/generated/objects'
 import { createObjectAppIntegration } from '../../objectIntegration'
-import type { AppSpace } from '../../types'
+import type { AppInstance } from '../../types'
 
 export const noteIntegration = createObjectAppIntegration('note')
 export const noteSizeLimit = 1024 * 1024
@@ -17,10 +17,10 @@ export function noteKey(name: string) {
   return result
 }
 
-export async function loadNote(space: AppSpace, id: string, signal: AbortSignal) {
-  const file = await getAppObject(space.account, space.slug, 'note', id, { signal })
+export async function loadNote(instance: AppInstance, id: string, signal: AbortSignal) {
+  const file = await getAppInstanceObject('note', instance.id, id, { signal })
   if (file.sizeBytes > noteSizeLimit) throw new Error('This note exceeds the 1 MiB editor limit. Download it from Files.')
-  const response = await fetch(noteIntegration.contentUrl(space.account, space.slug, { key: file.key, versionId: file.versionId }), { signal, credentials: 'include' })
+  const response = await fetch(noteIntegration.contentUrl(instance.id, { key: file.key, versionId: file.versionId }), { signal, credentials: 'include' })
   if (!response.ok) throw Object.assign(new Error('Unable to open this note.'), { status: response.status })
   const buffer = await response.arrayBuffer()
   if (buffer.byteLength > noteSizeLimit) throw new Error('This note exceeds the 1 MiB editor limit. Download it from Files.')
@@ -31,9 +31,9 @@ export async function loadNote(space: AppSpace, id: string, signal: AbortSignal)
   return { file, content }
 }
 
-export async function saveNote(space: AppSpace, key: string, content: string, expectedVersion: string) {
+export async function saveNote(instance: AppInstance, key: string, content: string, expectedVersion: string) {
   const body = new Blob([content], { type: 'text/markdown' })
   if (body.size > noteSizeLimit) throw new Error('Notes can contain up to 1 MiB of text.')
   // Pin to the version that was opened, never silently overwrite a newer edit.
-  return uploadObject(space.account, space.slug, key, body, { expectedVersion }, { headers: { 'Content-Type': 'text/markdown' } })
+  return uploadObject(instance.account, instance.slug, key, body, { expectedVersion }, { headers: { 'Content-Type': 'text/markdown' } })
 }

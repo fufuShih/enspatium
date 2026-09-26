@@ -1,8 +1,8 @@
 import { Box, Flex, Text, chakra } from '@chakra-ui/react'
 import { useState } from 'react'
 import { ActionButton, PageLink, TextInput } from '../../../../components/ui/Primitives'
-import type { ListAppObjects200ObjectsItem } from '../../../../api/generated/api.schemas'
-import type { AppSpace } from '../../types'
+import type { ListAppInstanceObjects200ObjectsItem } from '../../../../api/generated/api.schemas'
+import type { AppInstance } from '../../types'
 import { appPath } from '../../paths'
 import { noteKey, saveNote } from './integration'
 import { noteError } from './noteErrors'
@@ -11,8 +11,8 @@ export function NoteIcon({ folder = false }: { folder?: boolean }) {
   return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" style={{ flexShrink: 0 }}>{folder ? <path d="M3 7V5h6l2 2h10v13H3V7Z" /> : <><path d="M6 3h9l4 4v14H6V3Z" /><path d="M14 3v5h5M9 12h7M9 16h5" /></>}</svg>
 }
 
-type Tree = { folders: Map<string, Tree>; notes: ListAppObjects200ObjectsItem[] }
-function noteTree(notes: ListAppObjects200ObjectsItem[]) {
+type Tree = { folders: Map<string, Tree>; notes: ListAppInstanceObjects200ObjectsItem[] }
+function noteTree(notes: ListAppInstanceObjects200ObjectsItem[]) {
   const root: Tree = { folders: new Map(), notes: [] }
   for (const note of notes) {
     let current = root
@@ -25,14 +25,14 @@ function noteTree(notes: ListAppObjects200ObjectsItem[]) {
   return root
 }
 
-export function NoteList({ notes, spaceId, selected }: { notes: ListAppObjects200ObjectsItem[]; spaceId: string; selected?: string }) {
+export function NoteList({ notes, appId, selected }: { notes: ListAppInstanceObjects200ObjectsItem[]; appId: string; selected?: string }) {
   function render(tree: Tree) {
     return <>
       {[...tree.folders].map(([name, child]) => <Box asChild key={name}><details open>
         <chakra.summary cursor="pointer" p="8px" fontSize="12px" color="var(--muted)" borderRadius="5px" _hover={{ bg: 'var(--surface-strong)' }}><Box as="span" display="inline-flex" alignItems="center" gap="7px"><NoteIcon folder />{name}</Box></chakra.summary>
         <Box pl="12px" ml="10px" borderLeft="1px solid var(--border)">{render(child)}</Box>
       </details></Box>)}
-      {tree.notes.map(note => <PageLink key={note.id} to={appPath('note', spaceId, 'note', note.id)} aria-label={`Open ${note.key}`} aria-current={selected === note.id ? 'page' : undefined} display="flex" alignItems="center" gap="9px" p="9px 10px" my="2px" borderRadius="5px" bg={selected === note.id ? 'var(--surface-strong)' : 'transparent'} color={selected === note.id ? 'var(--foreground)' : 'var(--muted)'} _hover={{ bg: 'var(--surface-strong)', color: 'var(--foreground)' }} fontSize="13px">
+      {tree.notes.map(note => <PageLink key={note.id} to={appPath('note', appId, 'note', note.id)} aria-label={`Open ${note.key}`} aria-current={selected === note.id ? 'page' : undefined} display="flex" alignItems="center" gap="9px" p="9px 10px" my="2px" borderRadius="5px" bg={selected === note.id ? 'var(--surface-strong)' : 'transparent'} color={selected === note.id ? 'var(--foreground)' : 'var(--muted)'} _hover={{ bg: 'var(--surface-strong)', color: 'var(--foreground)' }} fontSize="13px">
         <NoteIcon /><Text truncate>{note.key.split('/').at(-1)!.replace(/\.(md|markdown)$/i, '')}</Text>
       </PageLink>)}
     </>
@@ -40,7 +40,7 @@ export function NoteList({ notes, spaceId, selected }: { notes: ListAppObjects20
   return <Box as="nav" aria-label="Notes">{render(noteTree(notes))}</Box>
 }
 
-export function NewNote({ space, onCreated, onCancel }: { space: AppSpace; onCreated: (id: string) => void; onCancel: () => void }) {
+export function NewNote({ instance, onCreated, onCancel }: { instance: AppInstance; onCreated: (id: string) => void; onCancel: () => void }) {
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -49,7 +49,7 @@ export function NewNote({ space, onCreated, onCancel }: { space: AppSpace; onCre
     if (busy) return
     setBusy(true); setError('')
     try {
-      const created = await saveNote(space, noteKey(name), '', 'none')
+      const created = await saveNote(instance, noteKey(name), '', 'none')
       onCreated(created.id)
     } catch (failure) { setError(noteError(failure, true)) }
     finally { setBusy(false) }

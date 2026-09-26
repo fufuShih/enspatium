@@ -60,7 +60,7 @@ export async function registerOpenApi(app: FastifyInstance) {
           documented.response = { 200: { type: 'null', description: 'File headers; no body', headers } }
         }
       }
-      if (operationId === 'downloadObject' || operationId === 'downloadObjectVersion' || operationId === 'downloadAppContent') {
+      if (operationId === 'downloadObject' || operationId === 'downloadObjectVersion' || operationId === 'downloadAppContent' || operationId === 'downloadAppInstanceContent') {
         const headers = {
           'accept-ranges': { type: 'string', enum: ['bytes'] },
           'content-length': { type: 'integer', minimum: 0 },
@@ -87,7 +87,7 @@ export async function registerOpenApi(app: FastifyInstance) {
           },
         }
         if (route.method === 'HEAD') {
-          documented.operationId = operationId === 'downloadObject' ? 'headObjectContent' : operationId === 'downloadAppContent' ? 'headAppContent' : 'headObjectVersionContent'
+          documented.operationId = operationId === 'downloadObject' ? 'headObjectContent' : operationId === 'downloadAppContent' ? 'headAppContent' : operationId === 'downloadAppInstanceContent' ? 'headAppInstanceContent' : 'headObjectVersionContent'
           documented.description = 'Return full-content headers without reading a response body. Uses the same authorization and version availability checks as GET; ignores Range.'
           delete documented.headers
           documented.response = { 200: { type: 'null', description: 'Full-content headers; no body', headers } }

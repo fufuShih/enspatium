@@ -8,16 +8,16 @@ import { apiCode, apiStatus } from '../../../../context/session'
 import { fileErrorMessage, refreshObjectLists } from '../../../SpacesPage/object/objectFileApi'
 import { deleteSelectedObject, type DeleteTarget } from '../../../SpacesPage/object/objectDeletion'
 import { objectParent } from '../../../SpacesPage/object/objectMoveApi'
-import type { AppSpace } from '../../types'
+import type { AppInstance } from '../../types'
 import { noteMoveKey } from './noteManagement'
 
 type Action = 'rename' | 'move' | 'delete'
 type Props = {
-  space: AppSpace; file: DeleteTarget; dirty: boolean; disabled: boolean
+  instance: AppInstance; file: DeleteTarget; dirty: boolean; disabled: boolean
   onBusy: (busy: boolean) => void; onMoved: (file: MoveObject200) => void; onDeleted: () => void
 }
 
-export default function NoteActions({ space, file, dirty, disabled, onBusy, onMoved, onDeleted }: Props) {
+export default function NoteActions({ instance, file, dirty, disabled, onBusy, onMoved, onDeleted }: Props) {
   const client = useQueryClient()
   const [action, setAction] = useState<Action | null>(null)
   const [value, setValue] = useState('')
@@ -42,12 +42,12 @@ export default function NoteActions({ space, file, dirty, disabled, onBusy, onMo
     operation.current = controller; setBusy(true); onBusy(true); setError('')
     try {
       if (action === 'delete') {
-        await deleteSelectedObject(space.account, space.slug, file, controller.signal)
+        await deleteSelectedObject(instance.account, instance.slug, file, controller.signal)
       } else {
-        const moved = await moveObject(space.account, space.slug, { objectId: file.id, key: file.key, newKey: target!, expectedVersion: file.versionId }, { signal: controller.signal })
+        const moved = await moveObject(instance.account, instance.slug, { objectId: file.id, key: file.key, newKey: target!, expectedVersion: file.versionId }, { signal: controller.signal })
         if (!controller.signal.aborted) onMoved(moved)
       }
-      await refreshObjectLists(client, space.account, space.slug).catch(() => {})
+      await refreshObjectLists(client, instance.account, instance.slug).catch(() => {})
       if (!controller.signal.aborted) {
         setAction(null)
         if (action === 'delete') onDeleted()

@@ -1,10 +1,17 @@
 import { Type } from '@sinclair/typebox'
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
-import { getAppSpace, listApps } from '../services/apps.js'
+import { getAppInstanceDetails, getAppSpace, listApps } from '../services/apps.js'
 import { getCurrentUserId } from './current-user.route.js'
-import { AppResponseSchema, AppSpaceResponseSchema, AppTypeSchema } from './types/apps.types.js'
+import { AppInstanceParamsSchema, AppInstanceResponseSchema, AppResponseSchema, AppSpaceResponseSchema, AppTypeSchema } from './types/apps.types.js'
 
 export const appRoutes: FastifyPluginAsyncTypebox = async (app) => {
+  app.get('/apps/:appType/instances/:appId', {
+    schema: { operationId: 'getAppInstance', tags: ['apps'], security: [{}, { session: [] }],
+      params: AppInstanceParamsSchema, response: { 200: AppInstanceResponseSchema } },
+  }, (request, reply) => {
+    reply.header('cache-control', 'private, no-store')
+    return getAppInstanceDetails(app.db, getCurrentUserId(request), request.params.appType, request.params.appId)
+  })
   app.get('/apps', {
     schema: { operationId: 'listApps', tags: ['apps'], security: [{}, { session: [] }], response: { 200: Type.Array(AppResponseSchema) } },
   }, (request, reply) => {

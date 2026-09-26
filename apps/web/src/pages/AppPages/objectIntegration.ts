@@ -1,17 +1,20 @@
-import { getAppSpace } from '../../api/generated/apps'
-import { getDownloadAppContentUrl, getGetAppObjectQueryKey, getListAppObjectsQueryKey, headAppContent, useGetAppObject, useListAppObjects } from '../../api/generated/app-objects'
-import type { GetAppObject200, ListAppObjects200 } from '../../api/generated/api.schemas'
+import { getAppInstance } from '../../api/generated/apps'
+import { getDownloadAppInstanceContentUrl, getGetAppInstanceObjectQueryKey, getListAppInstanceObjectsQueryKey, headAppInstanceContent, useGetAppInstanceObject, useListAppInstanceObjects } from '../../api/generated/app-objects'
+import type { GetAppInstanceObject200, ListAppInstanceObjects200 } from '../../api/generated/api.schemas'
+import type { AppInstance } from './types'
 
-// Bind the generic Object App API once; each plugin only supplies its registered type.
+// Every read targets the instance; only ordinary Object mutations use its resolved Space.
 export function createObjectAppIntegration(appType: string) {
   return {
     storageType: 'object' as const,
-    loadSpace: (spaceId: string, signal: AbortSignal) => getAppSpace(appType, spaceId, { signal }),
-    useList: (account: string, slug: string, params?: Parameters<typeof useListAppObjects>[3], options?: Parameters<typeof useListAppObjects<ListAppObjects200>>[4]) => useListAppObjects(account, slug, appType, params, options),
-    listQueryKey: (account: string, slug: string, params?: Parameters<typeof getListAppObjectsQueryKey>[3]) => getListAppObjectsQueryKey(account, slug, appType, params),
-    useItem: (account: string, slug: string, itemId: string, options?: Parameters<typeof useGetAppObject<GetAppObject200>>[4]) => useGetAppObject(account, slug, appType, itemId, options),
-    itemQueryKey: (account: string, slug: string, itemId: string) => getGetAppObjectQueryKey(account, slug, appType, itemId),
-    contentUrl: (account: string, slug: string, params: Parameters<typeof getDownloadAppContentUrl>[3]) => getDownloadAppContentUrl(account, slug, appType, params),
-    headContent: (account: string, slug: string, params: Parameters<typeof headAppContent>[3], options?: RequestInit) => headAppContent(account, slug, appType, params, options),
+    loadInstance: (appId: string, signal: AbortSignal) => getAppInstance(appType, appId, { signal }),
+    useList: (instance: AppInstance, params?: Parameters<typeof useListAppInstanceObjects>[2], options?: Parameters<typeof useListAppInstanceObjects<ListAppInstanceObjects200>>[3]) => useListAppInstanceObjects(appType, instance.id, params, {
+      ...options, query: { ...options?.query, meta: { ...options?.query?.meta, appObjectSpace: `${instance.account}/${instance.slug}` } },
+    }),
+    listQueryKey: (appId: string, params?: Parameters<typeof getListAppInstanceObjectsQueryKey>[2]) => getListAppInstanceObjectsQueryKey(appType, appId, params),
+    useItem: (appId: string, itemId: string, options?: Parameters<typeof useGetAppInstanceObject<GetAppInstanceObject200>>[3]) => useGetAppInstanceObject(appType, appId, itemId, options),
+    itemQueryKey: (appId: string, itemId: string) => getGetAppInstanceObjectQueryKey(appType, appId, itemId),
+    contentUrl: (appId: string, params: Parameters<typeof getDownloadAppInstanceContentUrl>[2]) => getDownloadAppInstanceContentUrl(appType, appId, params),
+    headContent: (appId: string, params: Parameters<typeof headAppInstanceContent>[2], options?: RequestInit) => headAppInstanceContent(appType, appId, params, options),
   }
 }

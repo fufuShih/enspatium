@@ -14,7 +14,7 @@ import AdminPage from "./pages/AdminPage/AdminPage";
 import AdminJobs, { AdminJobPage } from "./pages/AdminPage/AdminJobs";
 
 export const router = createBrowserRouter([
-  { path: '/app/:appType/:spaceId/*', Component: AppPage },
+  { path: '/app/:appType/:appId/*', Component: AppPage },
   {
     path: "/",
     Component: BaseLayout,

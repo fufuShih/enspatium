@@ -1,7 +1,7 @@
 import { Box, Flex, Heading, Text, chakra } from '@chakra-ui/react'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import type { ListAppObjectsParams } from '../../../../api/generated/api.schemas'
+import type { ListAppInstanceObjectsParams } from '../../../../api/generated/api.schemas'
 import { ActionButton, TextInput } from '../../../../components/ui/Primitives'
 import RequestState from '../../../../components/RequestState'
 import { useAuth } from '../../../../context/auth'
@@ -19,15 +19,16 @@ const categories = [
   { kind: 'image', label: 'Photos' },
 ] as const
 
-export default function MediaPage({ space: { account, slug, name } }: AppPageProps) {
+export default function MediaPage({ instance }: AppPageProps) {
+  const { name } = instance
   const { user } = useAuth()
   const [search, setSearch] = useSearchParams()
   const kindValue = search.get('kind')
   const kind = kindValue === 'audio' || kindValue === 'video' || kindValue === 'image' ? kindValue : undefined
   const filter = search.get('search') || ''
-  const params: ListAppObjectsParams = { kind, search: filter, cursor: search.get('after') || undefined, limit: 30 }
-  const media = mediaIntegration.useList(account, slug, params, { query: {
-    queryKey: [...mediaIntegration.listQueryKey(account, slug, params), user?.id ?? null],
+  const params: ListAppInstanceObjectsParams = { kind, search: filter, cursor: search.get('after') || undefined, limit: 30 }
+  const media = mediaIntegration.useList(instance, params, { query: {
+    queryKey: [...mediaIntegration.listQueryKey(instance.id, params), user?.id ?? null],
     retry: false, gcTime: 0, staleTime: 0, refetchOnMount: 'always', refetchInterval: 30_000,
   } })
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -73,7 +74,7 @@ export default function MediaPage({ space: { account, slug, name } }: AppPagePro
         </Flex>
         {selected && <Box ref={playerRegion} id="media-player" as="section" aria-label="Now playing" tabIndex={-1} mb="32px" p={{ base: '14px', md: '20px' }} border="1px solid var(--border)" borderRadius="14px" bg="var(--surface)" outline="none" maxW="960px" scrollMarginTop="20px">
           <Flex align="center" justify="space-between" mb="14px" gap="12px"><Text color="var(--accent-ink)" fontSize="11px" fontWeight="600" letterSpacing=".1em">{selected.kind === 'image' ? 'PHOTO VIEWER' : 'NOW PLAYING'}</Text><ActionButton onClick={closePlayer} aria-label="Close player" p="6px 10px" fontSize="12px">Close<Text as="span" aria-hidden="true">×</Text></ActionButton></Flex>
-          <MediaPlayer key={`${selected.versionId}:${reload}`} account={account} slug={slug} file={selected} />
+          <MediaPlayer key={`${selected.versionId}:${reload}`} appId={instance.id} file={selected} />
           {selected.kind === 'image' && <Flex gap="8px" mt="16px" justify="space-between">
             <ActionButton disabled={photoIndex <= 0} onClick={() => setSelectedId(photos[photoIndex - 1]!.id)}>Previous photo</ActionButton>
             <ActionButton disabled={photoIndex >= photos.length - 1} onClick={() => setSelectedId(photos[photoIndex + 1]!.id)}>Next photo</ActionButton>
@@ -84,7 +85,7 @@ export default function MediaPage({ space: { account, slug, name } }: AppPagePro
           <RequestState title={filter || kind ? 'No matching media' : 'No media yet'} message={filter || kind ? 'Try another filename or category.' : 'Your music, videos and photos will appear here.'} /> : <>
             <Box as="ul" aria-label="Media items" listStyleType="none" p="0" m="0" display="grid" gridTemplateColumns={{ base: '1fr', sm: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(3, minmax(0, 1fr))' }} gap="24px 18px">
               {files.map(file => <Box as="li" key={file.id} minW="0"><chakra.button type="button" w="full" textAlign="left" cursor="pointer" borderRadius="12px" p="4px" border="1px solid" borderColor={selectedId === file.id ? 'var(--accent)' : 'transparent'} bg={selectedId === file.id ? 'var(--surface-strong)' : 'transparent'} _hover={{ bg: 'var(--surface)', borderColor: 'var(--muted)' }} aria-label={`Open media ${file.key}`} aria-pressed={selectedId === file.id} aria-controls={selectedId === file.id ? 'media-player' : undefined} onClick={event => { trigger.current = event.currentTarget; setSelectedId(file.id) }}>
-                <MediaThumbnail key={`${file.versionId}:${reload}`} account={account} slug={slug} file={file} />
+                <MediaThumbnail key={`${file.versionId}:${reload}`} appId={instance.id} file={file} />
                 <Box px="6px" pt="12px" pb="8px"><Text fontSize="14px" fontWeight="500" lineClamp={2} overflowWrap="anywhere">{file.key.split('/').at(-1)}</Text><Flex align="center" gap="6px" mt="5px" color="var(--muted)" fontSize="11px"><Text>{file.kind === 'audio' ? 'Music' : file.kind === 'video' ? 'Video' : 'Photo'}</Text>{selectedId === file.id && <Text color="var(--accent-ink)">· Selected</Text>}</Flex></Box>
               </chakra.button></Box>)}
             </Box>

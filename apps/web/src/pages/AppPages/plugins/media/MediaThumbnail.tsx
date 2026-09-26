@@ -1,6 +1,6 @@
 import { Box, chakra } from '@chakra-ui/react'
 import { useEffect, useRef, useState } from 'react'
-import type { ListAppObjects200ObjectsItem } from '../../../../api/generated/api.schemas'
+import type { ListAppInstanceObjects200ObjectsItem } from '../../../../api/generated/api.schemas'
 import { imagePreviewLimit } from '../../../SpacesPage/object/objectPreview'
 import { mediaIntegration } from './integration'
 
@@ -10,9 +10,9 @@ export function MediaIcon({ kind }: { kind?: string }) {
   </chakra.svg>
 }
 
-export default function MediaThumbnail({ account, slug, file }: { account: string; slug: string; file: ListAppObjects200ObjectsItem }) {
+export default function MediaThumbnail({ appId, file }: { appId: string; file: ListAppInstanceObjects200ObjectsItem }) {
   const [failed, setFailed] = useState(false)
-  const source = mediaIntegration.contentUrl(account, slug, { key: file.key, versionId: file.versionId })
+  const source = mediaIntegration.contentUrl(appId, { key: file.key, versionId: file.versionId })
   return <Box position="relative" aspectRatio="16 / 10" overflow="hidden" borderRadius="10px" bg="var(--surface-strong)">
     <Box position="absolute" inset="0" display="grid" placeItems="center" color={file.kind === 'audio' ? 'var(--accent-ink)' : 'var(--muted)'} bgImage="radial-gradient(circle at 25% 20%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 75%)">
       <Box display="grid" placeItems="center" w="56px" h="56px" borderRadius="full" bg="var(--surface)" border="1px solid var(--border)"><MediaIcon kind={file.kind} /></Box>

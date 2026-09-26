@@ -25,7 +25,7 @@ test('Media opens a standalone player, plays and seeks, and keeps file managemen
   const opened = manager.waitForEvent('popup')
   await manager.getByRole('link', { name: 'Open app (opens in a new tab)' }).click()
   const page = await opened
-  const playerUrl = `/app/media/${spaceId}`
+  const playerUrl = `/app/media/${spaceId}/`
   await expect(page).toHaveURL(environment.webOrigin + playerUrl)
   await expect(page.getByRole('banner')).toHaveCount(0)
   await expect(page.getByRole('region', { name: 'Space details' })).toHaveCount(0)
@@ -49,7 +49,7 @@ test('Media opens a standalone player, plays and seeks, and keeps file managemen
   await page.screenshot({ path: testInfo.outputPath('media-grid-desktop.png'), fullPage: true, animations: 'disabled' })
   const rangeRequests: string[] = []
   page.on('response', response => {
-    if (response.url().includes('/media/content') && response.status() === 206) rangeRequests.push(response.url())
+    if (response.url().includes(`/apps/media/instances/${spaceId}/objects/content`) && response.status() === 206) rangeRequests.push(response.url())
   })
   await page.getByRole('button', { name: 'Open media tone.mp3', exact: true }).click()
   const audio = activePlayer.locator('audio')

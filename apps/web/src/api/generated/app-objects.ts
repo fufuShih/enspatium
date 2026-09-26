@@ -25,8 +25,13 @@ import type {
 
 import type {
   DownloadAppContentParams,
+  DownloadAppInstanceContentParams,
+  GetAppInstanceObject200,
   GetAppObject200,
   HeadAppContentParams,
+  HeadAppInstanceContentParams,
+  ListAppInstanceObjects200,
+  ListAppInstanceObjectsParams,
   ListAppObjects200,
   ListAppObjectsParams
 } from './api.schemas';
@@ -564,4 +569,492 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
         TContext
       > => {
       return useMutation(getHeadAppContentMutationOptions(options), queryClient);
+    }
+    export const getListAppInstanceObjectsUrl = (appType: string,
+    appId: string,
+    params?: ListAppInstanceObjectsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/apps/${encodeURIComponent(String(appType))}/instances/${encodeURIComponent(String(appId))}/objects?${stringifiedParams}` : `/api/apps/${encodeURIComponent(String(appType))}/instances/${encodeURIComponent(String(appId))}/objects`
+}
+
+export const listAppInstanceObjects = async (appType: string,
+    appId: string,
+    params?: ListAppInstanceObjectsParams, options?: RequestInit): Promise<ListAppInstanceObjects200> => {
+
+  const res = await fetch(getListAppInstanceObjectsUrl(appType,appId,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: ListAppInstanceObjects200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getListAppInstanceObjectsQueryKey = (appType: string,
+    appId: string,
+    params?: ListAppInstanceObjectsParams,) => {
+    return [
+    `/api/apps/${appType}/instances/${appId}/objects`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAppInstanceObjectsQueryOptions = <TData = Awaited<ReturnType<typeof listAppInstanceObjects>>, TError = globalThis.Error & { info?: unknown; status?: number }>(appType: string,
+    appId: string,
+    params?: ListAppInstanceObjectsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAppInstanceObjects>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAppInstanceObjectsQueryKey(appType,appId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAppInstanceObjects>>> = ({ signal }) => listAppInstanceObjects(appType,appId,params, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: appType !== null && appType !== undefined && appId !== null && appId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAppInstanceObjects>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListAppInstanceObjectsQueryResult = NonNullable<Awaited<ReturnType<typeof listAppInstanceObjects>>>
+export type ListAppInstanceObjectsQueryError = globalThis.Error & { info?: unknown; status?: number }
+
+
+export function useListAppInstanceObjects<TData = Awaited<ReturnType<typeof listAppInstanceObjects>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ appType: string,
+    appId: string,
+    params: undefined |  ListAppInstanceObjectsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAppInstanceObjects>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAppInstanceObjects>>,
+          TError,
+          Awaited<ReturnType<typeof listAppInstanceObjects>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAppInstanceObjects<TData = Awaited<ReturnType<typeof listAppInstanceObjects>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ appType: string,
+    appId: string,
+    params?: ListAppInstanceObjectsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAppInstanceObjects>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAppInstanceObjects>>,
+          TError,
+          Awaited<ReturnType<typeof listAppInstanceObjects>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAppInstanceObjects<TData = Awaited<ReturnType<typeof listAppInstanceObjects>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ appType: string,
+    appId: string,
+    params?: ListAppInstanceObjectsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAppInstanceObjects>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListAppInstanceObjects<TData = Awaited<ReturnType<typeof listAppInstanceObjects>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ appType: string,
+    appId: string,
+    params?: ListAppInstanceObjectsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAppInstanceObjects>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListAppInstanceObjectsQueryOptions(appType,appId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetAppInstanceObjectUrl = (appType: string,
+    appId: string,
+    itemId: string,) => {
+
+
+
+
+  return `/api/apps/${encodeURIComponent(String(appType))}/instances/${encodeURIComponent(String(appId))}/objects/${encodeURIComponent(String(itemId))}`
+}
+
+export const getAppInstanceObject = async (appType: string,
+    appId: string,
+    itemId: string, options?: RequestInit): Promise<GetAppInstanceObject200> => {
+
+  const res = await fetch(getGetAppInstanceObjectUrl(appType,appId,itemId),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: GetAppInstanceObject200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getGetAppInstanceObjectQueryKey = (appType: string,
+    appId: string,
+    itemId: string,) => {
+    return [
+    `/api/apps/${appType}/instances/${appId}/objects/${itemId}`
+    ] as const;
+    }
+
+
+export const getGetAppInstanceObjectQueryOptions = <TData = Awaited<ReturnType<typeof getAppInstanceObject>>, TError = globalThis.Error & { info?: unknown; status?: number }>(appType: string,
+    appId: string,
+    itemId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAppInstanceObject>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAppInstanceObjectQueryKey(appType,appId,itemId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAppInstanceObject>>> = ({ signal }) => getAppInstanceObject(appType,appId,itemId, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: appType !== null && appType !== undefined && appId !== null && appId !== undefined && itemId !== null && itemId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAppInstanceObject>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAppInstanceObjectQueryResult = NonNullable<Awaited<ReturnType<typeof getAppInstanceObject>>>
+export type GetAppInstanceObjectQueryError = globalThis.Error & { info?: unknown; status?: number }
+
+
+export function useGetAppInstanceObject<TData = Awaited<ReturnType<typeof getAppInstanceObject>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ appType: string,
+    appId: string,
+    itemId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAppInstanceObject>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAppInstanceObject>>,
+          TError,
+          Awaited<ReturnType<typeof getAppInstanceObject>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAppInstanceObject<TData = Awaited<ReturnType<typeof getAppInstanceObject>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ appType: string,
+    appId: string,
+    itemId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAppInstanceObject>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAppInstanceObject>>,
+          TError,
+          Awaited<ReturnType<typeof getAppInstanceObject>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAppInstanceObject<TData = Awaited<ReturnType<typeof getAppInstanceObject>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ appType: string,
+    appId: string,
+    itemId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAppInstanceObject>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetAppInstanceObject<TData = Awaited<ReturnType<typeof getAppInstanceObject>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ appType: string,
+    appId: string,
+    itemId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAppInstanceObject>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAppInstanceObjectQueryOptions(appType,appId,itemId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getDownloadAppInstanceContentUrl = (appType: string,
+    appId: string,
+    params: DownloadAppInstanceContentParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/apps/${encodeURIComponent(String(appType))}/instances/${encodeURIComponent(String(appId))}/objects/content?${stringifiedParams}` : `/api/apps/${encodeURIComponent(String(appType))}/instances/${encodeURIComponent(String(appId))}/objects/content`
+}
+
+/**
+ * Stream object content. Supports single byte ranges (start-end, start-, -suffix). Unsupported, malformed and multiple ranges return the full 200 response. If-Range requires the exact strong ETag; other validators return 200. HEAD uses the same authorization and full-content headers without a body, ignoring Range. Every request rechecks access and version availability.
+ */
+export const downloadAppInstanceContent = async (appType: string,
+    appId: string,
+    params: DownloadAppInstanceContentParams, options?: RequestInit): Promise<Blob> => {
+
+  const res = await fetch(getDownloadAppInstanceContentUrl(appType,appId,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+  if (!res.ok) {
+    const errorBody = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+    const err: globalThis.Error & {info?: Blob, status?: number} = new globalThis.Error();
+    const data : Blob = errorBody ? JSON.parse(errorBody) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const body = [204, 205, 304].includes(res.status) ? null : await res.blob();
+  const data: Blob = body as Blob
+  return data
+}
+
+
+
+
+
+export const getDownloadAppInstanceContentQueryKey = (appType: string,
+    appId: string,
+    params?: DownloadAppInstanceContentParams,) => {
+    return [
+    `/api/apps/${appType}/instances/${appId}/objects/content`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getDownloadAppInstanceContentQueryOptions = <TData = Awaited<ReturnType<typeof downloadAppInstanceContent>>, TError = globalThis.Error & { info?: void; status?: number }>(appType: string,
+    appId: string,
+    params: DownloadAppInstanceContentParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadAppInstanceContent>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadAppInstanceContentQueryKey(appType,appId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadAppInstanceContent>>> = ({ signal }) => downloadAppInstanceContent(appType,appId,params, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: appType !== null && appType !== undefined && appId !== null && appId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadAppInstanceContent>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type DownloadAppInstanceContentQueryResult = NonNullable<Awaited<ReturnType<typeof downloadAppInstanceContent>>>
+export type DownloadAppInstanceContentQueryError = globalThis.Error & { info?: void; status?: number }
+
+
+export function useDownloadAppInstanceContent<TData = Awaited<ReturnType<typeof downloadAppInstanceContent>>, TError = globalThis.Error & { info?: void; status?: number }>(
+ appType: string,
+    appId: string,
+    params: DownloadAppInstanceContentParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadAppInstanceContent>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadAppInstanceContent>>,
+          TError,
+          Awaited<ReturnType<typeof downloadAppInstanceContent>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDownloadAppInstanceContent<TData = Awaited<ReturnType<typeof downloadAppInstanceContent>>, TError = globalThis.Error & { info?: void; status?: number }>(
+ appType: string,
+    appId: string,
+    params: DownloadAppInstanceContentParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadAppInstanceContent>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadAppInstanceContent>>,
+          TError,
+          Awaited<ReturnType<typeof downloadAppInstanceContent>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDownloadAppInstanceContent<TData = Awaited<ReturnType<typeof downloadAppInstanceContent>>, TError = globalThis.Error & { info?: void; status?: number }>(
+ appType: string,
+    appId: string,
+    params: DownloadAppInstanceContentParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadAppInstanceContent>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useDownloadAppInstanceContent<TData = Awaited<ReturnType<typeof downloadAppInstanceContent>>, TError = globalThis.Error & { info?: void; status?: number }>(
+ appType: string,
+    appId: string,
+    params: DownloadAppInstanceContentParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadAppInstanceContent>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getDownloadAppInstanceContentQueryOptions(appType,appId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getHeadAppInstanceContentUrl = (appType: string,
+    appId: string,
+    params: HeadAppInstanceContentParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/apps/${encodeURIComponent(String(appType))}/instances/${encodeURIComponent(String(appId))}/objects/content?${stringifiedParams}` : `/api/apps/${encodeURIComponent(String(appType))}/instances/${encodeURIComponent(String(appId))}/objects/content`
+}
+
+/**
+ * Return full-content headers without reading a response body. Uses the same authorization and version availability checks as GET; ignores Range.
+ */
+export const headAppInstanceContent = async (appType: string,
+    appId: string,
+    params: HeadAppInstanceContentParams, options?: RequestInit): Promise<void> => {
+
+  const res = await fetch(getHeadAppInstanceContentUrl(appType,appId,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'HEAD'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: void = body ? JSON.parse(body) : undefined
+  return data
+}
+
+
+
+
+
+export const getHeadAppInstanceContentMutationKey = () => ['headAppInstanceContent'] as const;
+
+export const getHeadAppInstanceContentMutationOptions = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof headAppInstanceContent>>, TError,HeadAppInstanceContentMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof headAppInstanceContent>>, TError,HeadAppInstanceContentMutationVariables, TContext> => {
+
+const mutationKey = getHeadAppInstanceContentMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof headAppInstanceContent>>, HeadAppInstanceContentMutationVariables> = (props) => {
+          const {appType,appId,params} = props ?? {};
+
+          return  headAppInstanceContent(appType,appId,params,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type HeadAppInstanceContentMutationResult = NonNullable<Awaited<ReturnType<typeof headAppInstanceContent>>>
+
+    export type HeadAppInstanceContentMutationError = globalThis.Error & { info?: unknown; status?: number }
+    export type HeadAppInstanceContentMutationVariables = {appType: string;appId: string;params: HeadAppInstanceContentParams}
+
+    export const useHeadAppInstanceContent = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof headAppInstanceContent>>, TError,HeadAppInstanceContentMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof headAppInstanceContent>>,
+        TError,
+        HeadAppInstanceContentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getHeadAppInstanceContentMutationOptions(options), queryClient);
     }
