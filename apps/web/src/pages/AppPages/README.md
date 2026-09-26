@@ -1,11 +1,12 @@
 # App Pages
 
 App Pages render an App instance at `/app/<app type>/<app ID>/`. Each instance explicitly resolves its owning Space, and multiple instances can share that Space's content.
-Space cards still open file management; the compatibility **Open app** action opens the original instance in a new tab. Instance management UI is the next stage.
+Space cards still open file management. The Space's **Apps** panel lists every instance; each **Open app** action opens that instance in a new tab. Owners can create, rename and remove instances, including multiple of the same type. Renaming preserves its URL; removal requires confirmation and keeps files, versions, permissions and other apps. Readers can only open apps. Installation settings and PWA support remain future work.
 
 - `AppPage.tsx` handles the session, instance loading, document title, loading/errors and sign-in return URL.
 - `types.ts` defines the small plugin contract and the generated `instance` prop passed to pages.
 - `registry.ts` lists installed frontend views. The `/app/:appType/:appId/*` route resolves them here; unknown types show App not available. Creation options intersect these views with the backend App registry.
+- `../SpacesPage/apps/` owns the management panel and dialogs, using the generated `space-apps.ts` client. Creation also checks storage compatibility; uninstalled views remain listed but cannot be opened. Changes refresh Space and instance metadata, with controls rechecked against the server's `canManage` permission.
 - `plugins/media/index.ts` configures the built-in Media plugin.
 - `plugins/media/MediaPage.tsx` is its view; `integration.ts` connects instance loading, media lists and streaming to the generated APIs.
 

@@ -12,6 +12,7 @@ import { healthRoutes } from './health.route.js'
 import { namespaceRoutes } from './namespaces.route.js'
 import { objectRoutes } from './objects.route.js'
 import { spaceRoutes } from './spaces.route.js'
+import { spaceAppRoutes } from './space-apps.route.js'
 import { tokenRoutes } from './tokens.route.js'
 import { userRoutes } from './users.route.js'
 
@@ -25,6 +26,7 @@ export async function registerRoutes(app: FastifyInstance) {
   await app.register(gitRoutes)
   await app.register(namespaceRoutes)
   await app.register(spaceRoutes)
+  await app.register(spaceAppRoutes)
   await app.register(auditRoutes)
   await app.register(objectRoutes)
   await app.register(appObjectRoutes)

@@ -4368,6 +4368,496 @@
         }
       }
     },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/apps": {
+      "get": {
+        "operationId": "listSpaceApps",
+        "tags": [
+          "space-apps"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "security": [
+          {},
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "apps",
+                    "canManage"
+                  ],
+                  "properties": {
+                    "apps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "spaceId",
+                          "appType",
+                          "name",
+                          "config",
+                          "pwa",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "spaceId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "appType": {
+                            "minLength": 3,
+                            "maxLength": 60,
+                            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "config": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "pwa": {
+                            "type": "object",
+                            "required": [
+                              "enabled",
+                              "iconObjectId",
+                              "themeColor",
+                              "offlinePolicy"
+                            ],
+                            "properties": {
+                              "enabled": {
+                                "type": "boolean"
+                              },
+                              "iconObjectId": {
+                                "anyOf": [
+                                  {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "themeColor": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "offlinePolicy": {
+                                "type": "string",
+                                "enum": [
+                                  "shell"
+                                ]
+                              }
+                            }
+                          },
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "canManage": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createSpaceApp",
+        "tags": [
+          "space-apps"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "appType"
+                ],
+                "properties": {
+                  "appType": {
+                    "minLength": 3,
+                    "maxLength": 60,
+                    "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                    "type": "string"
+                  },
+                  "name": {
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "spaceId",
+                    "appType",
+                    "name",
+                    "config",
+                    "pwa",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "spaceId": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "appType": {
+                      "minLength": 3,
+                      "maxLength": 60,
+                      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "config": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "pwa": {
+                      "type": "object",
+                      "required": [
+                        "enabled",
+                        "iconObjectId",
+                        "themeColor",
+                        "offlinePolicy"
+                      ],
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "iconObjectId": {
+                          "anyOf": [
+                            {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "themeColor": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "offlinePolicy": {
+                          "type": "string",
+                          "enum": [
+                            "shell"
+                          ]
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/apps/{appId}": {
+      "patch": {
+        "operationId": "updateSpaceApp",
+        "tags": [
+          "space-apps"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "appId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "spaceId",
+                    "appType",
+                    "name",
+                    "config",
+                    "pwa",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "spaceId": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "appType": {
+                      "minLength": 3,
+                      "maxLength": 60,
+                      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "config": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "pwa": {
+                      "type": "object",
+                      "required": [
+                        "enabled",
+                        "iconObjectId",
+                        "themeColor",
+                        "offlinePolicy"
+                      ],
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "iconObjectId": {
+                          "anyOf": [
+                            {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "themeColor": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "offlinePolicy": {
+                          "type": "string",
+                          "enum": [
+                            "shell"
+                          ]
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteSpaceApp",
+        "tags": [
+          "space-apps"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "appId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
     "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/audit-events": {
       "get": {
         "operationId": "listSpaceAuditEvents",
@@ -4498,6 +4988,24 @@
                             "type": "string",
                             "enum": [
                               "space.deleted"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "app.created"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "app.updated"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "app.deleted"
                             ]
                           },
                           {

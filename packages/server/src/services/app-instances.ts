@@ -1,15 +1,30 @@
 import type { Kysely } from 'kysely'
 import type { Database } from '../db/index.js'
-import type { CreateAppInstanceInput, UpdateAppInstanceInput } from '../db/types/app.types.js'
+import type { CreateAppInstanceInput, SpaceApp, UpdateAppInstanceInput } from '../db/types/app.types.js'
 import { validateAppInstanceConfig, validateAppInstanceName } from './app-instance-config.js'
-import { getSpaceBySlug, requireSpaceOwnerAccess, SpaceServiceError } from './space/space.js'
+import { getSpaceBySlug, getSpaceDetails, requireSpaceOwnerAccess, SpaceServiceError } from './space/space.js'
+import { createAuditEvent } from './audit/audit.js'
 
-// Data-layer operations. Every read derives its permissions from the owning Space;
-// instance management is not exposed through HTTP until the management UI stage.
+// Every read derives its permissions from the owning Space. Mutations and their
+// audit events commit together, without touching shared content or permissions.
 export async function listAppInstances(db: Kysely<Database>, actorUserId: string | undefined, account: string, spaceSlug: string) {
   const space = await getSpaceBySlug(db, actorUserId, account, spaceSlug)
-  return db.selectFrom('space_apps').selectAll().where('space_id', '=', space.id)
+  return findSpaceApps(db, space.id)
+}
+
+function findSpaceApps(db: Kysely<Database>, spaceId: string) {
+  return db.selectFrom('space_apps').selectAll().where('space_id', '=', spaceId)
     .orderBy('created_at', 'asc').orderBy('id', 'asc').execute()
+}
+
+export async function listSpaceApps(db: Kysely<Database>, actorUserId: string | undefined, account: string, spaceSlug: string) {
+  const space = await getSpaceDetails(db, actorUserId, account, spaceSlug)
+  return { apps: (await findSpaceApps(db, space.id)).map(toAppInstanceSummary), canManage: space.canManage }
+}
+
+export function toAppInstanceSummary(instance: SpaceApp) {
+  return { id: instance.id, spaceId: instance.space_id, appType: instance.app_type, name: instance.name,
+    config: instance.config, pwa: instance.pwa, createdAt: instance.created_at.toISOString(), updatedAt: instance.updated_at.toISOString() }
 }
 
 export async function getAppInstance(db: Kysely<Database>, actorUserId: string | undefined, appType: string, appId: string) {
@@ -35,26 +50,33 @@ export async function createAppInstance(db: Kysely<Database>, actorUserId: strin
     if (app.kind === 'custom' && app.owner_user_id !== actorUserId) {
       throw new SpaceServiceError('FORBIDDEN', 403, 'Only the creator can create instances of this custom app.')
     }
-    return transaction.insertInto('space_apps').values({
+    const instance = await transaction.insertInto('space_apps').values({
       space_id: access.spaceId,
       storage_type: space.type,
       app_type: app.type,
       name: validateAppInstanceName(input.name ?? space.name),
       config: validateAppInstanceConfig(app.type, input.config === undefined ? {} : input.config),
     }).returningAll().executeTakeFirstOrThrow()
+    await createAuditEvent(transaction, { actorUserId, namespaceId: access.namespaceId, spaceId: access.spaceId,
+      action: 'app.created', metadata: { appId: instance.id, appType: instance.app_type, name: instance.name } })
+    return instance
   })
 }
 
 export async function updateAppInstance(db: Kysely<Database>, actorUserId: string, account: string, spaceSlug: string, appId: string, input: UpdateAppInstanceInput) {
   return db.transaction().execute(async transaction => {
     const access = await requireSpaceOwnerAccess(transaction, actorUserId, account, spaceSlug)
+    await transaction.selectFrom('spaces').select('id').where('id', '=', access.spaceId).forUpdate().executeTakeFirstOrThrow()
     const instance = await transaction.selectFrom('space_apps').selectAll()
       .where('space_id', '=', access.spaceId).where('id', '=', appId).forUpdate().executeTakeFirst()
     if (!instance) throw new SpaceServiceError('NOT_FOUND', 404, 'App instance not found.')
-    return transaction.updateTable('space_apps').set({
+    const updated = await transaction.updateTable('space_apps').set({
       name: input.name === undefined ? instance.name : validateAppInstanceName(input.name),
       config: input.config === undefined ? instance.config : validateAppInstanceConfig(instance.app_type, input.config),
     }).where('id', '=', instance.id).returningAll().executeTakeFirstOrThrow()
+    await createAuditEvent(transaction, { actorUserId, namespaceId: access.namespaceId, spaceId: access.spaceId,
+      action: 'app.updated', metadata: { appId: instance.id, appType: instance.app_type, name: updated.name, fields: Object.keys(input) } })
+    return updated
   })
 }
 
@@ -71,5 +93,7 @@ export async function deleteAppInstance(db: Kysely<Database>, actorUserId: strin
       await transaction.updateTable('spaces').set({ app_type: null })
         .where('id', '=', access.spaceId).where('app_type', '=', instance.app_type).execute()
     }
+    await createAuditEvent(transaction, { actorUserId, namespaceId: access.namespaceId, spaceId: access.spaceId,
+      action: 'app.deleted', metadata: { appId: instance.id, appType: instance.app_type, name: instance.name } })
   })
 }

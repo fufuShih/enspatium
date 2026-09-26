@@ -12,7 +12,7 @@ test('Ebook Space opens a library with EPUB chapters, safe content and PDF page 
   await expect(manager.getByRole('region', { name: 'Files', exact: true })).toBeVisible()
   await expect(manager.getByRole('region', { name: 'Book reader' })).toHaveCount(0)
   const popup = manager.waitForEvent('popup')
-  await manager.getByRole('link', { name: 'Open app (opens in a new tab)' }).click()
+  await manager.getByRole('link', { name: 'Open Reading room (opens in a new tab)' }).click()
   const page = await popup
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))

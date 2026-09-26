@@ -23,7 +23,7 @@ test('Media opens a standalone player, plays and seeks, and keeps file managemen
   await expect(manager.getByRole('region', { name: 'Files', exact: true })).toBeVisible()
   await expect(manager.getByRole('region', { name: 'Media library' })).toHaveCount(0)
   const opened = manager.waitForEvent('popup')
-  await manager.getByRole('link', { name: 'Open app (opens in a new tab)' }).click()
+  await manager.getByRole('link', { name: 'Open My media (opens in a new tab)' }).click()
   const page = await opened
   const playerUrl = `/app/media/${spaceId}/`
   await expect(page).toHaveURL(environment.webOrigin + playerUrl)
@@ -141,7 +141,7 @@ test('Media opens a standalone player, plays and seeks, and keeps file managemen
   expect(await manager.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   await manager.screenshot({ path: testInfo.outputPath('media-space-mobile.png'), fullPage: true, animations: 'disabled' })
   const appOpened = manager.waitForEvent('popup')
-  await manager.getByRole('link', { name: 'Open app (opens in a new tab)' }).click()
+  await manager.getByRole('link', { name: 'Open My media (opens in a new tab)' }).click()
   const appPage = await appOpened
   await expect(appPage).toHaveURL(environment.webOrigin + playerUrl)
   await expect(appPage.getByRole('heading', { name: 'My media', exact: true })).toBeVisible()

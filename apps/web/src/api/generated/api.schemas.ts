@@ -897,6 +897,129 @@ export type UpdateSpaceMember200 = {
   joinedAt: string;
 };
 
+export type ListSpaceApps200AppsItemConfig = {[key: string]: unknown};
+
+export type ListSpaceApps200AppsItemPwaOfflinePolicy = typeof ListSpaceApps200AppsItemPwaOfflinePolicy[keyof typeof ListSpaceApps200AppsItemPwaOfflinePolicy];
+
+
+export const ListSpaceApps200AppsItemPwaOfflinePolicy = {
+  shell: 'shell',
+} as const;
+
+export type ListSpaceApps200AppsItemPwa = {
+  enabled: boolean;
+  iconObjectId: string | null;
+  themeColor: string | null;
+  offlinePolicy: ListSpaceApps200AppsItemPwaOfflinePolicy;
+};
+
+export type ListSpaceApps200AppsItem = {
+  id: string;
+  spaceId: string;
+  /**
+     * @minLength 3
+     * @maxLength 60
+     * @pattern ^[a-z0-9]+(-[a-z0-9]+)*$
+     */
+  appType: string;
+  name: string;
+  config: ListSpaceApps200AppsItemConfig;
+  pwa: ListSpaceApps200AppsItemPwa;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ListSpaceApps200 = {
+  apps: ListSpaceApps200AppsItem[];
+  canManage: boolean;
+};
+
+export type CreateSpaceAppBody = {
+  /**
+     * @minLength 3
+     * @maxLength 60
+     * @pattern ^[a-z0-9]+(-[a-z0-9]+)*$
+     */
+  appType: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  name?: string;
+};
+
+export type CreateSpaceApp201Config = {[key: string]: unknown};
+
+export type CreateSpaceApp201PwaOfflinePolicy = typeof CreateSpaceApp201PwaOfflinePolicy[keyof typeof CreateSpaceApp201PwaOfflinePolicy];
+
+
+export const CreateSpaceApp201PwaOfflinePolicy = {
+  shell: 'shell',
+} as const;
+
+export type CreateSpaceApp201Pwa = {
+  enabled: boolean;
+  iconObjectId: string | null;
+  themeColor: string | null;
+  offlinePolicy: CreateSpaceApp201PwaOfflinePolicy;
+};
+
+export type CreateSpaceApp201 = {
+  id: string;
+  spaceId: string;
+  /**
+     * @minLength 3
+     * @maxLength 60
+     * @pattern ^[a-z0-9]+(-[a-z0-9]+)*$
+     */
+  appType: string;
+  name: string;
+  config: CreateSpaceApp201Config;
+  pwa: CreateSpaceApp201Pwa;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type UpdateSpaceAppBody = {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  name: string;
+};
+
+export type UpdateSpaceApp200Config = {[key: string]: unknown};
+
+export type UpdateSpaceApp200PwaOfflinePolicy = typeof UpdateSpaceApp200PwaOfflinePolicy[keyof typeof UpdateSpaceApp200PwaOfflinePolicy];
+
+
+export const UpdateSpaceApp200PwaOfflinePolicy = {
+  shell: 'shell',
+} as const;
+
+export type UpdateSpaceApp200Pwa = {
+  enabled: boolean;
+  iconObjectId: string | null;
+  themeColor: string | null;
+  offlinePolicy: UpdateSpaceApp200PwaOfflinePolicy;
+};
+
+export type UpdateSpaceApp200 = {
+  id: string;
+  spaceId: string;
+  /**
+     * @minLength 3
+     * @maxLength 60
+     * @pattern ^[a-z0-9]+(-[a-z0-9]+)*$
+     */
+  appType: string;
+  name: string;
+  config: UpdateSpaceApp200Config;
+  pwa: UpdateSpaceApp200Pwa;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ListSpaceAuditEventsParams = {
 /**
  * @minimum 1
@@ -911,6 +1034,9 @@ export const ListSpaceAuditEvents200ItemAction = {  usercreated: 'user.created',
   spacecreated: 'space.created',
   spaceupdated: 'space.updated',
   spacedeleted: 'space.deleted',
+  appcreated: 'app.created',
+  appupdated: 'app.updated',
+  appdeleted: 'app.deleted',
   gitpushed: 'git.pushed',
   gitmaintenance_started: 'git.maintenance_started',
   gitmaintained: 'git.maintained',

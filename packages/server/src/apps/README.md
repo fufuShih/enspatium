@@ -19,17 +19,21 @@ Migration 0020 adds `space_apps`: an independent UUID, owning `space_id`, regist
 
 Each existing `spaces.app_type` becomes one instance whose UUID equals its Space UUID, preserving old bookmarks and timestamps. New instances get independent UUIDs. Spaces without an App remain unchanged. The public Space API retains its `app` field and `spaces.app_type` as a compatibility reference; creating a Space through that API also creates its original instance atomically. Other instances never replace that reference.
 
-`services/app-instances.ts` provides list/resolve/create/update/delete operations. Reads reuse Space visibility and membership; management reuses Space-owner access (including namespace owners). Custom registrations remain restricted to their creator for instance creation. Removing the original instance clears the legacy reference without choosing a replacement; deleting any instance leaves content, versions, permissions and quota intact. Space deletion cascades to its instances. Instance management remains internal until the management API/UI stage.
+`services/app-instances.ts` provides list/resolve/create/update/delete operations. Reads reuse Space visibility and membership; management reuses Space-owner access (including namespace owners). Custom registrations remain restricted to their creator for instance creation. Removing the original instance clears the legacy reference without choosing a replacement; deleting any instance leaves content, versions, permissions and quota intact. Space deletion cascades to its instances. App creation, updates and removal commit atomically with `app.created`, `app.updated` and `app.deleted` audit events; config contents are not logged.
 
 Names default to the Space name at creation and can subsequently differ. Config is limited to 16 KiB of JSON and validated against the deployed plugin's optional TypeBox `configSchema`; without a schema, only `{}` is accepted. Built-ins currently have no configurable options. The database has an additional 32 KiB serialized-JSON ceiling to allow PostgreSQL's whitespace formatting. PWA settings default to `{ enabled: false, iconObjectId: null, themeColor: null, offlinePolicy: 'shell' }`; a null color inherits the platform theme. This data layer does not yet expose PWA setting changes, manifests, service workers or installation.
 
-App URLs share the Space resource prefix. The database reserves `git`, `object`, `objects`, `members`, `storage`, `object-tree`, `object-head`, `object-versions` and `audit-events` so registrations cannot shadow existing routes. New platform resources at that prefix must also be reserved before use. A migration fails rather than silently renaming a conflicting existing custom type.
+App URLs share the Space resource prefix. The database reserves `git`, `object`, `objects`, `members`, `storage`, `object-tree`, `object-head`, `object-versions`, `audit-events` and `apps` so registrations cannot shadow existing routes. Migration 0021 adds `apps` for the management API. If a deployment already registered that type, migration rolls back without changing its data; an operator must resolve the conflicting registration and its references before retrying. New platform resources at that prefix must also be reserved before use.
 
 ## Shared routes
 
 | Method | Route | Result |
 | --- | --- | --- |
 | GET | `/apps` | Built-ins and the signed-in user's custom registrations |
+| GET | `/namespaces/:namespaceSlug/spaces/:spaceSlug/apps` | `{ apps, canManage }`, including independent IDs, names and types |
+| POST | `/namespaces/:namespaceSlug/spaces/:spaceSlug/apps` | Create an instance with `{ appType, name? }`; omitted name defaults to the Space name |
+| PATCH | `/namespaces/:namespaceSlug/spaces/:spaceSlug/apps/:appId` | Rename with `{ name }`; ID, type and owning Space stay fixed |
+| DELETE | `/namespaces/:namespaceSlug/spaces/:spaceSlug/apps/:appId` | Remove only that instance; 204 with no body |
 | GET | `/apps/:appType/instances/:appId` | Instance ID/name/config/PWA defaults, explicit `spaceId`, Space account/slug and App type metadata |
 | GET | `/apps/:appType/instances/:appId/objects` | Instance-scoped `{ objects, canUpload, nextCursor }` |
 | GET | `/apps/:appType/instances/:appId/objects/:itemId` | Current Object metadata plus `kind` |
@@ -39,7 +43,7 @@ App URLs share the Space resource prefix. The database reserves `git`, `object`,
 | GET | `/namespaces/:namespaceSlug/spaces/:spaceSlug/:appType/:itemId` | Current Object metadata plus `kind` |
 | GET / HEAD | `/namespaces/:namespaceSlug/spaces/:spaceSlug/:appType/content?key=...&versionId=...` | Version-pinned content with Range support |
 
-Lists accept `kind`, `search`, `cursor` and `limit`. `kind` is a string validated against the selected plugin's kinds, so adding an App or kind does not require another OpenAPI enum. All other metadata uses the existing Object schema. Generated clients live in `apps.ts` and `app-objects.ts`.
+Object lists accept `kind`, `search`, `cursor` and `limit`. `kind` is a string validated against the selected plugin's kinds, so adding an App or kind does not require another OpenAPI enum. All other Object metadata uses the existing Object schema. Generated clients live in `apps.ts`, `app-objects.ts` and `space-apps.ts`. Management routes are private/no-store and accept only type/name on creation or name on update; config and PWA settings are not public mutations yet.
 
 Frontend App Pages use `/app/:appType/:appId/` and the instance endpoints. The server resolves the owning Space from `space_apps`, never from a client-supplied Space ID. Legacy namespace content routes also require the original instance; deleting it does not redirect old URLs to another App. Existing bookmarks (including roots without a trailing slash and book/note child routes) keep working because migrated instances retained their UUIDs. Metadata is private/no-store; streams preserve the existing Object cache, Range and HEAD rules.
 

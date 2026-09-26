@@ -9,8 +9,8 @@ import { useAuth } from '../../context/auth'
 import { apiStatus } from '../../context/session'
 import { namespacePath } from '../UserPage/namespaces'
 import { spaceErrorMessage, spacePath } from './shared/spaceApi'
-import { appPath, getAppPlugin } from '../AppPages/registry'
 import ObjectFileList from './object/ObjectFileList'
+import SpaceApps from './apps/SpaceApps'
 import SpaceSettings from './settings/SpaceSettings'
 import GitIcon from './git/GitIcon'
 
@@ -40,11 +40,10 @@ export default function SpacePage({ settings = false }: { settings?: boolean }) 
   const previousCodePath = location.state?.spaceCodePath
   const codePath = settings && typeof previousCodePath === 'string' && (previousCodePath === root || previousCodePath.startsWith(root + '/')) && !previousCodePath.startsWith(root + '/settings') ? previousCodePath : root
   if (childPath && space.type !== 'git') return <PageContainer><RequestState title="Page not found" message="This Space page does not exist." /></PageContainer>
-  const plugin = getAppPlugin(space.app)
   if (settings && !space.canManage) return <PageContainer><RequestState title="Access denied" message="Only a Space owner can manage settings."><PageLink to={spacePath(account, spaceSlug)} display="block" mt="20px">Back to Space</PageLink></RequestState></PageContainer>
   const details = [
     ['Owner', account],
-    ['Type', plugin?.label ?? (space.type === 'git' ? 'Git repository' : 'Object storage')],
+    ['Type', space.type === 'git' ? 'Git repository' : 'Object storage'],
     ['Visibility', space.visibility === 'public' ? 'Public' : 'Private'],
     ['Created', new Date(space.createdAt).toLocaleString('en-US')],
     ['Updated', new Date(space.updatedAt).toLocaleString('en-US')],
@@ -59,16 +58,14 @@ export default function SpacePage({ settings = false }: { settings?: boolean }) 
           <PageHeading>{settings && !isGit ? 'Space settings' : space.name}</PageHeading>
           <Text fontSize="12px" color="var(--muted)" border="1px solid var(--border)" borderRadius="full" px="10px" py="3px">{space.visibility === 'public' ? 'Public' : 'Private'}</Text>
         </Flex>
-        {!isGit && <Flex gap="8px" flexShrink="0" align="center">
-          {!isGit && space.canManage && <ActionButton asChild minH="40px"><PageLink to={root + (settings ? '' : '/settings')}>{settings ? 'Back to Space' : 'Settings'}</PageLink></ActionButton>}
-          {!settings && plugin && <ActionButton asChild minH="40px" bg="var(--foreground)" color="var(--background)" borderColor="var(--foreground)"><PageLink to={appPath(plugin.type, space.id)} target="_blank" rel="noopener noreferrer" title={`Open ${plugin.label} in a new tab`} aria-label="Open app (opens in a new tab)" _hover={{ color: 'var(--background)' }}>Open app<Text as="span" aria-hidden="true">↗</Text></PageLink></ActionButton>}
-        </Flex>}
+        {!isGit && space.canManage && <ActionButton asChild minH="40px" flexShrink="0"><PageLink to={root + (settings ? '' : '/settings')}>{settings ? 'Back to Space' : 'Settings'}</PageLink></ActionButton>}
       </Flex>
       {isGit && <Flex as="nav" aria-label="Space navigation" gap="28px" borderBottom="1px solid var(--border)" mb="28px" fontSize="14px">
         <PageLink to={codePath} display="flex" alignItems="center" gap="8px" pb="12px" borderBottom={!settings ? '2px solid var(--foreground)' : '2px solid transparent'} color={!settings ? 'var(--foreground)' : 'var(--muted)'} fontWeight={!settings ? '500' : '400'} aria-current={!settings ? 'page' : undefined}><GitIcon name="code" />Code</PageLink>
         {space.canManage && <PageLink to={root + '/settings'} state={{ spaceCodePath: settings ? codePath : location.pathname + location.search }} ml="auto" display="flex" alignItems="center" gap="8px" pb="12px" borderBottom={settings ? '2px solid var(--foreground)' : '2px solid transparent'} color={settings ? 'var(--foreground)' : 'var(--muted)'} fontWeight={settings ? '500' : '400'} aria-current={settings ? 'page' : undefined}><GitIcon name="settings" />Settings</PageLink>}
       </Flex>}
       {settings ? <>{isGit && <Heading as="h2" fontSize="20px" fontWeight="500" mb="24px">Space settings</Heading>}<SpaceSettings key={`${space.id}:${user?.id}`} account={account} space={space} /></> : <>
+      {!childPath && <SpaceApps key={`apps:${space.id}:${user?.id ?? 'anonymous'}`} account={account} space={space} />}
       {space.type === 'object' && <ObjectFileList key={`${space.id}:${user?.id ?? 'anonymous'}`} account={account} slug={space.slug} />}
       {space.type === 'git' && <Suspense fallback={<RequestState loading title="Loading repository..." />}><GitBrowser key={`${space.id}:${user?.id ?? 'anonymous'}`} account={account} slug={space.slug} /></Suspense>}
       <Box as="section" aria-label="Space details" mt="32px" border="1px solid color-mix(in srgb, var(--border) 60%, transparent)" borderRadius="8px" p={{ base: '20px', md: '28px' }}>
