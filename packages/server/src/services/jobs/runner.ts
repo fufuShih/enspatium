@@ -8,6 +8,7 @@ import {
   claimNextJob,
   failJob,
   JobQueueError,
+  recoverInterruptedJobs,
   succeedJob,
 } from './queue.js'
 
@@ -15,6 +16,7 @@ export const defaultJobPollIntervalMilliseconds = 2_000
 
 export class JobWorker {
   private closing = false
+  private startPromise: Promise<void> | undefined
   private loopPromise: Promise<void> | undefined
   private wakePoll: (() => void) | undefined
 
@@ -27,14 +29,26 @@ export class JobWorker {
     }
   }
 
-  start() {
-    if (this.loopPromise || this.closing) return
-    this.loopPromise = this.runLoop()
+  start(): Promise<void> {
+    if (this.startPromise) return this.startPromise
+    if (this.closing) return Promise.resolve()
+    this.startPromise = this.initialize()
+    return this.startPromise
+  }
+
+  private async initialize() {
+    const interrupted = await recoverInterruptedJobs(this.app.db)
+    if (interrupted > 0n) {
+      this.app.log.warn({ event: 'jobs.recovered', count: String(interrupted) }, 'Interrupted jobs marked failed; manual retry required')
+    }
+    if (!this.closing) this.loopPromise = this.runLoop()
   }
 
   async close() {
     this.closing = true
     this.wakePoll?.()
+    // The caller of start receives startup failure; shutdown still releases DB.
+    await this.startPromise?.catch(() => {})
     await this.loopPromise
   }
 

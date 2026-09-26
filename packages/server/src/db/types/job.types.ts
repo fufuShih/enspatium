@@ -63,4 +63,6 @@ export type JobQueueErrorCode =
   | 'JOB_ALREADY_PENDING'
   | 'JOB_REFERENCE_NOT_FOUND'
   | 'JOB_STATE_CONFLICT'
+  | 'JOB_NOT_FOUND'
+  | 'JOB_NOT_RETRYABLE'
   | 'INTERNAL'

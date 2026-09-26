@@ -6,8 +6,10 @@ const app = await buildApp()
 const jobWorker = new JobWorker(app)
 let stopCleanup: (() => Promise<void>) | undefined
 app.addHook('preClose', async () => {
-  try { await stopCleanup?.() }
-  finally { await jobWorker.close() }
+  // Stop both loops immediately, then drain both before the DB onClose hook.
+  const results = await Promise.allSettled([jobWorker.close(), stopCleanup?.()])
+  const failures = results.filter(result => result.status === 'rejected').map(result => result.reason)
+  if (failures.length) throw new AggregateError(failures, 'Background shutdown failed')
 })
 
 try {
@@ -15,7 +17,7 @@ try {
     host: app.config.HOST,
     port: app.config.PORT,
   })
-  jobWorker.start()
+  await jobWorker.start()
   stopCleanup = startObjectCleanupLoop(
     () => cleanupObjectVersions(app.db, app.config.DATA_ROOT, (error, spaceId) => {
       app.operations.recordCleanupFailure()
