@@ -11,6 +11,7 @@ import RequestState from "./components/RequestState";
 import CreateOrganizationPage from "./pages/UserPage/CreateOrganizationPage";
 import AppPage from "./pages/AppPages/AppPage";
 import AdminPage from "./pages/AdminPage/AdminPage";
+import AdminJobs, { AdminJobPage } from "./pages/AdminPage/AdminJobs";
 
 export const router = createBrowserRouter([
   { path: '/app/:appType/:spaceId/*', Component: AppPage },
@@ -30,7 +31,10 @@ export const router = createBrowserRouter([
         { path: "access-tokens", element: <Navigate to="/settings/applications" replace /> },
         { path: "*", element: <RequestState title="Settings page not found" message="Choose a setting from the sidebar." /> },
       ] },
-      { path: "settings/admin", Component: AdminPage },
+      { path: "settings/admin", Component: AdminPage, children: [
+        { path: "jobs", Component: AdminJobs },
+        { path: "jobs/:jobId", Component: AdminJobPage },
+      ] },
       { path: ":account", Component: AccountPage },
       { path: ":account/:spaceSlug", Component: SpacePage },
       { path: ":account/:spaceSlug/*", Component: SpacePage },

@@ -45,7 +45,7 @@ Check HTTPS, `/api/health/db`, sign-in and Git clone/push after installation. Us
 
 - Keep the same secrets and volumes when updating. Do not use `down --volumes` to restart.
 - Run one backend; do not edit its database or content files externally.
-- **Site administration** provides system status, storage integrity checks and Git maintenance. Back up before maintenance; Git requests may be busy while it runs.
+- **Site administration** provides system status, background storage checks and Git maintenance. Start checks in **Storage** and return to **Jobs** for persisted reports, queued cancellation or manual retries. Back up before maintenance; Git requests may be busy while it runs.
 - Default Git limits: 100 MiB per push, 1 GiB of objects per repository, 4 concurrent commands and 1 GiB free-disk reserve. Override the corresponding settings in [compose.yaml](../compose.yaml) through `.env`.
 
 [Publish images](DOCKER_HUB.md) ? [Back up and restore](BACKUP.md) ? [Upgrade](UPGRADE.md)

@@ -1534,6 +1534,595 @@ export type CheckStorageIntegrity409 = {
   message: string;
 };
 
+export type ListAdminJobsParams = {
+status?: typeof ListAdminJobsStatus[keyof typeof ListAdminJobsStatus];
+cursor?: string;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export const ListAdminJobsStatus = {  queued: 'queued',
+  running: 'running',
+  succeeded: 'succeeded',
+  failed: 'failed',
+  cancelled: 'cancelled',
+} as const
+export const ListAdminJobs200JobsItemStatus = {  queued: 'queued',
+  running: 'running',
+  succeeded: 'succeeded',
+  failed: 'failed',
+  cancelled: 'cancelled',
+} as const
+export type ListAdminJobs200JobsItemPayload = {
+  spaceId?: string;
+  deep?: boolean;
+};
+
+export type ListAdminJobs200JobsItem = {
+  id: string;
+  kind: string;
+  spaceId: string | null;
+  requestedByUserId: string | null;
+  status: typeof ListAdminJobs200JobsItemStatus[keyof typeof ListAdminJobs200JobsItemStatus];
+  payload: ListAdminJobs200JobsItemPayload;
+  retryOfJobId: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  canCancel: boolean;
+  canRetry: boolean;
+};
+
+export type ListAdminJobs200 = {
+  jobs: ListAdminJobs200JobsItem[];
+  nextCursor: string | null;
+};
+
+export type ListAdminJobs400 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type ListAdminJobs401 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type ListAdminJobs403 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type ListAdminJobs404 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type ListAdminJobs409 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type CreateAdminJobBodyKind = typeof CreateAdminJobBodyKind[keyof typeof CreateAdminJobBodyKind];
+
+
+export const CreateAdminJobBodyKind = {
+  storagecheck: 'storage.check',
+} as const;
+
+export type CreateAdminJobBodyPayload = {
+  spaceId?: string;
+  deep?: boolean;
+};
+
+export type CreateAdminJobBody = {
+  kind: CreateAdminJobBodyKind;
+  payload: CreateAdminJobBodyPayload;
+};
+
+export const CreateAdminJob202Status = {  queued: 'queued',
+  running: 'running',
+  succeeded: 'succeeded',
+  failed: 'failed',
+  cancelled: 'cancelled',
+} as const
+export type CreateAdminJob202Payload = {
+  spaceId?: string;
+  deep?: boolean;
+};
+
+export const CreateAdminJob202ResultMode = {  basic: 'basic',
+  deep: 'deep',
+} as const
+export type CreateAdminJob202ResultConsistency = typeof CreateAdminJob202ResultConsistency[keyof typeof CreateAdminJob202ResultConsistency];
+
+
+export const CreateAdminJob202ResultConsistency = {
+  'service-writes-paused': 'service-writes-paused',
+} as const;
+
+export const CreateAdminJob202ResultStatus = {  ok: 'ok',
+  issues: 'issues',
+  incomplete: 'incomplete',
+} as const
+export const CreateAdminJob202ResultSpacesItemType = {  git: 'git',
+  object: 'object',
+} as const
+export type CreateAdminJob202ResultSpacesItem = {
+  id: string;
+  namespace: string;
+  slug: string;
+  type: typeof CreateAdminJob202ResultSpacesItemType[keyof typeof CreateAdminJob202ResultSpacesItemType];
+  objects: number;
+  versions: number;
+  filesChecked: number;
+  hashesChecked: number;
+  versionBytes: string;
+};
+
+export const CreateAdminJob202ResultIssuesItemSeverity = {  info: 'info',
+  warning: 'warning',
+  error: 'error',
+} as const
+export type CreateAdminJob202ResultIssuesItem = {
+  severity: typeof CreateAdminJob202ResultIssuesItemSeverity[keyof typeof CreateAdminJob202ResultIssuesItemSeverity];
+  code: string;
+  message: string;
+  spaceId?: string;
+  objectId?: string;
+  versionId?: string;
+  key?: string;
+  path?: string;
+  detail?: string;
+};
+
+export type CreateAdminJob202Result = {
+  startedAt: string;
+  finishedAt: string;
+  mode: typeof CreateAdminJob202ResultMode[keyof typeof CreateAdminJob202ResultMode];
+  dataRoot: string;
+  scope: string;
+  consistency: CreateAdminJob202ResultConsistency;
+  complete: boolean;
+  status: typeof CreateAdminJob202ResultStatus[keyof typeof CreateAdminJob202ResultStatus];
+  spaces: CreateAdminJob202ResultSpacesItem[];
+  issues: CreateAdminJob202ResultIssuesItem[];
+} | null;
+
+export type CreateAdminJob202 = {
+  id: string;
+  kind: string;
+  spaceId: string | null;
+  requestedByUserId: string | null;
+  status: typeof CreateAdminJob202Status[keyof typeof CreateAdminJob202Status];
+  payload: CreateAdminJob202Payload;
+  retryOfJobId: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  canCancel: boolean;
+  canRetry: boolean;
+  result: CreateAdminJob202Result;
+};
+
+export type CreateAdminJob400 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type CreateAdminJob401 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type CreateAdminJob403 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type CreateAdminJob404 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type CreateAdminJob409 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export const GetAdminJob200Status = {  queued: 'queued',
+  running: 'running',
+  succeeded: 'succeeded',
+  failed: 'failed',
+  cancelled: 'cancelled',
+} as const
+export type GetAdminJob200Payload = {
+  spaceId?: string;
+  deep?: boolean;
+};
+
+export const GetAdminJob200ResultMode = {  basic: 'basic',
+  deep: 'deep',
+} as const
+export type GetAdminJob200ResultConsistency = typeof GetAdminJob200ResultConsistency[keyof typeof GetAdminJob200ResultConsistency];
+
+
+export const GetAdminJob200ResultConsistency = {
+  'service-writes-paused': 'service-writes-paused',
+} as const;
+
+export const GetAdminJob200ResultStatus = {  ok: 'ok',
+  issues: 'issues',
+  incomplete: 'incomplete',
+} as const
+export const GetAdminJob200ResultSpacesItemType = {  git: 'git',
+  object: 'object',
+} as const
+export type GetAdminJob200ResultSpacesItem = {
+  id: string;
+  namespace: string;
+  slug: string;
+  type: typeof GetAdminJob200ResultSpacesItemType[keyof typeof GetAdminJob200ResultSpacesItemType];
+  objects: number;
+  versions: number;
+  filesChecked: number;
+  hashesChecked: number;
+  versionBytes: string;
+};
+
+export const GetAdminJob200ResultIssuesItemSeverity = {  info: 'info',
+  warning: 'warning',
+  error: 'error',
+} as const
+export type GetAdminJob200ResultIssuesItem = {
+  severity: typeof GetAdminJob200ResultIssuesItemSeverity[keyof typeof GetAdminJob200ResultIssuesItemSeverity];
+  code: string;
+  message: string;
+  spaceId?: string;
+  objectId?: string;
+  versionId?: string;
+  key?: string;
+  path?: string;
+  detail?: string;
+};
+
+export type GetAdminJob200Result = {
+  startedAt: string;
+  finishedAt: string;
+  mode: typeof GetAdminJob200ResultMode[keyof typeof GetAdminJob200ResultMode];
+  dataRoot: string;
+  scope: string;
+  consistency: GetAdminJob200ResultConsistency;
+  complete: boolean;
+  status: typeof GetAdminJob200ResultStatus[keyof typeof GetAdminJob200ResultStatus];
+  spaces: GetAdminJob200ResultSpacesItem[];
+  issues: GetAdminJob200ResultIssuesItem[];
+} | null;
+
+export type GetAdminJob200 = {
+  id: string;
+  kind: string;
+  spaceId: string | null;
+  requestedByUserId: string | null;
+  status: typeof GetAdminJob200Status[keyof typeof GetAdminJob200Status];
+  payload: GetAdminJob200Payload;
+  retryOfJobId: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  canCancel: boolean;
+  canRetry: boolean;
+  result: GetAdminJob200Result;
+};
+
+export type GetAdminJob400 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type GetAdminJob401 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type GetAdminJob403 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type GetAdminJob404 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type GetAdminJob409 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export const CancelAdminJob200Status = {  queued: 'queued',
+  running: 'running',
+  succeeded: 'succeeded',
+  failed: 'failed',
+  cancelled: 'cancelled',
+} as const
+export type CancelAdminJob200Payload = {
+  spaceId?: string;
+  deep?: boolean;
+};
+
+export const CancelAdminJob200ResultMode = {  basic: 'basic',
+  deep: 'deep',
+} as const
+export type CancelAdminJob200ResultConsistency = typeof CancelAdminJob200ResultConsistency[keyof typeof CancelAdminJob200ResultConsistency];
+
+
+export const CancelAdminJob200ResultConsistency = {
+  'service-writes-paused': 'service-writes-paused',
+} as const;
+
+export const CancelAdminJob200ResultStatus = {  ok: 'ok',
+  issues: 'issues',
+  incomplete: 'incomplete',
+} as const
+export const CancelAdminJob200ResultSpacesItemType = {  git: 'git',
+  object: 'object',
+} as const
+export type CancelAdminJob200ResultSpacesItem = {
+  id: string;
+  namespace: string;
+  slug: string;
+  type: typeof CancelAdminJob200ResultSpacesItemType[keyof typeof CancelAdminJob200ResultSpacesItemType];
+  objects: number;
+  versions: number;
+  filesChecked: number;
+  hashesChecked: number;
+  versionBytes: string;
+};
+
+export const CancelAdminJob200ResultIssuesItemSeverity = {  info: 'info',
+  warning: 'warning',
+  error: 'error',
+} as const
+export type CancelAdminJob200ResultIssuesItem = {
+  severity: typeof CancelAdminJob200ResultIssuesItemSeverity[keyof typeof CancelAdminJob200ResultIssuesItemSeverity];
+  code: string;
+  message: string;
+  spaceId?: string;
+  objectId?: string;
+  versionId?: string;
+  key?: string;
+  path?: string;
+  detail?: string;
+};
+
+export type CancelAdminJob200Result = {
+  startedAt: string;
+  finishedAt: string;
+  mode: typeof CancelAdminJob200ResultMode[keyof typeof CancelAdminJob200ResultMode];
+  dataRoot: string;
+  scope: string;
+  consistency: CancelAdminJob200ResultConsistency;
+  complete: boolean;
+  status: typeof CancelAdminJob200ResultStatus[keyof typeof CancelAdminJob200ResultStatus];
+  spaces: CancelAdminJob200ResultSpacesItem[];
+  issues: CancelAdminJob200ResultIssuesItem[];
+} | null;
+
+export type CancelAdminJob200 = {
+  id: string;
+  kind: string;
+  spaceId: string | null;
+  requestedByUserId: string | null;
+  status: typeof CancelAdminJob200Status[keyof typeof CancelAdminJob200Status];
+  payload: CancelAdminJob200Payload;
+  retryOfJobId: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  canCancel: boolean;
+  canRetry: boolean;
+  result: CancelAdminJob200Result;
+};
+
+export type CancelAdminJob400 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type CancelAdminJob401 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type CancelAdminJob403 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type CancelAdminJob404 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type CancelAdminJob409 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export const RetryAdminJob202Status = {  queued: 'queued',
+  running: 'running',
+  succeeded: 'succeeded',
+  failed: 'failed',
+  cancelled: 'cancelled',
+} as const
+export type RetryAdminJob202Payload = {
+  spaceId?: string;
+  deep?: boolean;
+};
+
+export const RetryAdminJob202ResultMode = {  basic: 'basic',
+  deep: 'deep',
+} as const
+export type RetryAdminJob202ResultConsistency = typeof RetryAdminJob202ResultConsistency[keyof typeof RetryAdminJob202ResultConsistency];
+
+
+export const RetryAdminJob202ResultConsistency = {
+  'service-writes-paused': 'service-writes-paused',
+} as const;
+
+export const RetryAdminJob202ResultStatus = {  ok: 'ok',
+  issues: 'issues',
+  incomplete: 'incomplete',
+} as const
+export const RetryAdminJob202ResultSpacesItemType = {  git: 'git',
+  object: 'object',
+} as const
+export type RetryAdminJob202ResultSpacesItem = {
+  id: string;
+  namespace: string;
+  slug: string;
+  type: typeof RetryAdminJob202ResultSpacesItemType[keyof typeof RetryAdminJob202ResultSpacesItemType];
+  objects: number;
+  versions: number;
+  filesChecked: number;
+  hashesChecked: number;
+  versionBytes: string;
+};
+
+export const RetryAdminJob202ResultIssuesItemSeverity = {  info: 'info',
+  warning: 'warning',
+  error: 'error',
+} as const
+export type RetryAdminJob202ResultIssuesItem = {
+  severity: typeof RetryAdminJob202ResultIssuesItemSeverity[keyof typeof RetryAdminJob202ResultIssuesItemSeverity];
+  code: string;
+  message: string;
+  spaceId?: string;
+  objectId?: string;
+  versionId?: string;
+  key?: string;
+  path?: string;
+  detail?: string;
+};
+
+export type RetryAdminJob202Result = {
+  startedAt: string;
+  finishedAt: string;
+  mode: typeof RetryAdminJob202ResultMode[keyof typeof RetryAdminJob202ResultMode];
+  dataRoot: string;
+  scope: string;
+  consistency: RetryAdminJob202ResultConsistency;
+  complete: boolean;
+  status: typeof RetryAdminJob202ResultStatus[keyof typeof RetryAdminJob202ResultStatus];
+  spaces: RetryAdminJob202ResultSpacesItem[];
+  issues: RetryAdminJob202ResultIssuesItem[];
+} | null;
+
+export type RetryAdminJob202 = {
+  id: string;
+  kind: string;
+  spaceId: string | null;
+  requestedByUserId: string | null;
+  status: typeof RetryAdminJob202Status[keyof typeof RetryAdminJob202Status];
+  payload: RetryAdminJob202Payload;
+  retryOfJobId: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  canCancel: boolean;
+  canRetry: boolean;
+  result: RetryAdminJob202Result;
+};
+
+export type RetryAdminJob400 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type RetryAdminJob401 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type RetryAdminJob403 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type RetryAdminJob404 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
+export type RetryAdminJob409 = {
+  statusCode: number;
+  code: string;
+  error: string;
+  message: string;
+};
+
 export type ListAdminUsersParams = {
 /**
  * @maxLength 100

@@ -47,7 +47,9 @@ function validateStorageCheckPayload(input: unknown): StorageCheckJobPayload {
   }
   const payload: StorageCheckJobPayload = {
     deep: input.deep ?? false,
-    ...(input.spaceId === undefined ? {} : { spaceId: input.spaceId }),
+    // PostgreSQL UUID columns are canonical lowercase; scope comparisons must
+    // also accept a valid UUID pasted with uppercase letters.
+    ...(input.spaceId === undefined ? {} : { spaceId: input.spaceId.toLowerCase() }),
   }
   return normalizeJsonObject(payload, maximumJobPayloadBytes, 'job payload') as StorageCheckJobPayload
 }

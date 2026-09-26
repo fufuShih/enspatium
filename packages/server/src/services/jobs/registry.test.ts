@@ -16,6 +16,9 @@ test('storage.check payloads are normalized and reject unknown or invalid input'
     deep: true,
     spaceId: '5f58a9d4-e2a0-4bf8-9dbc-51858506923f',
   })).toEqual({ deep: true, spaceId: '5f58a9d4-e2a0-4bf8-9dbc-51858506923f' })
+  expect(validateJobPayload('storage.check', {
+    spaceId: '5F58A9D4-E2A0-4BF8-9DBC-51858506923F',
+  })).toEqual({ deep: false, spaceId: '5f58a9d4-e2a0-4bf8-9dbc-51858506923f' })
   for (const input of [null, [], { deep: 'yes' }, { spaceId: 'not-a-uuid' }, { command: 'whoami' }]) {
     expect(() => validateJobPayload('storage.check', input)).toThrow(JobValidationError)
   }

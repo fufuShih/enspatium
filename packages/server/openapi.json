@@ -8160,6 +8160,2648 @@
         }
       }
     },
+    "/admin/jobs": {
+      "get": {
+        "operationId": "listAdminJobs",
+        "tags": [
+          "admin"
+        ],
+        "description": "Newest jobs first, with optional status filtering and cursor pagination (default 30). Reports are only returned by the detail endpoint.",
+        "parameters": [
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "queued"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "running"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "succeeded"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "failed"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "cancelled"
+                  ]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "status",
+            "required": false
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "cursor",
+            "required": false
+          },
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          }
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "jobs",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "jobs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "kind",
+                          "spaceId",
+                          "requestedByUserId",
+                          "status",
+                          "payload",
+                          "retryOfJobId",
+                          "createdAt",
+                          "startedAt",
+                          "finishedAt",
+                          "errorCode",
+                          "errorMessage",
+                          "canCancel",
+                          "canRetry"
+                        ],
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "spaceId": {
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "requestedByUserId": {
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "status": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "queued"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "running"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "succeeded"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "failed"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "cancelled"
+                                ]
+                              }
+                            ]
+                          },
+                          "payload": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "properties": {
+                              "spaceId": {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              "deep": {
+                                "default": false,
+                                "type": "boolean"
+                              }
+                            }
+                          },
+                          "retryOfJobId": {
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "startedAt": {
+                            "anyOf": [
+                              {
+                                "format": "date-time",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "finishedAt": {
+                            "anyOf": [
+                              {
+                                "format": "date-time",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "errorCode": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "errorMessage": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "canCancel": {
+                            "type": "boolean"
+                          },
+                          "canRetry": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createAdminJob",
+        "tags": [
+          "admin"
+        ],
+        "description": "Queue a read-only storage check. Only one storage check may be queued or running. Execution continues after the request ends.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "kind",
+                  "payload"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "storage.check"
+                    ]
+                  },
+                  "payload": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "properties": {
+                      "spaceId": {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      "deep": {
+                        "default": false,
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "kind",
+                    "spaceId",
+                    "requestedByUserId",
+                    "status",
+                    "payload",
+                    "retryOfJobId",
+                    "createdAt",
+                    "startedAt",
+                    "finishedAt",
+                    "errorCode",
+                    "errorMessage",
+                    "canCancel",
+                    "canRetry",
+                    "result"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "spaceId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "requestedByUserId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "status": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "queued"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "running"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "succeeded"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "failed"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "cancelled"
+                          ]
+                        }
+                      ]
+                    },
+                    "payload": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "properties": {
+                        "spaceId": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "deep": {
+                          "default": false,
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "retryOfJobId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "startedAt": {
+                      "anyOf": [
+                        {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "finishedAt": {
+                      "anyOf": [
+                        {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "errorCode": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "errorMessage": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "canCancel": {
+                      "type": "boolean"
+                    },
+                    "canRetry": {
+                      "type": "boolean"
+                    },
+                    "result": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "startedAt",
+                            "finishedAt",
+                            "mode",
+                            "dataRoot",
+                            "scope",
+                            "consistency",
+                            "complete",
+                            "status",
+                            "spaces",
+                            "issues"
+                          ],
+                          "properties": {
+                            "startedAt": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "finishedAt": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "mode": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "basic"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "deep"
+                                  ]
+                                }
+                              ]
+                            },
+                            "dataRoot": {
+                              "type": "string"
+                            },
+                            "scope": {
+                              "type": "string"
+                            },
+                            "consistency": {
+                              "type": "string",
+                              "enum": [
+                                "service-writes-paused"
+                              ]
+                            },
+                            "complete": {
+                              "type": "boolean"
+                            },
+                            "status": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ok"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "issues"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "incomplete"
+                                  ]
+                                }
+                              ]
+                            },
+                            "spaces": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "namespace",
+                                  "slug",
+                                  "type",
+                                  "objects",
+                                  "versions",
+                                  "filesChecked",
+                                  "hashesChecked",
+                                  "versionBytes"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "namespace": {
+                                    "type": "string"
+                                  },
+                                  "slug": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "git"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "object"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "objects": {
+                                    "type": "integer"
+                                  },
+                                  "versions": {
+                                    "type": "integer"
+                                  },
+                                  "filesChecked": {
+                                    "type": "integer"
+                                  },
+                                  "hashesChecked": {
+                                    "type": "integer"
+                                  },
+                                  "versionBytes": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "severity",
+                                  "code",
+                                  "message"
+                                ],
+                                "properties": {
+                                  "severity": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "info"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "warning"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "error"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "spaceId": {
+                                    "type": "string"
+                                  },
+                                  "objectId": {
+                                    "type": "string"
+                                  },
+                                  "versionId": {
+                                    "type": "string"
+                                  },
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "detail": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/jobs/{id}": {
+      "get": {
+        "operationId": "getAdminJob",
+        "tags": [
+          "admin"
+        ],
+        "description": "Persisted job state and report. A succeeded job may contain findings or an incomplete report. Poll unfinished jobs every two seconds.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "kind",
+                    "spaceId",
+                    "requestedByUserId",
+                    "status",
+                    "payload",
+                    "retryOfJobId",
+                    "createdAt",
+                    "startedAt",
+                    "finishedAt",
+                    "errorCode",
+                    "errorMessage",
+                    "canCancel",
+                    "canRetry",
+                    "result"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "spaceId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "requestedByUserId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "status": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "queued"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "running"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "succeeded"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "failed"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "cancelled"
+                          ]
+                        }
+                      ]
+                    },
+                    "payload": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "properties": {
+                        "spaceId": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "deep": {
+                          "default": false,
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "retryOfJobId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "startedAt": {
+                      "anyOf": [
+                        {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "finishedAt": {
+                      "anyOf": [
+                        {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "errorCode": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "errorMessage": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "canCancel": {
+                      "type": "boolean"
+                    },
+                    "canRetry": {
+                      "type": "boolean"
+                    },
+                    "result": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "startedAt",
+                            "finishedAt",
+                            "mode",
+                            "dataRoot",
+                            "scope",
+                            "consistency",
+                            "complete",
+                            "status",
+                            "spaces",
+                            "issues"
+                          ],
+                          "properties": {
+                            "startedAt": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "finishedAt": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "mode": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "basic"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "deep"
+                                  ]
+                                }
+                              ]
+                            },
+                            "dataRoot": {
+                              "type": "string"
+                            },
+                            "scope": {
+                              "type": "string"
+                            },
+                            "consistency": {
+                              "type": "string",
+                              "enum": [
+                                "service-writes-paused"
+                              ]
+                            },
+                            "complete": {
+                              "type": "boolean"
+                            },
+                            "status": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ok"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "issues"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "incomplete"
+                                  ]
+                                }
+                              ]
+                            },
+                            "spaces": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "namespace",
+                                  "slug",
+                                  "type",
+                                  "objects",
+                                  "versions",
+                                  "filesChecked",
+                                  "hashesChecked",
+                                  "versionBytes"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "namespace": {
+                                    "type": "string"
+                                  },
+                                  "slug": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "git"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "object"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "objects": {
+                                    "type": "integer"
+                                  },
+                                  "versions": {
+                                    "type": "integer"
+                                  },
+                                  "filesChecked": {
+                                    "type": "integer"
+                                  },
+                                  "hashesChecked": {
+                                    "type": "integer"
+                                  },
+                                  "versionBytes": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "severity",
+                                  "code",
+                                  "message"
+                                ],
+                                "properties": {
+                                  "severity": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "info"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "warning"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "error"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "spaceId": {
+                                    "type": "string"
+                                  },
+                                  "objectId": {
+                                    "type": "string"
+                                  },
+                                  "versionId": {
+                                    "type": "string"
+                                  },
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "detail": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/jobs/{id}/cancel": {
+      "post": {
+        "operationId": "cancelAdminJob",
+        "tags": [
+          "admin"
+        ],
+        "description": "Cancel a queued job. Running and terminal jobs cannot be cancelled.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "kind",
+                    "spaceId",
+                    "requestedByUserId",
+                    "status",
+                    "payload",
+                    "retryOfJobId",
+                    "createdAt",
+                    "startedAt",
+                    "finishedAt",
+                    "errorCode",
+                    "errorMessage",
+                    "canCancel",
+                    "canRetry",
+                    "result"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "spaceId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "requestedByUserId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "status": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "queued"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "running"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "succeeded"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "failed"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "cancelled"
+                          ]
+                        }
+                      ]
+                    },
+                    "payload": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "properties": {
+                        "spaceId": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "deep": {
+                          "default": false,
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "retryOfJobId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "startedAt": {
+                      "anyOf": [
+                        {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "finishedAt": {
+                      "anyOf": [
+                        {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "errorCode": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "errorMessage": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "canCancel": {
+                      "type": "boolean"
+                    },
+                    "canRetry": {
+                      "type": "boolean"
+                    },
+                    "result": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "startedAt",
+                            "finishedAt",
+                            "mode",
+                            "dataRoot",
+                            "scope",
+                            "consistency",
+                            "complete",
+                            "status",
+                            "spaces",
+                            "issues"
+                          ],
+                          "properties": {
+                            "startedAt": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "finishedAt": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "mode": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "basic"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "deep"
+                                  ]
+                                }
+                              ]
+                            },
+                            "dataRoot": {
+                              "type": "string"
+                            },
+                            "scope": {
+                              "type": "string"
+                            },
+                            "consistency": {
+                              "type": "string",
+                              "enum": [
+                                "service-writes-paused"
+                              ]
+                            },
+                            "complete": {
+                              "type": "boolean"
+                            },
+                            "status": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ok"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "issues"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "incomplete"
+                                  ]
+                                }
+                              ]
+                            },
+                            "spaces": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "namespace",
+                                  "slug",
+                                  "type",
+                                  "objects",
+                                  "versions",
+                                  "filesChecked",
+                                  "hashesChecked",
+                                  "versionBytes"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "namespace": {
+                                    "type": "string"
+                                  },
+                                  "slug": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "git"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "object"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "objects": {
+                                    "type": "integer"
+                                  },
+                                  "versions": {
+                                    "type": "integer"
+                                  },
+                                  "filesChecked": {
+                                    "type": "integer"
+                                  },
+                                  "hashesChecked": {
+                                    "type": "integer"
+                                  },
+                                  "versionBytes": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "severity",
+                                  "code",
+                                  "message"
+                                ],
+                                "properties": {
+                                  "severity": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "info"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "warning"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "error"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "spaceId": {
+                                    "type": "string"
+                                  },
+                                  "objectId": {
+                                    "type": "string"
+                                  },
+                                  "versionId": {
+                                    "type": "string"
+                                  },
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "detail": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/jobs/{id}/retry": {
+      "post": {
+        "operationId": "retryAdminJob",
+        "tags": [
+          "admin"
+        ],
+        "description": "Create a new job from a failed read-only storage check. Preserve the original history and scope; do not automatically retry.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "kind",
+                    "spaceId",
+                    "requestedByUserId",
+                    "status",
+                    "payload",
+                    "retryOfJobId",
+                    "createdAt",
+                    "startedAt",
+                    "finishedAt",
+                    "errorCode",
+                    "errorMessage",
+                    "canCancel",
+                    "canRetry",
+                    "result"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "spaceId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "requestedByUserId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "status": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "queued"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "running"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "succeeded"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "failed"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "cancelled"
+                          ]
+                        }
+                      ]
+                    },
+                    "payload": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "properties": {
+                        "spaceId": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "deep": {
+                          "default": false,
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "retryOfJobId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "startedAt": {
+                      "anyOf": [
+                        {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "finishedAt": {
+                      "anyOf": [
+                        {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "errorCode": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "errorMessage": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "canCancel": {
+                      "type": "boolean"
+                    },
+                    "canRetry": {
+                      "type": "boolean"
+                    },
+                    "result": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "startedAt",
+                            "finishedAt",
+                            "mode",
+                            "dataRoot",
+                            "scope",
+                            "consistency",
+                            "complete",
+                            "status",
+                            "spaces",
+                            "issues"
+                          ],
+                          "properties": {
+                            "startedAt": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "finishedAt": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "mode": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "basic"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "deep"
+                                  ]
+                                }
+                              ]
+                            },
+                            "dataRoot": {
+                              "type": "string"
+                            },
+                            "scope": {
+                              "type": "string"
+                            },
+                            "consistency": {
+                              "type": "string",
+                              "enum": [
+                                "service-writes-paused"
+                              ]
+                            },
+                            "complete": {
+                              "type": "boolean"
+                            },
+                            "status": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ok"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "issues"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "incomplete"
+                                  ]
+                                }
+                              ]
+                            },
+                            "spaces": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "namespace",
+                                  "slug",
+                                  "type",
+                                  "objects",
+                                  "versions",
+                                  "filesChecked",
+                                  "hashesChecked",
+                                  "versionBytes"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "namespace": {
+                                    "type": "string"
+                                  },
+                                  "slug": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "git"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "object"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "objects": {
+                                    "type": "integer"
+                                  },
+                                  "versions": {
+                                    "type": "integer"
+                                  },
+                                  "filesChecked": {
+                                    "type": "integer"
+                                  },
+                                  "hashesChecked": {
+                                    "type": "integer"
+                                  },
+                                  "versionBytes": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "severity",
+                                  "code",
+                                  "message"
+                                ],
+                                "properties": {
+                                  "severity": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "info"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "warning"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "error"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "spaceId": {
+                                    "type": "string"
+                                  },
+                                  "objectId": {
+                                    "type": "string"
+                                  },
+                                  "versionId": {
+                                    "type": "string"
+                                  },
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "detail": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/users": {
       "get": {
         "operationId": "listAdminUsers",

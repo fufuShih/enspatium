@@ -40,6 +40,13 @@ export function createJob(db: Kysely<Database>, input: CreateJobInput): Promise<
   return insertJob(db, input, null)
 }
 
+export function createAdminJob(db: Kysely<Database>, input: CreateJobInput): Promise<Job> {
+  return db.transaction().execute(async tx => {
+    await requireLockedAdmin(tx, input.requestedByUserId)
+    return insertJob(tx, input, null)
+  })
+}
+
 async function insertJob(db: Kysely<Database>, input: CreateJobInput, retryOfJobId: string | null): Promise<Job> {
   if (!isJobKind(input.kind)) {
     throw new JobQueueError('INVALID_JOB_KIND', 400, 'unknown job kind')

@@ -24,13 +24,32 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CancelAdminJob200,
+  CancelAdminJob400,
+  CancelAdminJob401,
+  CancelAdminJob403,
+  CancelAdminJob404,
+  CancelAdminJob409,
   CheckStorageIntegrity200,
   CheckStorageIntegrity401,
   CheckStorageIntegrity403,
   CheckStorageIntegrity409,
   CheckStorageIntegrityBody,
+  CreateAdminJob202,
+  CreateAdminJob400,
+  CreateAdminJob401,
+  CreateAdminJob403,
+  CreateAdminJob404,
+  CreateAdminJob409,
+  CreateAdminJobBody,
   CreateAdminManagedUser201,
   CreateAdminManagedUserBody,
+  GetAdminJob200,
+  GetAdminJob400,
+  GetAdminJob401,
+  GetAdminJob403,
+  GetAdminJob404,
+  GetAdminJob409,
   GetGitMaintenance200,
   GetGitMaintenance401,
   GetGitMaintenance403,
@@ -41,8 +60,21 @@ import type {
   ListAdminGitSpaces401,
   ListAdminGitSpaces403,
   ListAdminGitSpacesParams,
+  ListAdminJobs200,
+  ListAdminJobs400,
+  ListAdminJobs401,
+  ListAdminJobs403,
+  ListAdminJobs404,
+  ListAdminJobs409,
+  ListAdminJobsParams,
   ListAdminUsers200,
   ListAdminUsersParams,
+  RetryAdminJob202,
+  RetryAdminJob400,
+  RetryAdminJob401,
+  RetryAdminJob403,
+  RetryAdminJob404,
+  RetryAdminJob409,
   SetUserAccess200,
   SetUserAccessBody,
   StartGitMaintenance202,
@@ -595,6 +627,498 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
         TContext
       > => {
       return useMutation(getCheckStorageIntegrityMutationOptions(options), queryClient);
+    }
+    export const getListAdminJobsUrl = (params?: ListAdminJobsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/jobs?${stringifiedParams}` : `/api/admin/jobs`
+}
+
+/**
+ * Newest jobs first, with optional status filtering and cursor pagination (default 30). Reports are only returned by the detail endpoint.
+ */
+export const listAdminJobs = async (params?: ListAdminJobsParams, options?: RequestInit): Promise<ListAdminJobs200> => {
+
+  const res = await fetch(getListAdminJobsUrl(params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: ListAdminJobs200, status?: number} = new globalThis.Error();
+    const data : ListAdminJobs200 = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: ListAdminJobs200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getListAdminJobsQueryKey = (params?: ListAdminJobsParams,) => {
+    return [
+    `/api/admin/jobs`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAdminJobsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminJobs>>, TError = globalThis.Error & { info?: ListAdminJobs400 | ListAdminJobs401 | ListAdminJobs403 | ListAdminJobs404 | ListAdminJobs409; status?: number }>(params?: ListAdminJobsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminJobs>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminJobsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminJobs>>> = ({ signal }) => listAdminJobs(params, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminJobs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListAdminJobsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminJobs>>>
+export type ListAdminJobsQueryError = globalThis.Error & { info?: ListAdminJobs400 | ListAdminJobs401 | ListAdminJobs403 | ListAdminJobs404 | ListAdminJobs409; status?: number }
+
+
+export function useListAdminJobs<TData = Awaited<ReturnType<typeof listAdminJobs>>, TError = globalThis.Error & { info?: ListAdminJobs400 | ListAdminJobs401 | ListAdminJobs403 | ListAdminJobs404 | ListAdminJobs409; status?: number }>(
+ params: undefined |  ListAdminJobsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminJobs>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAdminJobs>>,
+          TError,
+          Awaited<ReturnType<typeof listAdminJobs>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAdminJobs<TData = Awaited<ReturnType<typeof listAdminJobs>>, TError = globalThis.Error & { info?: ListAdminJobs400 | ListAdminJobs401 | ListAdminJobs403 | ListAdminJobs404 | ListAdminJobs409; status?: number }>(
+ params?: ListAdminJobsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminJobs>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAdminJobs>>,
+          TError,
+          Awaited<ReturnType<typeof listAdminJobs>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAdminJobs<TData = Awaited<ReturnType<typeof listAdminJobs>>, TError = globalThis.Error & { info?: ListAdminJobs400 | ListAdminJobs401 | ListAdminJobs403 | ListAdminJobs404 | ListAdminJobs409; status?: number }>(
+ params?: ListAdminJobsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminJobs>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListAdminJobs<TData = Awaited<ReturnType<typeof listAdminJobs>>, TError = globalThis.Error & { info?: ListAdminJobs400 | ListAdminJobs401 | ListAdminJobs403 | ListAdminJobs404 | ListAdminJobs409; status?: number }>(
+ params?: ListAdminJobsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminJobs>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListAdminJobsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getCreateAdminJobUrl = () => {
+
+
+
+
+  return `/api/admin/jobs`
+}
+
+/**
+ * Queue a read-only storage check. Only one storage check may be queued or running. Execution continues after the request ends.
+ */
+export const createAdminJob = async (createAdminJobBody: CreateAdminJobBody, options?: RequestInit): Promise<CreateAdminJob202> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+const res = await fetch(getCreateAdminJobUrl(),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createAdminJobBody)
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: CreateAdminJob202, status?: number} = new globalThis.Error();
+    const data : CreateAdminJob202 = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: CreateAdminJob202 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getCreateAdminJobMutationKey = () => ['createAdminJob'] as const;
+
+export const getCreateAdminJobMutationOptions = <TError = globalThis.Error & { info?: CreateAdminJob400 | CreateAdminJob401 | CreateAdminJob403 | CreateAdminJob404 | CreateAdminJob409; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminJob>>, TError,CreateAdminJobMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminJob>>, TError,CreateAdminJobMutationVariables, TContext> => {
+
+const mutationKey = getCreateAdminJobMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminJob>>, CreateAdminJobMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminJob(data,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminJobMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminJob>>>
+    export type CreateAdminJobMutationBody = CreateAdminJobBody
+    export type CreateAdminJobMutationError = globalThis.Error & { info?: CreateAdminJob400 | CreateAdminJob401 | CreateAdminJob403 | CreateAdminJob404 | CreateAdminJob409; status?: number }
+    export type CreateAdminJobMutationVariables = {data: CreateAdminJobBody}
+
+    export const useCreateAdminJob = <TError = globalThis.Error & { info?: CreateAdminJob400 | CreateAdminJob401 | CreateAdminJob403 | CreateAdminJob404 | CreateAdminJob409; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminJob>>, TError,CreateAdminJobMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminJob>>,
+        TError,
+        CreateAdminJobMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateAdminJobMutationOptions(options), queryClient);
+    }
+    export const getGetAdminJobUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/jobs/${encodeURIComponent(String(id))}`
+}
+
+/**
+ * Persisted job state and report. A succeeded job may contain findings or an incomplete report. Poll unfinished jobs every two seconds.
+ */
+export const getAdminJob = async (id: string, options?: RequestInit): Promise<GetAdminJob200> => {
+
+  const res = await fetch(getGetAdminJobUrl(id),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: GetAdminJob200, status?: number} = new globalThis.Error();
+    const data : GetAdminJob200 = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: GetAdminJob200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getGetAdminJobQueryKey = (id: string,) => {
+    return [
+    `/api/admin/jobs/${id}`
+    ] as const;
+    }
+
+
+export const getGetAdminJobQueryOptions = <TData = Awaited<ReturnType<typeof getAdminJob>>, TError = globalThis.Error & { info?: GetAdminJob400 | GetAdminJob401 | GetAdminJob403 | GetAdminJob404 | GetAdminJob409; status?: number }>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminJob>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminJobQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminJob>>> = ({ signal }) => getAdminJob(id, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminJob>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminJobQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminJob>>>
+export type GetAdminJobQueryError = globalThis.Error & { info?: GetAdminJob400 | GetAdminJob401 | GetAdminJob403 | GetAdminJob404 | GetAdminJob409; status?: number }
+
+
+export function useGetAdminJob<TData = Awaited<ReturnType<typeof getAdminJob>>, TError = globalThis.Error & { info?: GetAdminJob400 | GetAdminJob401 | GetAdminJob403 | GetAdminJob404 | GetAdminJob409; status?: number }>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminJob>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminJob>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminJob>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminJob<TData = Awaited<ReturnType<typeof getAdminJob>>, TError = globalThis.Error & { info?: GetAdminJob400 | GetAdminJob401 | GetAdminJob403 | GetAdminJob404 | GetAdminJob409; status?: number }>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminJob>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminJob>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminJob>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminJob<TData = Awaited<ReturnType<typeof getAdminJob>>, TError = globalThis.Error & { info?: GetAdminJob400 | GetAdminJob401 | GetAdminJob403 | GetAdminJob404 | GetAdminJob409; status?: number }>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminJob>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetAdminJob<TData = Awaited<ReturnType<typeof getAdminJob>>, TError = globalThis.Error & { info?: GetAdminJob400 | GetAdminJob401 | GetAdminJob403 | GetAdminJob404 | GetAdminJob409; status?: number }>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminJob>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminJobQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getCancelAdminJobUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/jobs/${encodeURIComponent(String(id))}/cancel`
+}
+
+/**
+ * Cancel a queued job. Running and terminal jobs cannot be cancelled.
+ */
+export const cancelAdminJob = async (id: string, options?: RequestInit): Promise<CancelAdminJob200> => {
+
+  const res = await fetch(getCancelAdminJobUrl(id),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'POST'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: CancelAdminJob200, status?: number} = new globalThis.Error();
+    const data : CancelAdminJob200 = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: CancelAdminJob200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getCancelAdminJobMutationKey = () => ['cancelAdminJob'] as const;
+
+export const getCancelAdminJobMutationOptions = <TError = globalThis.Error & { info?: CancelAdminJob400 | CancelAdminJob401 | CancelAdminJob403 | CancelAdminJob404 | CancelAdminJob409; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelAdminJob>>, TError,CancelAdminJobMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelAdminJob>>, TError,CancelAdminJobMutationVariables, TContext> => {
+
+const mutationKey = getCancelAdminJobMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelAdminJob>>, CancelAdminJobMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  cancelAdminJob(id,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelAdminJobMutationResult = NonNullable<Awaited<ReturnType<typeof cancelAdminJob>>>
+
+    export type CancelAdminJobMutationError = globalThis.Error & { info?: CancelAdminJob400 | CancelAdminJob401 | CancelAdminJob403 | CancelAdminJob404 | CancelAdminJob409; status?: number }
+    export type CancelAdminJobMutationVariables = {id: string}
+
+    export const useCancelAdminJob = <TError = globalThis.Error & { info?: CancelAdminJob400 | CancelAdminJob401 | CancelAdminJob403 | CancelAdminJob404 | CancelAdminJob409; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelAdminJob>>, TError,CancelAdminJobMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof cancelAdminJob>>,
+        TError,
+        CancelAdminJobMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCancelAdminJobMutationOptions(options), queryClient);
+    }
+    export const getRetryAdminJobUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/jobs/${encodeURIComponent(String(id))}/retry`
+}
+
+/**
+ * Create a new job from a failed read-only storage check. Preserve the original history and scope; do not automatically retry.
+ */
+export const retryAdminJob = async (id: string, options?: RequestInit): Promise<RetryAdminJob202> => {
+
+  const res = await fetch(getRetryAdminJobUrl(id),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'POST'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: RetryAdminJob202, status?: number} = new globalThis.Error();
+    const data : RetryAdminJob202 = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: RetryAdminJob202 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getRetryAdminJobMutationKey = () => ['retryAdminJob'] as const;
+
+export const getRetryAdminJobMutationOptions = <TError = globalThis.Error & { info?: RetryAdminJob400 | RetryAdminJob401 | RetryAdminJob403 | RetryAdminJob404 | RetryAdminJob409; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryAdminJob>>, TError,RetryAdminJobMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof retryAdminJob>>, TError,RetryAdminJobMutationVariables, TContext> => {
+
+const mutationKey = getRetryAdminJobMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retryAdminJob>>, RetryAdminJobMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  retryAdminJob(id,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RetryAdminJobMutationResult = NonNullable<Awaited<ReturnType<typeof retryAdminJob>>>
+
+    export type RetryAdminJobMutationError = globalThis.Error & { info?: RetryAdminJob400 | RetryAdminJob401 | RetryAdminJob403 | RetryAdminJob404 | RetryAdminJob409; status?: number }
+    export type RetryAdminJobMutationVariables = {id: string}
+
+    export const useRetryAdminJob = <TError = globalThis.Error & { info?: RetryAdminJob400 | RetryAdminJob401 | RetryAdminJob403 | RetryAdminJob404 | RetryAdminJob409; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryAdminJob>>, TError,RetryAdminJobMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof retryAdminJob>>,
+        TError,
+        RetryAdminJobMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRetryAdminJobMutationOptions(options), queryClient);
     }
     export const getListAdminUsersUrl = (params?: ListAdminUsersParams,) => {
   const normalizedParams = new URLSearchParams();

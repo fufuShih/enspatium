@@ -56,6 +56,7 @@ export type NewJob = Insertable<JobTable>
 export type JobUpdate = Updateable<JobTable>
 
 export type JobQueueErrorCode =
+  | 'INVALID_JOB_CURSOR'
   | 'INVALID_JOB_KIND'
   | 'INVALID_JOB_PAYLOAD'
   | 'INVALID_JOB_RESULT'
