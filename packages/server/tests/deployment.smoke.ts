@@ -60,8 +60,11 @@ test('production images serve HTTPS, authenticate, persist data and support real
     await http('GET', '/api/health/db', 200)
     const index = await http('GET', '/', 200)
     expect(index.headers['content-type']).toContain('text/html')
-    const deep = await http('GET', '/app/ebook/nonexistent/book/test', 200)
-    expect(deep.text).toBe(index.text)
+    const deep = await http('GET', '/app/ebook/nonexistent/book/test', 404)
+    expect(deep.headers['content-type']).toContain('text/html')
+    expect(deep.text).toContain('id="root"')
+    const missingWorker = await http('GET', '/app/ebook/nonexistent/sw.js', 404)
+    expect(missingWorker.headers['content-type']).not.toContain('text/html')
     const asset = index.text.match(/src="([^"]+\.js)"/)?.[1]
     assert.ok(asset, 'Built entry script is missing')
     expect((await http('GET', asset, 200)).headers['content-type']).toMatch(/javascript/)

@@ -36,7 +36,7 @@ test('migration preserves legacy UUIDs, timestamps, Space settings and membershi
   for (const space of spaces.filter(space => space.app_type !== null)) {
     expect(instances.find(instance => instance.id === space.id)).toEqual({
       id: space.id, space_id: space.id, app_type: space.app_type, storage_type: space.type, name: space.name,
-      config: {}, pwa: pwaDefaults, created_at: space.created_at, updated_at: space.updated_at,
+      config: {}, pwa: pwaDefaults, pwa_icon_192: null, pwa_icon_512: null, created_at: space.created_at, updated_at: space.updated_at,
     })
   }
   expect(await app.db.selectFrom('spaces').selectAll().execute()).toEqual(expect.arrayContaining(spaces))

@@ -14,7 +14,7 @@ export async function registerOpenApi(app: FastifyInstance) {
       security: [{ session: [] }],
     },
     transform: ({ schema, url, route }) => {
-      if (!schema) return { schema: { hide: true }, url }
+      if (!schema || schema.hide) return { schema: { hide: true }, url }
       // Document raw streams without adding JSON validation to binary routes.
       let documented = { ...schema }
       if (schema.operationId === 'uploadObject') {

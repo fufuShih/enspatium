@@ -120,6 +120,20 @@ export type GetAppSpace200 = {
   app: GetAppSpace200App;
 };
 
+export type GetAppPwaEntry200 = {
+  id: string;
+  /**
+     * @minLength 3
+     * @maxLength 60
+     * @pattern ^[a-z0-9]+(-[a-z0-9]+)*$
+     */
+  appType: string;
+  enabled: boolean;
+  name?: string;
+  themeColor?: string | null;
+  version?: string;
+};
+
 export type CreateUserBody = {
   /**
      * @minLength 1
@@ -1016,6 +1030,63 @@ export type UpdateSpaceApp200 = {
   name: string;
   config: UpdateSpaceApp200Config;
   pwa: UpdateSpaceApp200Pwa;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type UpdateSpaceAppPwaBodyPwaOfflinePolicy = typeof UpdateSpaceAppPwaBodyPwaOfflinePolicy[keyof typeof UpdateSpaceAppPwaBodyPwaOfflinePolicy];
+
+
+export const UpdateSpaceAppPwaBodyPwaOfflinePolicy = {
+  shell: 'shell',
+} as const;
+
+export type UpdateSpaceAppPwaBodyPwa = {
+  enabled: boolean;
+  iconObjectId: string | null;
+  themeColor: string | null;
+  offlinePolicy: UpdateSpaceAppPwaBodyPwaOfflinePolicy;
+};
+
+export type UpdateSpaceAppPwaBody = {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  name: string;
+  pwa: UpdateSpaceAppPwaBodyPwa;
+  publishAcknowledged?: boolean;
+  refreshIcon?: boolean;
+};
+
+export type UpdateSpaceAppPwa200Config = {[key: string]: unknown};
+
+export type UpdateSpaceAppPwa200PwaOfflinePolicy = typeof UpdateSpaceAppPwa200PwaOfflinePolicy[keyof typeof UpdateSpaceAppPwa200PwaOfflinePolicy];
+
+
+export const UpdateSpaceAppPwa200PwaOfflinePolicy = {
+  shell: 'shell',
+} as const;
+
+export type UpdateSpaceAppPwa200Pwa = {
+  enabled: boolean;
+  iconObjectId: string | null;
+  themeColor: string | null;
+  offlinePolicy: UpdateSpaceAppPwa200PwaOfflinePolicy;
+};
+
+export type UpdateSpaceAppPwa200 = {
+  id: string;
+  spaceId: string;
+  /**
+     * @minLength 3
+     * @maxLength 60
+     * @pattern ^[a-z0-9]+(-[a-z0-9]+)*$
+     */
+  appType: string;
+  name: string;
+  config: UpdateSpaceAppPwa200Config;
+  pwa: UpdateSpaceAppPwa200Pwa;
   createdAt: string;
   updatedAt: string;
 };

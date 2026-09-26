@@ -1,9 +1,10 @@
 # App Pages
 
 App Pages render an App instance at `/app/<app type>/<app ID>/`. Each instance explicitly resolves its owning Space, and multiple instances can share that Space's content.
-Space cards still open file management. The Space's **Apps** panel lists every instance; each **Open app** action opens that instance in a new tab. Owners can create, rename and remove instances, including multiple of the same type. Renaming preserves its URL; removal requires confirmation and keeps files, versions, permissions and other apps. Readers can only open apps. Installation settings and PWA support remain future work.
+Space cards still open file management. The Space's **Apps** panel lists every instance; each **Open app** action opens that instance in a new tab. Owners can create, rename and remove instances, including multiple of the same type. Renaming preserves its URL; removal requires confirmation and keeps files, versions, permissions and other apps. Readers can only open apps. Owners enable PWA metadata and configure the name, icon and theme color under **Space Settings → App installation settings**, acknowledging that installation metadata is public.
 
 - `AppPage.tsx` handles the session, instance loading, document title, loading/errors and sign-in return URL.
+- `AppPwaRuntime.tsx` updates installation metadata during client-side navigation and registers a network-only worker scoped to that App. Initial HTML already contains the manifest link. Disabled/deleted Apps remove only their own registration; leaving an App removes its document metadata without uninstalling its worker. Offline shells and installation guidance are not implemented yet.
 - `types.ts` defines the small plugin contract and the generated `instance` prop passed to pages.
 - `registry.ts` lists installed frontend views. The `/app/:appType/:appId/*` route resolves them here; unknown types show App not available. Creation options intersect these views with the backend App registry.
 - `../SpacesPage/apps/` owns the management panel and dialogs, using the generated `space-apps.ts` client. Creation also checks storage compatibility; uninstalled views remain listed but cannot be opened. Changes refresh Space and instance metadata, with controls rechecked against the server's `canManage` permission.
@@ -14,7 +15,7 @@ Media follows the site's light/dark theme, with category navigation on the left 
 
 Plugins are local TypeScript/React modules built with the frontend. A plugin declares `type`, `label`, `builtIn`, `view` and `integration`. Creation offers **Media (built-in)**, **Ebook library (built-in)** and **Note (built-in)**.
 
-`view` is the React page at the app's root URL. Every view receives `{ instance, basePath }` and uses Chakra UI. `instance.id` is the App UUID; `instance.spaceId` is the owning Space UUID. The instance also includes its name, config/PWA defaults, App type metadata and resolved Space account/slug. `integration` declares the storage type and `loadInstance(appId, signal)`, plus plugin-specific API functions. The loader receives an AbortSignal and uses the authorized instance API. These are developer settings in code.
+`view` is the React page at the app's root URL. Every view receives `{ instance, basePath }` and uses Chakra UI. `instance.id` is the App UUID; `instance.spaceId` is the owning Space UUID. The instance also includes its name, config/PWA settings, App type metadata and resolved Space account/slug. `integration` declares the storage type and `loadInstance(appId, signal)`, plus plugin-specific API functions. The loader receives an AbortSignal and uses the authorized instance API. These are developer settings in code.
 
 ```ts
 export const mediaPlugin = {

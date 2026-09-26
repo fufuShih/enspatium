@@ -5,6 +5,8 @@ import { validateAppInstanceConfig, validateAppInstanceName } from './app-instan
 import { getSpaceBySlug, getSpaceDetails, requireSpaceOwnerAccess, SpaceServiceError } from './space/space.js'
 import { createAuditEvent } from './audit/audit.js'
 
+const instanceColumns = ['id', 'space_id', 'app_type', 'storage_type', 'name', 'config', 'pwa', 'created_at', 'updated_at'] as const
+
 // Every read derives its permissions from the owning Space. Mutations and their
 // audit events commit together, without touching shared content or permissions.
 export async function listAppInstances(db: Kysely<Database>, actorUserId: string | undefined, account: string, spaceSlug: string) {
@@ -13,7 +15,7 @@ export async function listAppInstances(db: Kysely<Database>, actorUserId: string
 }
 
 function findSpaceApps(db: Kysely<Database>, spaceId: string) {
-  return db.selectFrom('space_apps').selectAll().where('space_id', '=', spaceId)
+  return db.selectFrom('space_apps').select(instanceColumns).where('space_id', '=', spaceId)
     .orderBy('created_at', 'asc').orderBy('id', 'asc').execute()
 }
 
@@ -22,7 +24,7 @@ export async function listSpaceApps(db: Kysely<Database>, actorUserId: string | 
   return { apps: (await findSpaceApps(db, space.id)).map(toAppInstanceSummary), canManage: space.canManage }
 }
 
-export function toAppInstanceSummary(instance: SpaceApp) {
+export function toAppInstanceSummary(instance: Pick<SpaceApp, typeof instanceColumns[number]>) {
   return { id: instance.id, spaceId: instance.space_id, appType: instance.app_type, name: instance.name,
     config: instance.config, pwa: instance.pwa, createdAt: instance.created_at.toISOString(), updatedAt: instance.updated_at.toISOString() }
 }
@@ -31,7 +33,7 @@ export async function getAppInstance(db: Kysely<Database>, actorUserId: string |
   const instance = await db.selectFrom('space_apps')
     .innerJoin('spaces', 'spaces.id', 'space_apps.space_id')
     .innerJoin('namespaces', 'namespaces.id', 'spaces.namespace_id')
-    .selectAll('space_apps').select(['namespaces.slug as account', 'spaces.slug as spaceSlug'])
+    .select(instanceColumns.map(column => `space_apps.${column}` as const)).select(['namespaces.slug as account', 'spaces.slug as spaceSlug'])
     .where('space_apps.id', '=', appId).where('space_apps.app_type', '=', appType).executeTakeFirst()
   if (!instance) throw new SpaceServiceError('NOT_FOUND', 404, 'App instance not found.')
   const space = await getSpaceBySlug(db, actorUserId, instance.account, instance.spaceSlug)

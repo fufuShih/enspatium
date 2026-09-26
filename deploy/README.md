@@ -43,6 +43,12 @@ docker compose stop
 
 Check HTTPS, `/api/health/db`, sign-in and Git clone/push after installation. Use an access token as the Git password.
 
+App/PWA entry pages now come from Fastify through Caddy's `/app/*` handler, before the generic SPA fallback. Deploy server and web images from the **same build**: the server includes the built HTML and web serves its referenced assets. Migration 0022 stores sanitized installation icons in PostgreSQL. Owners can enable public installation metadata from Space Settings; private content still requires authorization. Workers currently remain network-only. Use a trusted HTTPS certificate; bypassing a page's certificate warning does not reliably permit Service Worker installation.
+
+For non-Docker deployments, build the web app and point the server's `WEB_ROOT` at that build directory; proxy `/app/*` to Fastify and serve the matching assets normally. Missing HTML returns 503. Keep manifest/worker responses out of SPA fallbacks and shared caches. See the [App delivery guide](../packages/server/src/apps/README.md#pwa-delivery).
+
+The optional browser check `pnpm test:e2e -- app-pwa-deployment.spec.ts` requires `PWA_DEPLOYMENT_URL=https://localhost:<port>` pointing to a disposable local deployment with registration enabled. For an untrusted test certificate only, `PWA_TEST_CERT_SPKI` can pin its base64 SHA-256 public-key digest in the test browser; this does not change OS trust or production settings. The check covers secure cookies, initial/deep-link HTML, separate manifests/workers, and Note/EPUB/PDF/Media with production headers.
+
 - Keep the same secrets and volumes when updating. Do not use `down --volumes` to restart.
 - Run one backend; do not edit its database or content files externally.
 - **Site administration** provides system status, background storage checks and Git maintenance. Start checks in **Storage** and return to **Jobs** for persisted reports, queued cancellation or manual retries. Back up before maintenance; Git requests may be busy while it runs.

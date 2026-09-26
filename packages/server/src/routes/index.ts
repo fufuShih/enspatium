@@ -6,6 +6,7 @@ import { adminJobRoutes } from './admin-jobs.route.js'
 import { adminUserRoutes } from './admin-users.route.js'
 import { appObjectRoutes } from './app-objects.route.js'
 import { appRoutes } from './apps.route.js'
+import { appEntryRoutes } from './app-entry.route.js'
 import { authRoutes } from './auth.route.js'
 import { gitRoutes } from './git.route.js'
 import { healthRoutes } from './health.route.js'
@@ -20,6 +21,7 @@ import { userRoutes } from './users.route.js'
 export async function registerRoutes(app: FastifyInstance) {
   await app.register(healthRoutes)
   await app.register(appRoutes)
+  await app.register(appEntryRoutes)
   await app.register(userRoutes)
   await app.register(authRoutes)
   await app.register(tokenRoutes)

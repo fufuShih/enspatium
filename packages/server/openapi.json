@@ -499,6 +499,87 @@
         }
       }
     },
+    "/apps/{appType}/instances/{appId}/pwa-entry": {
+      "get": {
+        "operationId": "getAppPwaEntry",
+        "tags": [
+          "apps"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 3,
+              "maxLength": 60,
+              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "appType",
+            "required": true
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "appId",
+            "required": true
+          }
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "appType",
+                    "enabled"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "appType": {
+                      "minLength": 3,
+                      "maxLength": 60,
+                      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                      "type": "string"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "themeColor": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users": {
       "post": {
         "operationId": "createUser",
@@ -4854,6 +4935,210 @@
         "responses": {
           "204": {
             "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/apps/{appId}/pwa": {
+      "put": {
+        "operationId": "updateSpaceAppPwa",
+        "tags": [
+          "space-apps"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "name",
+                  "pwa"
+                ],
+                "properties": {
+                  "name": {
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "type": "string"
+                  },
+                  "pwa": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "enabled",
+                      "iconObjectId",
+                      "themeColor",
+                      "offlinePolicy"
+                    ],
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "iconObjectId": {
+                        "anyOf": [
+                          {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "themeColor": {
+                        "anyOf": [
+                          {
+                            "pattern": "^#[0-9a-fA-F]{6}$",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "offlinePolicy": {
+                        "type": "string",
+                        "enum": [
+                          "shell"
+                        ]
+                      }
+                    }
+                  },
+                  "publishAcknowledged": {
+                    "type": "boolean"
+                  },
+                  "refreshIcon": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "appId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "spaceId",
+                    "appType",
+                    "name",
+                    "config",
+                    "pwa",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "spaceId": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "appType": {
+                      "minLength": 3,
+                      "maxLength": 60,
+                      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "config": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "pwa": {
+                      "type": "object",
+                      "required": [
+                        "enabled",
+                        "iconObjectId",
+                        "themeColor",
+                        "offlinePolicy"
+                      ],
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "iconObjectId": {
+                          "anyOf": [
+                            {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "themeColor": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "offlinePolicy": {
+                          "type": "string",
+                          "enum": [
+                            "shell"
+                          ]
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

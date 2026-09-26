@@ -2,10 +2,11 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, normalizePath } from 'vite'
 import { resolve } from 'node:path'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
+import { appEntryPlugin } from './scripts/app-entry-plugin.js'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), viteStaticCopy({
+  plugins: [appEntryPlugin(), react(), viteStaticCopy({
     targets: ['cmaps', 'standard_fonts', 'wasm', 'iccs'].map(folder => ({
       src: normalizePath(resolve(import.meta.dirname, `node_modules/pdfjs-dist/${folder}/*`)),
       dest: `pdfjs/${folder}`,

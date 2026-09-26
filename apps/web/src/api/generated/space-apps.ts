@@ -28,7 +28,9 @@ import type {
   CreateSpaceAppBody,
   ListSpaceApps200,
   UpdateSpaceApp200,
-  UpdateSpaceAppBody
+  UpdateSpaceAppBody,
+  UpdateSpaceAppPwa200,
+  UpdateSpaceAppPwaBody
 } from './api.schemas';
 
 
@@ -437,4 +439,97 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
         TContext
       > => {
       return useMutation(getDeleteSpaceAppMutationOptions(options), queryClient);
+    }
+    export const getUpdateSpaceAppPwaUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    appId: string,) => {
+
+
+
+
+  return `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/apps/${encodeURIComponent(String(appId))}/pwa`
+}
+
+export const updateSpaceAppPwa = async (namespaceSlug: string,
+    spaceSlug: string,
+    appId: string,
+    updateSpaceAppPwaBody: UpdateSpaceAppPwaBody, options?: RequestInit): Promise<UpdateSpaceAppPwa200> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+const res = await fetch(getUpdateSpaceAppPwaUrl(namespaceSlug,spaceSlug,appId),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateSpaceAppPwaBody)
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: UpdateSpaceAppPwa200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getUpdateSpaceAppPwaMutationKey = () => ['updateSpaceAppPwa'] as const;
+
+export const getUpdateSpaceAppPwaMutationOptions = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSpaceAppPwa>>, TError,UpdateSpaceAppPwaMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof updateSpaceAppPwa>>, TError,UpdateSpaceAppPwaMutationVariables, TContext> => {
+
+const mutationKey = getUpdateSpaceAppPwaMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateSpaceAppPwa>>, UpdateSpaceAppPwaMutationVariables> = (props) => {
+          const {namespaceSlug,spaceSlug,appId,data} = props ?? {};
+
+          return  updateSpaceAppPwa(namespaceSlug,spaceSlug,appId,data,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateSpaceAppPwaMutationResult = NonNullable<Awaited<ReturnType<typeof updateSpaceAppPwa>>>
+    export type UpdateSpaceAppPwaMutationBody = UpdateSpaceAppPwaBody
+    export type UpdateSpaceAppPwaMutationError = globalThis.Error & { info?: unknown; status?: number }
+    export type UpdateSpaceAppPwaMutationVariables = {namespaceSlug: string;spaceSlug: string;appId: string;data: UpdateSpaceAppPwaBody}
+
+    export const useUpdateSpaceAppPwa = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSpaceAppPwa>>, TError,UpdateSpaceAppPwaMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateSpaceAppPwa>>,
+        TError,
+        UpdateSpaceAppPwaMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateSpaceAppPwaMutationOptions(options), queryClient);
     }

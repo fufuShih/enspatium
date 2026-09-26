@@ -13,6 +13,7 @@ import SpaceMembers from './SpaceMembers'
 import ObjectRetentionSettings from './ObjectRetentionSettings'
 import { refreshSpaceSettings, settingsErrorMessage } from './settingsApi'
 import { storageErrorTitle } from '../shared/storageErrors'
+import SpaceApps from '../apps/SpaceApps'
 
 export default function SpaceSettings({ account, space }: { account: string; space: GetSpace200 }) {
   const client = useQueryClient()
@@ -61,6 +62,7 @@ export default function SpaceSettings({ account, space }: { account: string; spa
     </Box>
     {space.type === 'git' && <GitSettings account={account} slug={space.slug} />}
     {space.type === 'object' && <ObjectRetentionSettings account={account} space={space} />}
+    <Box id="apps" mt="32px"><SpaceApps account={account} space={space} installationSettings /></Box>
     <SpaceMembers account={account} slug={space.slug} />
     {space.canDelete && <Box as="section" aria-labelledby="danger-heading" borderTop="1px solid var(--border)" mt="32px" pt="28px">
       <Heading as="h2" id="danger-heading" fontSize="17px">Danger zone</Heading>

@@ -31,6 +31,8 @@ export interface SpaceAppTable {
   name: string
   config: JSONColumnType<AppConfig, AppConfig | undefined, AppConfig>
   pwa: JSONColumnType<AppPwaSettings, AppPwaSettings | undefined, AppPwaSettings>
+  pwa_icon_192: Generated<Buffer | null>
+  pwa_icon_512: Generated<Buffer | null>
   created_at: Generated<Date>
   updated_at: Generated<Date>
 }
@@ -47,4 +49,12 @@ export interface CreateAppInstanceInput {
 export interface UpdateAppInstanceInput {
   name?: string
   config?: AppConfig
+}
+
+export interface UpdateAppPwaInput {
+  name: string
+  pwa: AppPwaSettings
+  // Explicit consent is required whenever installation metadata is published.
+  publishAcknowledged?: boolean
+  refreshIcon?: boolean
 }

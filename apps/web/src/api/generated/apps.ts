@@ -21,6 +21,7 @@ import type {
 
 import type {
   GetAppInstance200,
+  GetAppPwaEntry200,
   GetAppSpace200,
   ListApps200Item
 } from './api.schemas';
@@ -377,6 +378,123 @@ export function useGetAppSpace<TData = Awaited<ReturnType<typeof getAppSpace>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetAppSpaceQueryOptions(appType,spaceId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetAppPwaEntryUrl = (appType: string,
+    appId: string,) => {
+
+
+
+
+  return `/api/apps/${encodeURIComponent(String(appType))}/instances/${encodeURIComponent(String(appId))}/pwa-entry`
+}
+
+export const getAppPwaEntry = async (appType: string,
+    appId: string, options?: RequestInit): Promise<GetAppPwaEntry200> => {
+
+  const res = await fetch(getGetAppPwaEntryUrl(appType,appId),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: GetAppPwaEntry200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getGetAppPwaEntryQueryKey = (appType: string,
+    appId: string,) => {
+    return [
+    `/api/apps/${appType}/instances/${appId}/pwa-entry`
+    ] as const;
+    }
+
+
+export const getGetAppPwaEntryQueryOptions = <TData = Awaited<ReturnType<typeof getAppPwaEntry>>, TError = globalThis.Error & { info?: unknown; status?: number }>(appType: string,
+    appId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAppPwaEntry>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAppPwaEntryQueryKey(appType,appId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAppPwaEntry>>> = ({ signal }) => getAppPwaEntry(appType,appId, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: appType !== null && appType !== undefined && appId !== null && appId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAppPwaEntry>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAppPwaEntryQueryResult = NonNullable<Awaited<ReturnType<typeof getAppPwaEntry>>>
+export type GetAppPwaEntryQueryError = globalThis.Error & { info?: unknown; status?: number }
+
+
+export function useGetAppPwaEntry<TData = Awaited<ReturnType<typeof getAppPwaEntry>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ appType: string,
+    appId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAppPwaEntry>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAppPwaEntry>>,
+          TError,
+          Awaited<ReturnType<typeof getAppPwaEntry>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAppPwaEntry<TData = Awaited<ReturnType<typeof getAppPwaEntry>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ appType: string,
+    appId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAppPwaEntry>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAppPwaEntry>>,
+          TError,
+          Awaited<ReturnType<typeof getAppPwaEntry>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAppPwaEntry<TData = Awaited<ReturnType<typeof getAppPwaEntry>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ appType: string,
+    appId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAppPwaEntry>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetAppPwaEntry<TData = Awaited<ReturnType<typeof getAppPwaEntry>>, TError = globalThis.Error & { info?: unknown; status?: number }>(
+ appType: string,
+    appId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAppPwaEntry>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAppPwaEntryQueryOptions(appType,appId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

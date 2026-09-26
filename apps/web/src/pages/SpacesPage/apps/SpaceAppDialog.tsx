@@ -72,6 +72,7 @@ export default function SpaceAppDialog({ account, space, action, onClose, onSave
             <Dialog.Description fontSize="13px" lineHeight="1.8">Only this app's entry and settings will be removed. Files, versions, permissions and other apps are kept. Existing links to this app will stop working. This cannot be undone.</Dialog.Description>
           </> : <>
             <Dialog.Description fontSize="13px" color="var(--muted)" lineHeight="1.8" mb="20px">{action.kind === 'create' ? 'Apps share this Space’s files, visibility and permissions. You can create more than one app of the same type.' : 'The app name can differ from the Space name. Its URL and content stay the same.'}</Dialog.Description>
+            {action.kind === 'rename' && action.instance.pwa.enabled && <Text fontSize="13px" mb="16px">PWA is enabled: this name is public installation information.</Text>}
             {action.kind === 'create' && <Box mb="18px">
               <chakra.label htmlFor="app-type" display="block" fontSize="13px" mb="8px">App type</chakra.label>
               <SelectInput id="app-type" value={type} disabled={busy || registry.isPending || registry.isError || !available.length} onChange={event => { setSelectedType(event.target.value); setError('') }}>

@@ -3,7 +3,8 @@ import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
 import { createAppInstance, deleteAppInstance, listSpaceApps, toAppInstanceSummary, updateAppInstance } from '../services/app-instances.js'
 import { getCurrentUserId, requireCurrentUserId } from './current-user.route.js'
 import { SpaceParamsSchema } from './types/spaces.types.js'
-import { CreateSpaceAppBodySchema, SpaceAppParamsSchema, SpaceAppResponseSchema, SpaceAppsResponseSchema, UpdateSpaceAppBodySchema } from './types/space-apps.types.js'
+import { CreateSpaceAppBodySchema, SpaceAppParamsSchema, SpaceAppResponseSchema, SpaceAppsResponseSchema, UpdateSpaceAppBodySchema, UpdateSpaceAppPwaBodySchema } from './types/space-apps.types.js'
+import { updateAppPwa } from '../services/app-pwa.js'
 
 export const spaceAppRoutes: FastifyPluginAsyncTypebox = async app => {
   const base = '/namespaces/:namespaceSlug/spaces/:spaceSlug/apps'
@@ -36,5 +37,14 @@ export const spaceAppRoutes: FastifyPluginAsyncTypebox = async app => {
     reply.header('cache-control', 'private, no-store')
     await deleteAppInstance(app.db, requireCurrentUserId(request), request.params.namespaceSlug, request.params.spaceSlug, request.params.appId)
     return reply.code(204).send(null)
+  })
+  app.put(base + '/:appId/pwa', {
+    config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
+    schema: { operationId: 'updateSpaceAppPwa', tags: ['space-apps'], params: SpaceAppParamsSchema,
+      body: UpdateSpaceAppPwaBodySchema, response: { 200: SpaceAppResponseSchema } },
+  }, async (request, reply) => {
+    reply.header('cache-control', 'private, no-store')
+    return toAppInstanceSummary(await updateAppPwa(app.db, app.config.DATA_ROOT, requireCurrentUserId(request),
+      request.params.namespaceSlug, request.params.spaceSlug, request.params.appId, request.body))
   })
 }

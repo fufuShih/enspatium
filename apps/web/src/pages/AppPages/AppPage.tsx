@@ -10,11 +10,12 @@ import { apiStatus } from '../../context/session'
 import type { AppPagePlugin } from './types'
 import { getAppPlugin } from './registry'
 import { appPath } from './paths'
+import AppPwaRuntime from './AppPwaRuntime'
 
 export default function AppPage() {
-  const { appType } = useParams()
+  const { appType, appId = '' } = useParams()
   const plugin = getAppPlugin(appType)
-  return <Box as="main" minH="100dvh" bg="var(--background)" color="var(--foreground)">{plugin ? <AppContent key={plugin.type} plugin={plugin} /> : <PageContainer><RequestState title="App not available" message="This app is not available on this site." /></PageContainer>}</Box>
+  return <Box as="main" minH="100dvh" bg="var(--background)" color="var(--foreground)">{plugin ? <><AppPwaRuntime key={`${plugin.type}:${appId}`} appType={plugin.type} appId={appId} /><AppContent key={plugin.type} plugin={plugin} /></> : <PageContainer><RequestState title="App not available" message="This app is not available on this site." /></PageContainer>}</Box>
 }
 
 function AppContent({ plugin }: { plugin: AppPagePlugin }) {
@@ -24,7 +25,7 @@ function AppContent({ plugin }: { plugin: AppPagePlugin }) {
   const query = useQuery({
     queryKey: ['app-instance', plugin.type, appId, user?.id ?? null],
     queryFn: ({ signal }) => plugin.integration.loadInstance(appId, signal),
-    enabled: !isLoading && Boolean(appId), retry: false, gcTime: 0, staleTime: 0, refetchOnMount: 'always',
+    enabled: !isLoading && Boolean(appId), retry: false, gcTime: 0, staleTime: 0, refetchOnMount: 'always', refetchInterval: 30_000,
   })
   const name = query.data?.name
   useEffect(() => {

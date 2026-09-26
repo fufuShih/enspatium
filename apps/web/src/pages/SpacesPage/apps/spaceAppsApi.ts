@@ -3,6 +3,7 @@ import type { GetSpace200, ListApps200Item } from '../../../api/generated/api.sc
 import { apiStatus } from '../../../context/session'
 import { getAppPlugin } from '../../AppPages/registry'
 import { refreshSpaceSettings } from '../settings/settingsApi'
+import { getGetAppPwaEntryQueryKey } from '../../../api/generated/apps'
 
 export function compatibleSpaceApps(apps: ListApps200Item[], storageType: GetSpace200['type']) {
   return apps.filter(app => app.storageType === storageType && getAppPlugin(app.type)?.integration.storageType === storageType)
@@ -25,5 +26,6 @@ export async function refreshSpaceApps(client: QueryClient, account: string, slu
     const queryKey = ['app-instance', instance.appType, instance.id]
     await client.cancelQueries({ queryKey })
     await client.invalidateQueries({ queryKey })
+    await client.invalidateQueries({ queryKey: getGetAppPwaEntryQueryKey(instance.appType, instance.id) })
   }
 }
