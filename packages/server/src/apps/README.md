@@ -1,6 +1,6 @@
 # App types and Object App plugins
 
-An App type is a registered way to present a Space. A Space keeps its storage type (`git` or `object`) and optionally references one App type. Media, Ebook and Note use Object storage, sharing data, permissions, versions, retention and quota with file management.
+An App type is a registered way to present a Space. A Space keeps its storage type (`git` or `object`) and can own multiple App instances, including several of the same type. Media, Ebook and Note use Object storage, sharing data, permissions, versions, retention and quota with file management.
 
 ## Database
 
@@ -15,7 +15,13 @@ Migration 0015 renames `apps` to `app_types` and `spaces.app` to `spaces.app_typ
 | `storage_type` | Supported Space storage type |
 | `created_at` | Registration time |
 
-`spaces(app_type, type)` references `app_types(type, storage_type)`. A Space cannot reference an unknown or incompatible App type. This is one optional reference per Space, with no per-app tables, duplicated book/media records or database enum for App names. The public Space API retains its `app` field for compatibility; it maps to `app_type` internally.
+Migration 0020 adds `space_apps`: an independent UUID, owning `space_id`, registered `app_type`, name, plugin-validated JSON config, typed PWA settings and timestamps. An internal `storage_type` discriminator participates in composite foreign keys to both Space and App type, rejecting unknown or incompatible types even on direct database writes. There is no unique `(space_id, app_type)` constraint. Instance identity and type are immutable.
+
+Each existing `spaces.app_type` becomes one instance whose UUID equals its Space UUID, preserving old bookmarks and timestamps. New instances get independent UUIDs. Spaces without an App remain unchanged. The public Space API retains its `app` field and `spaces.app_type` as a compatibility reference; creating a Space through that API also creates its original instance atomically. Other instances never replace that reference.
+
+`services/app-instances.ts` provides internal list/resolve/create/update/delete operations. Reads reuse Space visibility and membership; management reuses Space-owner access (including namespace owners). Custom registrations remain restricted to their creator for instance creation. Removing the original instance clears the legacy reference without choosing a replacement; deleting any instance leaves content, versions, permissions and quota intact. Space deletion cascades to its instances. Instance HTTP APIs and frontend routing are a separate follow-up; the routes below still target the original compatibility entry.
+
+Names default to the Space name at creation and can subsequently differ. Config is limited to 16 KiB of JSON and validated against the deployed plugin's optional TypeBox `configSchema`; without a schema, only `{}` is accepted. Built-ins currently have no configurable options. The database has an additional 32 KiB serialized-JSON ceiling to allow PostgreSQL's whitespace formatting. PWA settings default to `{ enabled: false, iconObjectId: null, themeColor: null, offlinePolicy: 'shell' }`; a null color inherits the platform theme. This data layer does not yet expose PWA setting changes, manifests, service workers or installation.
 
 App URLs share the Space resource prefix. The database reserves `git`, `object`, `objects`, `members`, `storage`, `object-tree`, `object-head`, `object-versions` and `audit-events` so registrations cannot shadow existing routes. New platform resources at that prefix must also be reserved before use. A migration fails rather than silently renaming a conflicting existing custom type.
 
@@ -35,7 +41,7 @@ The routes and `services/app-objects.ts` own permissions, Space/App matching, fi
 
 ## Add an App using Object storage
 
-1. Register its metadata in `app_types` using a migration. Custom types require an owner; only that owner can create Spaces with them.
+1. Register its metadata in `app_types` using a migration. Custom types require an owner; only that owner can create instances or legacy Spaces with them.
 2. Add a local module under `plugins/` and include it in `objectAppPlugins` in `registry.ts`.
 3. Add the corresponding frontend plugin. Its integration can use `createObjectAppIntegration(type)` and its views can declare relative subroutes.
 

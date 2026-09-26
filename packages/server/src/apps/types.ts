@@ -1,3 +1,5 @@
+import type { TObject } from '@sinclair/typebox'
+
 export type ObjectAppKind = {
   kind: string
   contentTypes: readonly string[]
@@ -12,4 +14,6 @@ export type ObjectAppPlugin = {
   type: string
   storageType: 'object'
   kinds: readonly ObjectAppKind[]
+  // Deployed plugins may opt into typed instance config. Omission accepts only {}.
+  configSchema?: TObject
 }

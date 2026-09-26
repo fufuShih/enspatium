@@ -104,6 +104,16 @@ async function createSpaceMutation(
         .returningAll()
         .executeTakeFirstOrThrow()
 
+      if (createdSpace.app_type !== null) {
+        await transaction.insertInto('space_apps').values({
+          id: createdSpace.id,
+          space_id: createdSpace.id,
+          app_type: createdSpace.app_type,
+          storage_type: createdSpace.type,
+          name: createdSpace.name,
+        }).execute()
+      }
+
       await transaction
         .insertInto('space_members')
         .values({
