@@ -30,6 +30,22 @@ export async function unregisterAppWorker(container: ServiceWorkerContainer, ori
   }
 }
 
+export async function clearAppCaches(storage: CacheStorage, appId: string) {
+  if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(appId)) return
+  const prefix = `enspatium-pwa:${appId}:`
+  await Promise.all((await storage.keys()).filter(key => key.startsWith(prefix)).map(key => storage.delete(key)))
+}
+
+export function appWorkerStatus(worker: ServiceWorker, prepare = false): Promise<{ ready: boolean; development?: boolean }> {
+  return new Promise(resolve => {
+    const channel = new MessageChannel()
+    const finish = (status: { ready: boolean; development?: boolean }) => { clearTimeout(timeout); channel.port1.close(); channel.port2.close(); resolve(status) }
+    const timeout = setTimeout(() => finish({ ready: false }), prepare ? 12_000 : 3000)
+    channel.port1.onmessage = event => finish({ ready: event.data?.ready === true, development: event.data?.development === true })
+    try { worker.postMessage(prepare ? 'PWA_PREPARE' : 'PWA_STATUS', [channel.port2]) } catch { finish({ ready: false }) }
+  })
+}
+
 export function registerAppWorker(container: ServiceWorkerContainer, base: string) {
   return container.register(base + 'sw.js', { scope: base, updateViaCache: 'none' })
 }

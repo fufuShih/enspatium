@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { parseAppEntryPath, pwaBasePath, pwaManifest, pwaWorker, renderAppDocument } from './pwa-document.js'
+import { parseAppEntryPath, pwaBasePath, pwaManifest, renderAppDocument } from './pwa-document.js'
 
 const entry = { id: '01234567-89ab-cdef-0123-456789abcdef', appType: 'note', enabled: true, name: 'Notebook', themeColor: null, version: 'v1' }
 const template = '<!doctype html><html><head><title>web</title></head><body><div id="root"></div><script type="module" src="/assets/main.js"></script></body></html>'
@@ -31,15 +31,4 @@ test('entry paths accept old roots and nested child routes but reject injected s
   expect(parseAppEntryPath(base.slice(0, -1))).toMatchObject({ appId: entry.id, child: '' })
   expect(parseAppEntryPath(base + 'note/item')).toMatchObject({ appId: entry.id, child: 'note/item' })
   for (const path of ['/app/note/bad/', base.replace('/note/', '/note%2f/'), base.replace(entry.id, entry.id + 'extra'), '/app/../' + entry.id]) expect(parseAppEntryPath(path)).toBeNull()
-})
-
-test('entry workers never intercept requests, store data or expand their scope', () => {
-  const enabled = pwaWorker(true)
-  const disabled = pwaWorker(false)
-  for (const worker of [enabled, disabled]) {
-    expect(worker).not.toMatch(/fetch|caches|CacheStorage|importScripts|localStorage|indexedDB/)
-    expect(worker).toContain("addEventListener('install'")
-  }
-  expect(enabled).toContain('self.clients.claim()')
-  expect(disabled).toContain('self.registration.unregister()')
 })

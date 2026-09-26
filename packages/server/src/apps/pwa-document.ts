@@ -40,9 +40,3 @@ export function renderAppDocument(template: string, entry: PublicPwaEntry | null
   return template.replace(/<title>[^<]*<\/title>/, () => `<title>${escapeHtml(entry?.enabled ? entry.name ?? 'Enspatium' : 'Enspatium')}</title>`)
     .replace('</head>', () => tags + '\n  </head>')
 }
-
-// V3-4 is network-only: no fetch interception, private data or Cache Storage.
-// A disabled App updates its existing registration with this cleanup worker.
-export function pwaWorker(enabled: boolean) {
-  return `// Enspatium PWA entry v1: network-only\nself.addEventListener('install', () => self.skipWaiting());\nself.addEventListener('activate', event => event.waitUntil(${enabled ? 'self.clients.claim()' : 'self.registration.unregister()'}));\n`
-}

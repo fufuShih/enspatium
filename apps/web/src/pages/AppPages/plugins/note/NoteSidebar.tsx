@@ -6,6 +6,7 @@ import type { AppInstance } from '../../types'
 import { appPath } from '../../paths'
 import { noteKey, saveNote } from './integration'
 import { noteError } from './noteErrors'
+import { useOnline } from '../../../../hooks/useOnline'
 
 export function NoteIcon({ folder = false }: { folder?: boolean }) {
   return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" style={{ flexShrink: 0 }}>{folder ? <path d="M3 7V5h6l2 2h10v13H3V7Z" /> : <><path d="M6 3h9l4 4v14H6V3Z" /><path d="M14 3v5h5M9 12h7M9 16h5" /></>}</svg>
@@ -41,12 +42,14 @@ export function NoteList({ notes, appId, selected }: { notes: ListAppInstanceObj
 }
 
 export function NewNote({ instance, onCreated, onCancel }: { instance: AppInstance; onCreated: (id: string) => void; onCancel: () => void }) {
+  const online = useOnline()
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   return <Box asChild mb="16px"><form onSubmit={async event => {
     event.preventDefault()
     if (busy) return
+    if (!navigator.onLine) { setError('Reconnect before creating a note.'); return }
     setBusy(true); setError('')
     try {
       const created = await saveNote(instance, noteKey(name), '', 'none')
@@ -55,9 +58,9 @@ export function NewNote({ instance, onCreated, onCancel }: { instance: AppInstan
     finally { setBusy(false) }
   }}>
     <chakra.label htmlFor="new-note-name" fontSize="12px" display="block" mb="7px">Note name</chakra.label>
-    <TextInput id="new-note-name" autoFocus required maxLength={1024} placeholder="Journal/Today" value={name} disabled={busy} onChange={event => setName(event.target.value)} />
+    <TextInput id="new-note-name" autoFocus required maxLength={1024} placeholder="Journal/Today" value={name} disabled={!online || busy} onChange={event => setName(event.target.value)} />
     <Text fontSize="11px" color="var(--muted)" mt="7px">Use / to place a note in a folder.</Text>
     {error && <Text role="alert" color="fg.error" fontSize="12px" mt="8px">{error}</Text>}
-    <Flex gap="6px" mt="10px"><ActionButton type="submit" loading={busy} size="xs">Create note</ActionButton><ActionButton type="button" disabled={busy} onClick={onCancel} size="xs">Cancel</ActionButton></Flex>
+    <Flex gap="6px" mt="10px"><ActionButton type="submit" disabled={!online} loading={busy} size="xs">Create note</ActionButton><ActionButton type="button" disabled={busy} onClick={onCancel} size="xs">Cancel</ActionButton></Flex>
   </form></Box>
 }

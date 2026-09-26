@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Connection needed · Enspatium</title>
+    <link rel="stylesheet" href="/src/styles/offline.css" />
+    <script type="module" src="/src/offline.ts"></script>
+  </head>
+  <body>
+    <main>
+      <p class="brand">ENSPATIUM</p>
+      <h1>Connection needed</h1>
+      <p>This app could not reach the server. Connect to the internet, then try again.</p>
+      <p class="detail">Only this offline page is saved. Notes, books, media and account data are not available offline. Changes are never queued for later.</p>
+      <button type="button" id="retry">Try again</button>
+      <p id="connection" role="status" aria-live="polite"></p>
+      <noscript>Reconnect and reload this page to return to the app.</noscript>
+    </main>
+  </body>
+</html>

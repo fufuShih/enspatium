@@ -52,7 +52,11 @@ test('production HTTPS serves App HTML, manifests, workers and all built-in view
     await page.getByRole('link', { name: 'Open Private.md' }).click()
     await page.reload()
     await expect(page.getByRole('textbox', { name: 'Note content', exact: true })).toContainText('Private production content')
+    const noteUrl = page.url()
     await expect.poll(() => page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).filter(registration => registration.active).length)).toBe(1)
+    await page.getByRole('button', { name: 'Installation help' }).click()
+    await expect(page.getByRole('dialog', { name: 'Install this app' })).toContainText('Offline page ready')
+    await page.getByRole('dialog', { name: 'Install this app' }).getByRole('button', { name: 'Close' }).click()
     for (const instance of instances) {
       const path = `/app/${instance.appType}/${instance.id}/`
       const manifest = await page.request.get(path + 'manifest.webmanifest')
@@ -77,11 +81,57 @@ test('production HTTPS serves App HTML, manifests, workers and all built-in view
     await page.getByRole('button', { name: 'Open media photo.png' }).click()
     const photo = page.getByRole('region', { name: 'Now playing' }).getByRole('img')
     await expect.poll(() => photo.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0)
-    expect(await page.evaluate(() => caches.keys())).toEqual([])
+    await expect.poll(() => page.evaluate(async () => (await caches.keys()).length)).toBe(3)
+    const cacheSnapshot = await page.evaluate(async () => Promise.all((await caches.keys()).map(async name => {
+      const cache = await caches.open(name)
+      return { name, entries: await Promise.all((await cache.keys()).map(async request => ({ url: request.url, body: await (await cache.match(request))!.text() }))) }
+    })))
+    for (const cache of cacheSnapshot) {
+      expect(cache.name).toMatch(/^enspatium-pwa:[0-9a-f-]{36}:[0-9a-f]{64}$/)
+      expect(cache.entries).toHaveLength(4)
+      for (const entry of cache.entries) {
+        expect(new URL(entry.url).pathname).toMatch(/^\/assets\/[\w-]+\.(?:js|css)$|^\/app\/[a-z]+\/[0-9a-f-]{36}\/offline\.html$/)
+        expect(entry.body).not.toContain('Private production content')
+        expect(entry.body).not.toContain(user.email)
+        expect(entry.body).not.toContain('enspatium_session')
+      }
+    }
+    const mediaCache = cacheSnapshot.find(cache => cache.name.startsWith(`enspatium-pwa:${media.id}:`))!.name
+    await page.evaluate(name => caches.delete(name), mediaCache)
+    await page.reload()
+    await page.getByRole('button', { name: 'Installation help' }).click()
+    await expect(page.getByRole('dialog', { name: 'Install this app' })).toContainText('Offline page ready')
+    await page.getByRole('dialog', { name: 'Install this app' }).getByRole('button', { name: 'Close' }).click()
+    await expect.poll(() => page.evaluate(() => caches.keys())).toHaveLength(3)
     const missing = await page.request.get('/app/note/00000000-0000-0000-0000-000000000000/sw.js')
     expect(missing.status()).toBe(404)
     expect(missing.headers()['content-type']).not.toContain('text/html')
     await page.screenshot({ path: testInfo.outputPath('production-pwa-media.png'), animations: 'disabled' })
+    await context.setOffline(true)
+    await page.goto(noteUrl + '?search=private-query')
+    await expect(page.getByRole('heading', { name: 'Connection needed' })).toBeVisible()
+    await expect(page.getByRole('status')).toHaveText('You are offline.')
+    await expect(page.getByRole('textbox', { name: 'Note content', exact: true })).toHaveCount(0)
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Connection needed' })).toBeVisible()
+    expect(await page.evaluate(() => caches.keys())).toHaveLength(3)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.emulateMedia({ colorScheme: 'dark' })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath('offline-shell-dark-mobile.png'), animations: 'disabled' })
+    await page.emulateMedia({ colorScheme: 'light' })
+    await page.screenshot({ path: testInfo.outputPath('offline-shell-light-mobile.png'), animations: 'disabled' })
+    await context.setOffline(false)
+    await expect(page.getByRole('status')).toContainText('A network connection is available')
+    await page.getByRole('button', { name: 'Try again' }).click()
+    await expect(page.getByRole('textbox', { name: 'Note content', exact: true })).toContainText('Private production content')
+    // Disable this App and preserve the two other App caches and registrations.
+    expect((await page.request.put(`${api}/apps/${id}/pwa`, { data: { name: 'note installation',
+      pwa: { enabled: false, iconObjectId: null, themeColor: null, offlinePolicy: 'shell' } } })).status()).toBe(200)
+    await page.reload()
+    await expect(page.getByRole('button', { name: 'Installation help' })).toHaveCount(0)
+    await expect.poll(() => page.evaluate(async () => (await caches.keys()).sort())).toEqual(cacheSnapshot.filter(cache => !cache.name.startsWith(`enspatium-pwa:${id}:`)).map(cache => cache.name).sort())
+    await expect.poll(() => page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)).toBe(2)
     expect(errors).toEqual([])
   } finally { await context.close() }
 })

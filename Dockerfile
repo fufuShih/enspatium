@@ -26,8 +26,8 @@ COPY --from=production-dependencies /app/packages/server/node_modules ./packages
 COPY packages/server/package.json ./packages/server/package.json
 COPY --from=build /app/packages/server/dist ./packages/server/dist
 COPY packages/server/src/db/migrations ./packages/server/dist/db/migrations
-# Only the built HTML is needed here; Caddy serves the matching JS/CSS/assets.
-COPY --from=build /app/apps/web/dist/index.html ./apps/web/dist/index.html
+# Caddy serves assets; the server delivers the matching HTML and worker allowlist.
+COPY --from=build /app/apps/web/dist/index.html /app/apps/web/dist/offline.html /app/apps/web/dist/pwa-shell.json ./apps/web/dist/
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000 DATA_ROOT=/data SESSION_SECURE=true WEB_ROOT=/app/apps/web/dist
 USER node
 EXPOSE 3000

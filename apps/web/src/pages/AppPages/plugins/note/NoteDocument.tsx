@@ -12,6 +12,7 @@ import { noteError } from './noteErrors'
 import NoteEditor from './NoteEditor'
 import NoteActions from './NoteActions'
 import { appPath } from '../../paths'
+import { useOnline } from '../../../../hooks/useOnline'
 
 export default function NoteDocument({ instance, id, editable }: { instance: AppInstance; id: string; editable: boolean }) {
   const { user } = useAuth()
@@ -28,6 +29,7 @@ export default function NoteDocument({ instance, id, editable }: { instance: App
 }
 
 function OpenNote({ instance, loaded, editable, onReload }: { instance: AppInstance; loaded: Awaited<ReturnType<typeof loadNote>>; editable: boolean; onReload: () => void }) {
+  const online = useOnline()
   const client = useQueryClient()
   const navigate = useNavigate()
   const [content, setContent] = useState(loaded.content)
@@ -53,6 +55,7 @@ function OpenNote({ instance, loaded, editable, onReload }: { instance: AppInsta
   }, [dirty, working, deleted])
 
   async function save() {
+    if (!navigator.onLine) { setError('You are offline. Reconnect and save explicitly, or download your draft.'); return }
     if (!editable || !dirty || working || deleted || saving.current) return
     saving.current = true; setBusy(true); setError('')
     try {
@@ -76,14 +79,14 @@ function OpenNote({ instance, loaded, editable, onReload }: { instance: AppInsta
     <Flex align="center" gap="12px" mb="28px" flexWrap="wrap">
       <Box flex={{ base: '1 0 100%', lg: '1' }} minW="0"><Text color="var(--muted)" fontSize="11px" mb="7px" overflowWrap="anywhere">{file.key}</Text><Heading as="h1" fontSize="25px" fontWeight="500" letterSpacing="-.03em" overflowWrap="anywhere">{file.key.split('/').at(-1)!.replace(/\.(md|markdown)$/i, '')}</Heading></Box>
       <Text role="status" fontSize="12px" color="var(--muted)">{busy ? 'Saving…' : dirty ? 'Unsaved changes' : 'Saved'}</Text>
-      <ActionButton onClick={reload} disabled={working || deleted}>Reload note</ActionButton>
+      <ActionButton onClick={reload} disabled={!online || working || deleted}>Reload note</ActionButton>
       {editable && <>
-        <ActionButton onClick={() => { void save() }} disabled={!dirty || working || deleted} bg="var(--surface-strong)">Save</ActionButton>
-        <NoteActions instance={instance} file={file} dirty={dirty} disabled={working || deleted} onBusy={setManaging} onMoved={moved => { setFile(previous => ({ ...previous, ...moved })); setError('') }} onDeleted={() => setDeleted(true)} />
+        <ActionButton onClick={() => { void save() }} disabled={!online || !dirty || working || deleted} bg="var(--surface-strong)">Save</ActionButton>
+        <NoteActions instance={instance} file={file} dirty={dirty} disabled={!online || working || deleted} onBusy={setManaging} onMoved={moved => { setFile(previous => ({ ...previous, ...moved })); setError('') }} onDeleted={() => setDeleted(true)} />
       </>}
     </Flex>
-    {error && <Box mb="20px" border="1px solid var(--border)" borderRadius="8px" p="14px"><Text role="alert" color="fg.error" fontSize="13px">{error}</Text>{dirty && <ActionButton mt="10px" onClick={downloadDraft}>Download draft</ActionButton>}</Box>}
-    <NoteEditor initialContent={loaded.content} editable={editable && !working && !deleted} onChange={setContent} onSave={() => { void save() }} />
+    {(error || !online) && <Box mb="20px" border="1px solid var(--border)" borderRadius="8px" p="14px"><Text role="alert" color="fg.error" fontSize="13px">{error || 'You are offline. Editing is paused; keep this tab open or download your unsaved draft.'}</Text>{dirty && <ActionButton mt="10px" onClick={downloadDraft}>Download draft</ActionButton>}</Box>}
+    <NoteEditor initialContent={loaded.content} editable={online && editable && !working && !deleted} onChange={setContent} onSave={() => { void save() }} />
     <Dialog.Root role="alertdialog" open={blocker.state === 'blocked'} onOpenChange={event => { if (!event.open) blocker.reset?.() }} placement="center" initialFocusEl={() => stayButton.current}>
       <Portal><Dialog.Backdrop /><Dialog.Positioner p="20px"><Dialog.Content bg="var(--background)" color="var(--foreground)" border="1px solid var(--border)" borderRadius="12px" maxW="380px">
         <Dialog.Header><Dialog.Title fontSize="18px">{working ? 'Updating your note' : 'Leave without saving?'}</Dialog.Title></Dialog.Header>

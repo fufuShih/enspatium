@@ -4,7 +4,8 @@ import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
 import { AppInstanceParamsSchema } from './types/apps.types.js'
 import { PublicPwaEntrySchema } from './types/space-apps.types.js'
 import { getPublicPwaEntry, getPublicPwaIcon } from '../services/app-pwa.js'
-import { parseAppEntryPath, pwaManifest, pwaWorker, renderAppDocument } from '../apps/pwa-document.js'
+import { parseAppEntryPath, pwaManifest, renderAppDocument } from '../apps/pwa-document.js'
+import { pwaWorker, validatePwaShell } from '../apps/pwa-worker.js'
 import { SpaceServiceError } from '../services/space/space.js'
 
 export const appEntryRoutes: FastifyPluginAsyncTypebox = async app => {
@@ -20,6 +21,13 @@ export const appEntryRoutes: FastifyPluginAsyncTypebox = async app => {
     html ??= readFile(join(app.config.WEB_ROOT, 'index.html'), 'utf8').catch(error => { html = undefined; throw error })
     return html
   }
+  let offline: Promise<{ html: string; shell: ReturnType<typeof validatePwaShell> }> | undefined
+  async function offlineBuild() {
+    offline ??= Promise.all([readFile(join(app.config.WEB_ROOT, 'offline.html'), 'utf8'), readFile(join(app.config.WEB_ROOT, 'pwa-shell.json'), 'utf8')])
+      .then(([html, manifest]) => ({ html, shell: validatePwaShell(JSON.parse(manifest)) }))
+      .catch(error => { offline = undefined; throw error })
+    return offline
+  }
   // These are document/resource routes, not API routes. Caddy forwards /app/*
   // before its SPA fallback; never use index.html as a worker or manifest.
   app.get('/app/*', { schema: { hide: true } }, async (request, reply) => {
@@ -27,7 +35,7 @@ export const appEntryRoutes: FastifyPluginAsyncTypebox = async app => {
     const path = request.url.split('?', 1)[0]!
     const parsed = parseAppEntryPath(path)
     const resource = parsed?.child ?? path.split('/').at(-1)!
-    const isResource = /\.(?:js|webmanifest|png)$/.test(resource)
+    const isResource = /\.(?:js|webmanifest|png)$/.test(resource) || resource === 'offline.html'
     let entry = null
     try {
       if (!parsed) throw new SpaceServiceError('NOT_FOUND', 404, 'App not found.')
@@ -38,7 +46,16 @@ export const appEntryRoutes: FastifyPluginAsyncTypebox = async app => {
       reply.code(404)
     }
     if (entry && isResource) {
-      if (resource === 'sw.js') return reply.type('application/javascript').send(pwaWorker(entry.enabled))
+      if (resource === 'sw.js' || (entry.enabled && resource === 'offline.html')) {
+        try {
+          const build = entry.enabled ? await offlineBuild() : null
+          if (resource === 'sw.js') return reply.type('application/javascript').send(pwaWorker(entry.appType, entry.id, build?.shell ?? null))
+          if (new URL(request.url, 'http://localhost').searchParams.get('build') !== build!.shell.build) return reply.code(409).type('text/plain').send('Offline build mismatch.')
+          return reply.header('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'").type('text/html').send(build!.html)
+        } catch {
+          return reply.code(503).type('text/plain').send('Offline frontend is unavailable. Build and deploy the matching web application.')
+        }
+      }
       if (entry.enabled && resource === 'manifest.webmanifest') return reply.type('application/manifest+json').send(pwaManifest(entry))
       if (entry.enabled && (resource === 'icon-192.png' || resource === 'icon-512.png')) {
         return reply.type('image/png').send(await getPublicPwaIcon(app.db, entry.appType, entry.id, resource === 'icon-192.png' ? 192 : 512))

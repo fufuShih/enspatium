@@ -84,7 +84,7 @@ export default function SpaceAppPwaDialog({ account, space, instance, onClose, o
             <chakra.label htmlFor="pwa-color" display="block" fontSize="13px" mt="18px" mb="8px">Theme color</chakra.label>
             <TextInput id="pwa-color" value={color} placeholder="Platform theme" maxLength={7} pattern="#[0-9a-fA-F]{6}|" onChange={event => setColor(event.target.value)} />
             <Text fontSize="12px" color="var(--muted)" mt="8px">Optional #RRGGBB. This changes installation chrome, not the app's light/dark theme.</Text>
-            <Text fontSize="12px" color="var(--muted)" mt="18px">Network-only for now. Offline support and in-app installation guidance are planned for the next stage.</Text>
+            <Text fontSize="12px" color="var(--muted)" mt="18px">The app offers installation help and saves only a generic offline page. Notes, books, media and account data require a connection; changes are never queued for later.</Text>
             {enabled && <Flex as="label" align="flex-start" gap="10px" mt="18px" fontSize="13px" lineHeight="1.8"><chakra.input type="checkbox" required mt="5px" flexShrink="0" checked={acknowledged} onChange={event => setAcknowledged(event.target.checked)} />I understand that the app name, installation icon and theme color will be public, even for a private Space. Do not include sensitive information.</Flex>}
             {!enabled && <Text fontSize="12px" color="var(--muted)" mt="18px">Disabling stops new installation metadata requests. It cannot remotely remove installed copies or information already downloaded.</Text>}
           </chakra.fieldset>
