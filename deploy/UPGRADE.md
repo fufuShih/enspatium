@@ -59,3 +59,5 @@ pnpm --filter @enspatium/server test:upgrade
 ```
 
 The test generates temporary secrets and uses isolated projects, random localhost ports and its own volumes. It checks restart, container recreation, image upgrade and recovery after a failed migration, then removes its test data. Accounts, tokens, Git commits/tags, Object versions, deleted files and retention settings must survive. No deployment `.env` is needed. This does not verify power-loss recovery or a PostgreSQL major-version upgrade.
+
+For background jobs, also run the [Jobs acceptance checks](../packages/server/src/services/jobs/README.md#verification): forced backend interruption, queued restart and backup/restore of persisted reports and retry history.

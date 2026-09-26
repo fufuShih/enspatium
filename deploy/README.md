@@ -57,6 +57,7 @@ Check HTTPS, `/api/health/db`, sign-in and Git clone/push after installation. Us
 - [x] Git push, storage and concurrency limits.
 - [x] Consistent backup and isolated restore verification.
 - [x] System monitoring, Git maintenance and upgrade/recovery verification.
+- [x] Persistent background checks with crash recovery and backup/restore verification.
 - [x] Default branch protection against force pushes and deletion.
 - [x] Branch/Tag browsing, history and ZIP downloads.
 - [x] Branch/Tag switching with file commit details.

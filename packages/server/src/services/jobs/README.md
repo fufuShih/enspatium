@@ -36,3 +36,44 @@ Every request rechecks the current administrator role. Mutations also reject a
 supplied cross-origin `Origin`; clients without an Origin remain supported.
 Responses are private/no-store. The synchronous `POST /admin/storage/check`
 endpoint remains available for existing clients and shares the same storage lock.
+
+## Verification
+
+`pnpm test:integration` covers atomic claim/cancel races, duplicate admission,
+busy storage, revoked/disabled/deleted requesters, bounded results and real
+PostgreSQL failures when saving outcomes. A scan deadline waits for underlying
+work to drain before releasing storage; its saved report is `incomplete` with
+`CHECK_CANCELLED`. A failed result write records `RESULT_SAVE_FAILED`. If both
+outcome writes fail, the row stays `running` until startup recovery marks it
+`WORKER_INTERRUPTED`; it is never silently replayed.
+
+`pnpm test:e2e -- admin.spec.ts` checks leaving and reopening a report, terminal
+polling stopping, cancel/retry conflicts, filtering, pagination and revoked access.
+
+For the opt-in Docker acceptance test, install dependencies, start Docker in Linux
+mode, ensure `postgres:17-bookworm` is local, and build the current checkout:
+
+```sh
+docker build --target server -t enspatium-server:jobs-acceptance .
+docker build --target web -t enspatium-web:jobs-acceptance .
+```
+
+```powershell
+$env:JOBS_DEPLOYMENT_TEST = "true"
+$env:JOBS_TEST_SERVER_IMAGE = "enspatium-server:jobs-acceptance"
+$env:JOBS_TEST_WEB_IMAGE = "enspatium-web:jobs-acceptance"
+pnpm --filter @enspatium/server test:jobs:deployment
+```
+
+The test uses random localhost ports, temporary credentials and fresh projects:
+
+- Kill the backend after a real claim; recover a failed job, then retry manually.
+- Recreate containers without deleting volumes; preserve reports, timestamps,
+  cancellation and retry links, then resume queued work.
+- Run the operator backup/verify/restore tools; compare terminal history exactly
+  and resume a restored queued job in an independent HTTPS deployment.
+- Keep post-backup jobs only in the source; never rewrite the source on restore.
+
+Cleanup removes only the test's own containers, volumes and temporary artifacts.
+No deployment `.env` is read or changed. These checks do not establish multi-server
+safety, exactly-once execution or power-loss durability.
