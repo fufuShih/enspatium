@@ -11,8 +11,8 @@ import {
 } from '../services/object/object.js'
 import { maximumObjectSizeBytes } from '../services/object/storage.js'
 import { sendObjectContent } from './object-content.js'
-import { deleteObject, getObjectHead, listObjectVersions, restoreObjectVersion, uploadObject } from '../services/object/versions.js'
-import { moveObject } from '../services/object/move.js'
+import { deleteObject, deleteObjectFolder, getObjectHead, listObjectVersions, restoreObjectVersion, uploadObject } from '../services/object/versions.js'
+import { moveObject, moveObjectFolder } from '../services/object/move.js'
 import {
   getCurrentUserId,
   requireCurrentUserId,
@@ -28,7 +28,8 @@ import {
   SpaceObjectResponseSchema,
   ObjectHeadQuerySchema, ObjectWriteQuerySchema, ObjectVersionsQuerySchema,
   ObjectVersionQuerySchema, RestoreObjectVersionQuerySchema, ObjectVersionsResponseSchema,
-  MoveObjectQuerySchema,
+  MoveObjectQuerySchema, MoveObjectFolderQuerySchema, MoveObjectFolderResponseSchema,
+  DeleteObjectFolderQuerySchema, DeleteObjectFolderResponseSchema,
 } from './types/objects.types.js'
 
 export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
@@ -206,6 +207,20 @@ export const objectRoutes: FastifyPluginAsyncTypebox = async (app) => {
       description: 'Rename or move one active file within this Space. Preserves object ID, content versions and storage locators. Requires the source key and current version; rejects destination collisions, including deleted files. Repeating the same successful request is a no-op.',
       querystring: MoveObjectQuerySchema, response: { 200: SpaceObjectResponseSchema } },
   }, request => moveObject(app.db, app.config.DATA_ROOT, requireCurrentUserId(request), request.params.namespaceSlug, request.params.spaceSlug, request.query))
+
+  app.post('/namespaces/:namespaceSlug/spaces/:spaceSlug/object-folder-move', {
+    schema: { operationId: 'moveObjectFolder', tags: ['objects'], params: ObjectSpaceParamsSchema,
+      description: 'Move an entire active folder subtree atomically. Object IDs, versions and immutable stored content are preserved.',
+      querystring: MoveObjectFolderQuerySchema, response: { 200: MoveObjectFolderResponseSchema } },
+  }, request => moveObjectFolder(app.db, app.config.DATA_ROOT, requireCurrentUserId(request),
+    request.params.namespaceSlug, request.params.spaceSlug, request.query))
+
+  app.delete('/namespaces/:namespaceSlug/spaces/:spaceSlug/object-folder', {
+    schema: { operationId: 'deleteObjectFolder', tags: ['objects'], params: ObjectSpaceParamsSchema,
+      description: 'Soft-delete an active folder subtree atomically, including all nested files and folders.',
+      querystring: DeleteObjectFolderQuerySchema, response: { 200: DeleteObjectFolderResponseSchema } },
+  }, request => deleteObjectFolder(app.db, app.config.DATA_ROOT, requireCurrentUserId(request),
+    request.params.namespaceSlug, request.params.spaceSlug, request.query.prefix))
 
   app.get('/namespaces/:namespaceSlug/spaces/:spaceSlug/object-versions', {
     schema: { operationId: 'listObjectVersions', tags: ['objects'], params: ObjectSpaceParamsSchema,

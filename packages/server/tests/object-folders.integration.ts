@@ -34,7 +34,18 @@ test('object folders group before pagination, preserve key boundaries and enforc
   await upload('中文😀/a%_folder/file.txt', 'Unicode content')
   await upload('中文😀/abc/file.txt', 'Not a literal match')
   await upload('readme.txt', 'Root content')
+  await guest.request('POST', base + '/object-folder-move?prefix=empty%2F&newPrefix=empty%2F', 401)
+  await guest.request('DELETE', base + '/object-folder?prefix=empty%2F', 401)
   await upload(`empty/${objectFolderMarkerName}`, '', 201, objectFolderContentType)
+  await upload('empty/note.md', 'Move this note', 201, 'text/markdown')
+  await upload(`empty/child/${objectFolderMarkerName}`, '', 201, objectFolderContentType)
+  await upload('empty/child/nested.md', 'Move this nested note', 201, 'text/markdown')
+  const beforeFolderMove = await owner.request<PublicSpaceObject[]>('GET', base + '/objects?prefix=empty%2F')
+  const movedFolder = await owner.request<{ prefix: string; newPrefix: string; movedCount: number }>('POST', base + '/object-folder-move?prefix=empty%2F&newPrefix=archive%2Fempty%2F')
+  expect(movedFolder).toEqual({ prefix: 'empty/', newPrefix: 'archive/empty/', movedCount: 4 })
+  expect(await owner.request('POST', base + '/object-folder-move?prefix=archive%2Fempty%2F&newPrefix=archive%2Fempty%2F')).toMatchObject({ movedCount: 0 })
+  await owner.request('POST', base + '/object-folder-move?prefix=archive%2F&newPrefix=archive%2Fempty%2Fnested%2F', 400)
+  await owner.request('POST', base + '/object-folder-move?prefix=archive%2F&newPrefix=docs%2F', 409)
   await upload('docs', 'Cannot replace folder', 409)
   await upload('readme.txt/child.txt', 'Cannot use file as folder', 409)
   await guest.request('GET', base + '/object-tree', 401)
@@ -59,7 +70,7 @@ test('object folders group before pagination, preserve key boundaries and enforc
   } while (cursor)
   expect(new Set(allFolders).size).toBe(110)
   expect(allFolders).toHaveLength(110)
-  expect(allFolders).toContain('empty/')
+  expect(allFolders).toContain('archive/')
   expect(allObjects).toEqual(['readme.txt'])
   const docs = await owner.request<ObjectFolderPage>('GET', base + '/object-tree?prefix=docs%2F')
   expect(docs.folders).toEqual(['docs/nested/'])
@@ -67,9 +78,15 @@ test('object folders group before pagination, preserve key boundaries and enforc
   const unicode = await owner.request<ObjectFolderPage>('GET', base + '/object-tree?prefix=' + encodeURIComponent('中文😀/') + '&filter=' + encodeURIComponent('a%_'))
   expect(unicode.folders).toEqual(['中文😀/a%_folder/'])
   expect(unicode.objects).toEqual([])
-  const empty = await owner.request<ObjectFolderPage>('GET', base + '/object-tree?prefix=empty%2F')
-  expect(empty).toMatchObject({ folders: [], objects: [], nextCursor: null })
-  expect(await owner.request<PublicSpaceObject[]>('GET', base + '/objects?prefix=empty%2F')).toEqual([])
+  const archive = await owner.request<ObjectFolderPage>('GET', base + '/object-tree?prefix=archive%2F')
+  expect(archive.folders).toEqual(['archive/empty/'])
+  const empty = await owner.request<ObjectFolderPage>('GET', base + '/object-tree?prefix=archive%2Fempty%2F')
+  expect(empty.folders).toEqual(['archive/empty/child/'])
+  expect(empty.objects.map(object => object.key)).toEqual(['archive/empty/note.md'])
+  const afterFolderMove = await owner.request<PublicSpaceObject[]>('GET', base + '/objects?prefix=archive%2Fempty%2F')
+  expect(afterFolderMove.map(object => ({ id: object.id, versionId: object.versionId, key: object.key }))).toEqual(
+    beforeFolderMove.map(object => ({ id: object.id, versionId: object.versionId, key: 'archive/empty/' + object.key.slice('empty/'.length) })),
+  )
   for (const query of ['prefix=docs', 'prefix=..%2F', 'prefix=docs%2F&cursor=elsewhere%2F', 'filter=nested%2F', 'limit=101']) await owner.request('GET', base + '/object-tree?' + query, 400)
   await upload('docs/new.txt', 'New upload')
   const download = await fetch(origin + base + '/objects/' + encodeURIComponent('docs/new.txt'), { headers: { cookie } })
@@ -80,7 +97,21 @@ test('object folders group before pagination, preserve key boundaries and enforc
   await stranger.request('POST', '/users', 201, { email: 'stranger@example.com', displayName: 'Stranger', password: credentials.password })
   await stranger.request('POST', '/auth/login', 200, { email: 'stranger@example.com', password: credentials.password })
   await stranger.request('GET', base + '/object-tree', 403)
+  await stranger.request('POST', base + '/object-folder-move?prefix=archive%2F&newPrefix=archive%2F', 403)
+  await stranger.request('DELETE', base + '/object-folder?prefix=archive%2Fempty%2F', 403)
   const storage = join(root, 'data', space.id)
   await rename(storage, storage + '-offline')
   try { await owner.request('GET', base + '/object-tree', 503) } finally { await rename(storage + '-offline', storage) }
+
+  expect(await owner.request('DELETE', base + '/object-folder?prefix=archive%2Fempty%2F')).toEqual({
+    prefix: 'archive/empty/', deletedCount: 4,
+  })
+  expect(await owner.request('GET', base + '/object-head?key=archive%2Fempty%2Fnote.md')).toMatchObject({
+    key: 'archive/empty/note.md', isDeleted: true, revision: 2,
+  })
+  expect((await owner.request<ObjectFolderPage>('GET', base + '/object-tree?prefix=archive%2F')).folders).toEqual([])
+  expect(await owner.request('DELETE', base + '/object-folder?prefix=archive%2Fempty%2F')).toEqual({
+    prefix: 'archive/empty/', deletedCount: 0,
+  })
+  await owner.request('DELETE', base + '/object-folder?prefix=missing%2F', 404)
 })

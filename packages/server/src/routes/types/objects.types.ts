@@ -73,6 +73,22 @@ export const MoveObjectQuerySchema = Type.Object({
   newKey: Type.String({ minLength: 1, maxLength: 1024 }),
   expectedVersion: Type.String({ format: 'uuid' }),
 }, { additionalProperties: false })
+export const MoveObjectFolderQuerySchema = Type.Object({
+  prefix: Type.String({ minLength: 2, maxLength: 1024 }),
+  newPrefix: Type.String({ minLength: 2, maxLength: 1024 }),
+}, { additionalProperties: false })
+export const MoveObjectFolderResponseSchema = Type.Object({
+  prefix: Type.String(),
+  newPrefix: Type.String(),
+  movedCount: Type.Integer({ minimum: 0 }),
+})
+export const DeleteObjectFolderQuerySchema = Type.Object({
+  prefix: Type.String({ minLength: 2, maxLength: 1024 }),
+}, { additionalProperties: false })
+export const DeleteObjectFolderResponseSchema = Type.Object({
+  prefix: Type.String(),
+  deletedCount: Type.Integer({ minimum: 0 }),
+})
 export const ObjectVersionsQuerySchema = Type.Object({
   ...ObjectHeadQuerySchema.properties,
   cursor: Type.Optional(Type.Integer({ minimum: 1 })),

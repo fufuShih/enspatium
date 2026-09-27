@@ -1298,6 +1298,40 @@ export type MoveObject200 = {
   isDeleted: boolean;
 };
 
+export type MoveObjectFolderParams = {
+/**
+ * @minLength 2
+ * @maxLength 1024
+ */
+prefix: string;
+/**
+ * @minLength 2
+ * @maxLength 1024
+ */
+newPrefix: string;
+};
+
+export type MoveObjectFolder200 = {
+  prefix: string;
+  newPrefix: string;
+  /** @minimum 0 */
+  movedCount: number;
+};
+
+export type DeleteObjectFolderParams = {
+/**
+ * @minLength 2
+ * @maxLength 1024
+ */
+prefix: string;
+};
+
+export type DeleteObjectFolder200 = {
+  prefix: string;
+  /** @minimum 0 */
+  deletedCount: number;
+};
+
 export type ListObjectVersionsParams = {
 /**
  * @minLength 1

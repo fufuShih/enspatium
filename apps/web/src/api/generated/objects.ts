@@ -26,6 +26,8 @@ import type {
 import type {
   BrowseObjects200,
   BrowseObjectsParams,
+  DeleteObjectFolder200,
+  DeleteObjectFolderParams,
   DeleteObjectParams,
   DownloadObjectVersionParams,
   GetObjectHead200,
@@ -37,6 +39,8 @@ import type {
   ListObjects200Item,
   ListObjectsParams,
   MoveObject200,
+  MoveObjectFolder200,
+  MoveObjectFolderParams,
   MoveObjectParams,
   RestoreObjectVersion201,
   RestoreObjectVersionParams,
@@ -1086,6 +1090,198 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
         TContext
       > => {
       return useMutation(getMoveObjectMutationOptions(options), queryClient);
+    }
+    export const getMoveObjectFolderUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    params: MoveObjectFolderParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-folder-move?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-folder-move`
+}
+
+/**
+ * Move an entire active folder subtree atomically. Object IDs, versions and immutable stored content are preserved.
+ */
+export const moveObjectFolder = async (namespaceSlug: string,
+    spaceSlug: string,
+    params: MoveObjectFolderParams, options?: RequestInit): Promise<MoveObjectFolder200> => {
+
+  const res = await fetch(getMoveObjectFolderUrl(namespaceSlug,spaceSlug,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'POST'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: MoveObjectFolder200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getMoveObjectFolderMutationKey = () => ['moveObjectFolder'] as const;
+
+export const getMoveObjectFolderMutationOptions = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof moveObjectFolder>>, TError,MoveObjectFolderMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof moveObjectFolder>>, TError,MoveObjectFolderMutationVariables, TContext> => {
+
+const mutationKey = getMoveObjectFolderMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof moveObjectFolder>>, MoveObjectFolderMutationVariables> = (props) => {
+          const {namespaceSlug,spaceSlug,params} = props ?? {};
+
+          return  moveObjectFolder(namespaceSlug,spaceSlug,params,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MoveObjectFolderMutationResult = NonNullable<Awaited<ReturnType<typeof moveObjectFolder>>>
+
+    export type MoveObjectFolderMutationError = globalThis.Error & { info?: unknown; status?: number }
+    export type MoveObjectFolderMutationVariables = {namespaceSlug: string;spaceSlug: string;params: MoveObjectFolderParams}
+
+    export const useMoveObjectFolder = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof moveObjectFolder>>, TError,MoveObjectFolderMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof moveObjectFolder>>,
+        TError,
+        MoveObjectFolderMutationVariables,
+        TContext
+      > => {
+      return useMutation(getMoveObjectFolderMutationOptions(options), queryClient);
+    }
+    export const getDeleteObjectFolderUrl = (namespaceSlug: string,
+    spaceSlug: string,
+    params: DeleteObjectFolderParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-folder?${stringifiedParams}` : `/api/namespaces/${encodeURIComponent(String(namespaceSlug))}/spaces/${encodeURIComponent(String(spaceSlug))}/object-folder`
+}
+
+/**
+ * Soft-delete an active folder subtree atomically, including all nested files and folders.
+ */
+export const deleteObjectFolder = async (namespaceSlug: string,
+    spaceSlug: string,
+    params: DeleteObjectFolderParams, options?: RequestInit): Promise<DeleteObjectFolder200> => {
+
+  const res = await fetch(getDeleteObjectFolderUrl(namespaceSlug,spaceSlug,params),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'DELETE'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: any, status?: number} = new globalThis.Error();
+    const data  = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: DeleteObjectFolder200 = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getDeleteObjectFolderMutationKey = () => ['deleteObjectFolder'] as const;
+
+export const getDeleteObjectFolderMutationOptions = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteObjectFolder>>, TError,DeleteObjectFolderMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteObjectFolder>>, TError,DeleteObjectFolderMutationVariables, TContext> => {
+
+const mutationKey = getDeleteObjectFolderMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteObjectFolder>>, DeleteObjectFolderMutationVariables> = (props) => {
+          const {namespaceSlug,spaceSlug,params} = props ?? {};
+
+          return  deleteObjectFolder(namespaceSlug,spaceSlug,params,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteObjectFolderMutationResult = NonNullable<Awaited<ReturnType<typeof deleteObjectFolder>>>
+
+    export type DeleteObjectFolderMutationError = globalThis.Error & { info?: unknown; status?: number }
+    export type DeleteObjectFolderMutationVariables = {namespaceSlug: string;spaceSlug: string;params: DeleteObjectFolderParams}
+
+    export const useDeleteObjectFolder = <TError = globalThis.Error & { info?: unknown; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteObjectFolder>>, TError,DeleteObjectFolderMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteObjectFolder>>,
+        TError,
+        DeleteObjectFolderMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteObjectFolderMutationOptions(options), queryClient);
     }
     export const getListObjectVersionsUrl = (namespaceSlug: string,
     spaceSlug: string,

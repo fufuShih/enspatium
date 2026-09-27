@@ -6509,6 +6509,152 @@
         }
       }
     },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/object-folder-move": {
+      "post": {
+        "operationId": "moveObjectFolder",
+        "tags": [
+          "objects"
+        ],
+        "description": "Move an entire active folder subtree atomically. Object IDs, versions and immutable stored content are preserved.",
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 2,
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "prefix",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 2,
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "newPrefix",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "prefix",
+                    "newPrefix",
+                    "movedCount"
+                  ],
+                  "properties": {
+                    "prefix": {
+                      "type": "string"
+                    },
+                    "newPrefix": {
+                      "type": "string"
+                    },
+                    "movedCount": {
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/object-folder": {
+      "delete": {
+        "operationId": "deleteObjectFolder",
+        "tags": [
+          "objects"
+        ],
+        "description": "Soft-delete an active folder subtree atomically, including all nested files and folders.",
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 2,
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "prefix",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "namespaceSlug",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "spaceSlug",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "prefix",
+                    "deletedCount"
+                  ],
+                  "properties": {
+                    "prefix": {
+                      "type": "string"
+                    },
+                    "deletedCount": {
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/namespaces/{namespaceSlug}/spaces/{spaceSlug}/object-versions": {
       "get": {
         "operationId": "listObjectVersions",

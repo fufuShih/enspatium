@@ -11,7 +11,7 @@ import {
   downloadObject, ensureObjectQuota, escapeLikePrefix, getObjectByKey,
   normalizeContentType, normalizeObjectListLimit, ObjectServiceError, parseContentLength,
   readObjectStorageUsage, throwObjectStorageError, toPublicSpaceObject, validateObjectKey,
-  type UploadObjectInput,
+  validateObjectPrefix, type UploadObjectInput,
 } from './object.js'
 
 export async function getObjectHead(
@@ -163,6 +163,45 @@ async function deleteObjectMutation(
       is_deleted: true, updated_at: new Date() }).where('id', '=', current.id).execute()
     await createAuditEvent(tx, { actorUserId: actor, namespaceId: space.namespaceId, spaceId: space.id,
       action: 'object.deleted', metadata: { objectId: current.id, key, versionId, revision } })
+  })
+}
+
+export function deleteObjectFolder(
+  db: Kysely<Database>, dataRoot: string, actor: string, namespace: string, slug: string, inputPrefix: string,
+): Promise<{ prefix: string; deletedCount: number }> {
+  return withStorageWrite(dataRoot, async () => {
+    const prefix = validateObjectPrefix(inputPrefix)
+    if (!prefix.endsWith('/')) throw new ObjectServiceError('INVALID_INPUT', 400, 'Folder paths must end with a slash.')
+    const space = await getWritableObjectSpace(db, actor, namespace, slug)
+    await requireSpaceStorage(dataRoot, space.id, 'object', true)
+    return db.transaction().execute(async tx => {
+      await readObjectStorageUsage(tx, space.id, true)
+      await getWritableObjectSpace(tx, actor, namespace, slug)
+      await requireSpaceStorage(dataRoot, space.id, 'object', true)
+      const subtree = await tx.selectFrom('space_objects').selectAll()
+        .where('space_id', '=', space.id)
+        .where('key', 'like', escapeLikePrefix(prefix) + '%').forUpdate().execute()
+      if (!subtree.length) throw new ObjectServiceError('NOT_FOUND', 404, 'This folder is no longer available.')
+      const active = subtree.filter(object => !object.is_deleted)
+      if (!active.length) return { prefix, deletedCount: 0 }
+
+      const deletedAt = new Date()
+      const deletions = active.map(object => ({ object, versionId: randomUUID(), revision: object.revision + 1 }))
+      await tx.updateTable('space_object_versions').set({ inactive_at: deletedAt })
+        .where('id', 'in', active.map(object => object.current_version_id)).execute()
+      await tx.insertInto('space_object_versions').values(deletions.map(({ object, versionId, revision }) => ({
+        id: versionId, object_id: object.id, space_id: space.id, revision, storage_key: null,
+        is_deleted: true, content_type: object.content_type, size_bytes: 0,
+        checksum_sha256: '0'.repeat(64), created_by_user_id: actor,
+      }))).execute()
+      for (const { object, versionId, revision } of deletions) {
+        await tx.updateTable('space_objects').set({ current_version_id: versionId, revision,
+          is_deleted: true, updated_at: deletedAt }).where('id', '=', object.id).execute()
+      }
+      await createAuditEvent(tx, { actorUserId: actor, namespaceId: space.namespaceId, spaceId: space.id,
+        action: 'object.deleted', metadata: { prefix, deletedCount: active.length, kind: 'folder' } })
+      return { prefix, deletedCount: active.length }
+    })
   })
 }
 
