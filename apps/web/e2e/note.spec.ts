@@ -1,5 +1,59 @@
 import { test, expect } from './fixtures.js'
 import { createSpace, register, signIn } from './helpers.js'
+import type { Locator, Page } from '@playwright/test'
+
+async function drag(page: Page, source: Locator, target: Locator) {
+  const dataTransfer = await page.evaluateHandle(() => new DataTransfer())
+  await source.dispatchEvent('dragstart', { dataTransfer })
+  await target.dispatchEvent('dragover', { dataTransfer })
+  await target.dispatchEvent('drop', { dataTransfer })
+  await source.dispatchEvent('dragend', { dataTransfer })
+  await dataTransfer.dispose()
+}
+
+test('Note sidebar renames and confirms deletion for notes and folders', async ({ page }) => {
+  const user = await register(page, 'Note organizer')
+  await signIn(page, user)
+  const space = await createSpace(page, 'Organized notebook', undefined, 'note')
+  const { id } = await (await page.request.get(`/api/namespaces/${space.account}/spaces/${space.slug}`)).json() as { id: string }
+  await page.goto(`/app/note/${id}`)
+
+  await page.getByRole('button', { name: '+ Folder', exact: true }).click()
+  await expect(page.getByRole('dialog')).toContainText('Create folder')
+  await page.getByLabel('Folder path', { exact: true }).fill('Journal')
+  await page.getByRole('button', { name: 'Create folder', exact: true }).click()
+  await page.getByRole('button', { name: 'Rename folder Journal', exact: true }).click()
+  await page.getByLabel('New name', { exact: true }).fill('Projects')
+  await page.getByRole('button', { name: 'Save name', exact: true }).click()
+  await expect(page.getByLabel('Folder Projects', { exact: true })).toBeVisible()
+
+  await page.getByRole('button', { name: '+ Note', exact: true }).click()
+  await expect(page.getByRole('dialog')).toContainText('Create note')
+  await page.getByLabel('Folder', { exact: true }).selectOption('Projects')
+  await page.getByLabel('Note filename', { exact: true }).fill('Draft')
+  await page.getByRole('button', { name: 'Create note', exact: true }).click()
+  await page.getByRole('button', { name: 'Rename note Draft', exact: true }).click()
+  await page.getByLabel('New name', { exact: true }).fill('Final')
+  await page.getByRole('button', { name: 'Save name', exact: true }).click()
+  await expect(page.getByRole('link', { name: 'Open Projects/Final.md', exact: true })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Delete note Final', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Delete this note?', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(page.getByRole('link', { name: 'Open Projects/Final.md', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Delete note Final', exact: true }).click()
+  await page.getByRole('button', { name: 'Confirm delete', exact: true }).click()
+  await expect(page.getByRole('link', { name: 'Open Projects/Final.md', exact: true })).toHaveCount(0)
+  await expect(page).toHaveURL(new RegExp(`/app/note/${id}/?$`))
+
+  await page.getByRole('button', { name: '+ Folder', exact: true }).click()
+  await page.getByLabel('Folder path', { exact: true }).fill('Projects/Child')
+  await page.getByRole('button', { name: 'Create folder', exact: true }).click()
+  await page.getByRole('button', { name: 'Delete folder Projects', exact: true }).click()
+  await expect(page.getByText('Move this folder, all nested folders, and every note inside it to Deleted files?', { exact: false })).toBeVisible()
+  await page.getByRole('button', { name: 'Confirm delete', exact: true }).click()
+  await expect(page.getByLabel('Folder Projects', { exact: true })).toHaveCount(0)
+})
 
 test('Note creates Markdown files, previews inline, saves versions and protects conflicting edits', async ({ page, browser, environment }, testInfo) => {
   test.setTimeout(120_000)
@@ -11,8 +65,13 @@ test('Note creates Markdown files, previews inline, saves versions and protects 
   const appPath = `/app/note/${id}`
   await page.goto(appPath)
   await expect(page.getByRole('heading', { name: 'A little room to think.' })).toBeVisible()
-  await page.getByRole('button', { name: '+ New note', exact: true }).click()
-  await page.getByLabel('Note name', { exact: true }).fill('Journal/Today')
+  await page.getByRole('button', { name: '+ Folder', exact: true }).click()
+  await page.getByLabel('Folder path', { exact: true }).fill('Journal')
+  await page.getByRole('button', { name: 'Create folder', exact: true }).click()
+  await expect(page.getByLabel('Folder Journal', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '+ Note', exact: true }).click()
+  await page.getByLabel('Folder', { exact: true }).selectOption('Journal')
+  await page.getByLabel('Note filename', { exact: true }).fill('Today')
   await page.getByRole('button', { name: 'Create note', exact: true }).click()
   await expect(page).toHaveURL(/\/app\/note\/[^/]+\/note\/[^/]+$/)
   const noteUrl = page.url()
@@ -27,8 +86,15 @@ test('Note creates Markdown files, previews inline, saves versions and protects 
   await expect(page.locator('.cm-content script')).toHaveCount(0)
   await page.keyboard.press('ControlOrMeta+s')
   await expect(page.getByRole('status', { name: '' }).filter({ hasText: /^Saved$/ })).toBeVisible()
+  await page.getByRole('button', { name: '+ Folder', exact: true }).click()
+  await page.getByLabel('Folder path', { exact: true }).fill('Archive')
+  await page.getByRole('button', { name: 'Create folder', exact: true }).click()
+  await drag(page, page.getByLabel('Folder Journal', { exact: true }), page.getByLabel('Folder Archive', { exact: true }))
+  await expect(page.getByRole('link', { name: 'Open Archive/Journal/Today.md', exact: true })).toBeVisible()
+  await drag(page, page.getByLabel('Folder Archive/Journal', { exact: true }), page.getByLabel('Top level drop target', { exact: true }))
+  await expect(page.getByRole('link', { name: 'Open Journal/Today.md', exact: true })).toBeVisible()
   let listing = await (await page.request.get(base + '/note')).json()
-  const first = listing.objects[0]
+  const first = listing.objects.find((file: { kind: string; key: string }) => file.kind === 'markdown' && file.key === 'Journal/Today.md')
   expect(first.key).toBe('Journal/Today.md')
   const rawUrl = (file: { key: string; versionId: string }) => base + '/note/content?' + new URLSearchParams({ key: file.key, versionId: file.versionId })
   expect(await (await page.request.get(rawUrl(first))).text()).toBe(content)
@@ -44,7 +110,7 @@ test('Note creates Markdown files, previews inline, saves versions and protects 
     expect((await page.request.put(base + '/objects/' + key, { data: '# Imported', headers: { 'content-type': 'text/plain' } })).status()).toBe(201)
   }
   listing = await (await page.request.get(base + '/note')).json()
-  expect(listing.objects.map((file: { key: string }) => file.key)).toEqual(['Imported.md', 'Journal/Today.md'])
+  expect(listing.objects.filter((file: { kind: string }) => file.kind === 'markdown').map((file: { key: string }) => file.key)).toEqual(['Imported.md', 'Journal/Today.md'])
   // Another tab updates the same file while this editor retains its original precondition.
   const newer = await page.request.put(base + '/objects/' + encodeURIComponent(first.key) + '?expectedVersion=' + first.versionId, { data: '# From another tab', headers: { 'content-type': 'text/markdown' } })
   expect(newer.status()).toBe(201)
@@ -61,7 +127,7 @@ test('Note creates Markdown files, previews inline, saves versions and protects 
   await page.getByRole('button', { name: 'Stay', exact: true }).click()
   await expect(page).toHaveURL(noteUrl)
   page.once('dialog', dialog => dialog.accept())
-  await page.getByRole('button', { name: 'Reload note', exact: true }).click()
+  await page.getByRole('button', { name: 'Refresh note', exact: true }).click()
   await expect(editor).toContainText('From another tab')
   await editor.click()
   await page.keyboard.press('ControlOrMeta+End')

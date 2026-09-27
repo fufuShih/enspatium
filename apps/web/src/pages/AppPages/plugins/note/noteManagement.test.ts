@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { noteFolders, noteMoveKey } from './noteManagement'
+import { noteFolderRenamePrefix, noteFolders, noteMoveKey } from './noteManagement'
 
 test('renaming notes keeps their folder and Markdown extension', () => {
   expect(noteMoveKey('Journal/Today.md', 'rename', 'Tomorrow')).toBe('Journal/Tomorrow.md')
@@ -20,4 +20,12 @@ test('folder options include explicit empty folders and note parents', () => {
     item('Projects/.enspatium-folder', 'folder'),
     item('Journal/2026/Today.md', 'markdown'),
   ])).toEqual(['Journal', 'Journal/2026', 'Projects'])
+})
+
+test('renaming folders keeps their parent and validates a single name', () => {
+  expect(noteFolderRenamePrefix('Journal/Ideas/', 'Archive')).toBe('Journal/Archive/')
+  expect(noteFolderRenamePrefix('Journal/', 'Archive')).toBe('Archive/')
+  for (const value of ['', '../outside', 'folder/name', 'bad:name', 'CON']) {
+    expect(noteFolderRenamePrefix('Journal/', value)).toBeNull()
+  }
 })

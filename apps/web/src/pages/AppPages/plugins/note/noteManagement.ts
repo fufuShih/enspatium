@@ -1,4 +1,5 @@
 import { objectMoveKey } from '../../../SpacesPage/object/objectMoveApi'
+import { newObjectFolder } from '../../../SpacesPage/object/objectFolderApi'
 import type { ListAppInstanceObjects200ObjectsItem } from '../../../../api/generated/api.schemas'
 
 export function noteMoveKey(key: string, mode: 'rename' | 'move', value: string) {
@@ -7,6 +8,12 @@ export function noteMoveKey(key: string, mode: 'rename' | 'move', value: string)
   if (!name) return null
   const extension = /\.(md|markdown)$/i.exec(key)?.[0] ?? '.md'
   return objectMoveKey(key, mode, /\.(md|markdown)$/i.test(name) ? name : name + extension)
+}
+
+export function noteFolderRenamePrefix(prefix: string, value: string) {
+  const current = prefix.endsWith('/') ? prefix.slice(0, -1) : prefix
+  const parent = current.slice(0, current.lastIndexOf('/') + 1)
+  return newObjectFolder(parent, value.trim())
 }
 
 export function noteFolders(items: ListAppInstanceObjects200ObjectsItem[]) {

@@ -20,7 +20,9 @@ function RefreshIcon() {
   return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6v5h-5" /><path d="M19 11a8 8 0 1 0 .2 5" /></svg>
 }
 
-export default function NoteDocument({ instance, id, editable }: { instance: AppInstance; id: string; editable: boolean }) {
+type EditingState = { locked: boolean; key: string | null }
+
+export default function NoteDocument({ instance, id, editable, onEditingStateChange }: { instance: AppInstance; id: string; editable: boolean; onEditingStateChange: (state: EditingState) => void }) {
   const { user } = useAuth()
   const [reload, setReload] = useState(0)
   const note = useQuery({
@@ -31,10 +33,10 @@ export default function NoteDocument({ instance, id, editable }: { instance: App
   })
   if (note.isPending) return <RequestState loading title="Opening note..." />
   if (note.isError) return <RequestState title="Unable to open note" message={noteError(note.error)} onRetry={() => { void note.refetch() }} />
-  return <OpenNote key={`${id}:${reload}`} instance={instance} loaded={note.data} editable={editable} onReload={() => setReload(value => value + 1)} />
+  return <OpenNote key={`${id}:${reload}`} instance={instance} loaded={note.data} editable={editable} onReload={() => setReload(value => value + 1)} onEditingStateChange={onEditingStateChange} />
 }
 
-function OpenNote({ instance, loaded, editable, onReload }: { instance: AppInstance; loaded: Awaited<ReturnType<typeof loadNote>>; editable: boolean; onReload: () => void }) {
+function OpenNote({ instance, loaded, editable, onReload, onEditingStateChange }: { instance: AppInstance; loaded: Awaited<ReturnType<typeof loadNote>>; editable: boolean; onReload: () => void; onEditingStateChange: (state: EditingState) => void }) {
   const online = useOnline()
   const client = useQueryClient()
   const navigate = useNavigate()
@@ -52,6 +54,8 @@ function OpenNote({ instance, loaded, editable, onReload }: { instance: AppInsta
   const dirty = content !== saved
   const working = busy || managing
   const blocker = useBlocker(({ currentLocation, nextLocation }) => !deleted && (dirty || working) && currentLocation.pathname !== nextLocation.pathname)
+  useEffect(() => { onEditingStateChange({ locked: dirty || working, key: file.key }) }, [dirty, file.key, onEditingStateChange, working])
+  useEffect(() => () => onEditingStateChange({ locked: false, key: null }), [onEditingStateChange])
   useEffect(() => {
     if (deleted) navigate(appPath('note', instance.id), { replace: true })
   }, [deleted, navigate, instance.id])

@@ -88,7 +88,7 @@ test('Note actions rename, move and soft-delete with stable links, versions and 
   await expect(dialog.getByRole('alert')).toContainText('changed or moved elsewhere')
   await dialog.getByRole('button', { name: 'Cancel' }).click()
   expect((await (await page.request.get(base + '/note/' + original.id)).json()).versionId).toBe(latest.versionId)
-  await page.getByRole('button', { name: 'Reload note', exact: true }).click()
+  await page.getByRole('button', { name: 'Refresh note', exact: true }).click()
   await expect(editor).toContainText('A newer edit')
   await open('Delete note')
   await dialog.getByRole('button', { name: 'Cancel' }).click()
