@@ -11,19 +11,28 @@ export function epubFixture() {
   }))
 }
 
-export function pdfFixture() {
+export function pdfFixture(pageCount = 2, withOutline = false) {
   const stream = (text: string) => {
     const content = `BT /F1 24 Tf 60 700 Td (${text}) Tj ET`
     return `<< /Length ${content.length} >>\nstream\n${content}\nendstream`
   }
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
-    '<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 6 0 R >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 7 0 R >>',
+    `<< /Type /Pages /Kids [${Array.from({ length: pageCount }, (_, index) => `${index + 3} 0 R`).join(' ')}] /Count ${pageCount} >>`,
+    ...Array.from({ length: pageCount }, (_, index) => `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${pageCount + 3} 0 R >> >> /Contents ${pageCount + 4 + index} 0 R >>`),
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-    stream('A quiet journey - page one'), stream('A new horizon - page two'),
+    ...Array.from({ length: pageCount }, (_, index) => stream(`A quiet journey - page ${index + 1}`)),
   ]
+  if (withOutline) {
+    const root = objects.length + 1
+    // A real nested outline: direct page reference followed by a named destination.
+    objects[0] = `<< /Type /Catalog /Pages 2 0 R /Outlines ${root} 0 R /Names << /Dests << /Names [(horizon) [${pageCount + 2} 0 R /Fit]] >> >> >>`
+    objects.push(
+      `<< /Type /Outlines /First ${root + 1} 0 R /Last ${root + 1} 0 R /Count 2 >>`,
+      `<< /Title (The beginning) /Parent ${root} 0 R /Dest [3 0 R /Fit] /First ${root + 2} 0 R /Last ${root + 2} 0 R /Count 1 >>`,
+      `<< /Title (A new horizon) /Parent ${root + 1} 0 R /Dest (horizon) >>`,
+    )
+  }
   let pdf = '%PDF-1.4\n'
   const offsets = [0]
   for (const [index, object] of objects.entries()) { offsets.push(pdf.length); pdf += `${index + 1} 0 obj\n${object}\nendobj\n` }
