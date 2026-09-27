@@ -52,6 +52,11 @@ export async function createAppInstance(db: Kysely<Database>, actorUserId: strin
     if (app.kind === 'custom' && app.owner_user_id !== actorUserId) {
       throw new SpaceServiceError('FORBIDDEN', 403, 'Only the creator can create instances of this custom app.')
     }
+    if (space.type === 'object') {
+      const existing = await transaction.selectFrom('space_apps').select('id')
+        .where('space_id', '=', access.spaceId).executeTakeFirst()
+      if (existing) throw new SpaceServiceError('CONFLICT', 409, 'This Object Space already has an App.')
+    }
     const instance = await transaction.insertInto('space_apps').values({
       space_id: access.spaceId,
       storage_type: space.type,

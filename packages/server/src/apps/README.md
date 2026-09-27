@@ -1,6 +1,6 @@
 # App types and Object App plugins
 
-An App type is a registered way to present a Space. A Space keeps its storage type (`git` or `object`) and can own multiple App instances, including several of the same type. Media, Ebook and Note use Object storage, sharing data, permissions, versions, retention and quota with file management.
+An App type is a registered way to present a Space. A Space keeps its storage type (`git` or `object`), and an Object Space can own one App instance at a time. Media, Ebook and Note use Object storage, sharing data, permissions, versions, retention and quota with file management.
 
 ## Database
 
@@ -15,11 +15,11 @@ Migration 0015 renames `apps` to `app_types` and `spaces.app` to `spaces.app_typ
 | `storage_type` | Supported Space storage type |
 | `created_at` | Registration time |
 
-Migration 0020 adds `space_apps`: an independent UUID, owning `space_id`, registered `app_type`, name, plugin-validated JSON config, typed PWA settings and timestamps. An internal `storage_type` discriminator participates in composite foreign keys to both Space and App type, rejecting unknown or incompatible types even on direct database writes. There is no unique `(space_id, app_type)` constraint. Instance identity and type are immutable.
+Migration 0020 adds `space_apps`: an independent UUID, owning `space_id`, registered `app_type`, name, plugin-validated JSON config, typed PWA settings and timestamps. An internal `storage_type` discriminator participates in composite foreign keys to both Space and App type, rejecting unknown or incompatible types even on direct database writes. Migration 0023 prevents inserting a second App for an Object Space, including concurrent direct writes. It preserves legacy duplicate rows so deployments can remove them deliberately. Instance identity and type are immutable.
 
-Each existing `spaces.app_type` becomes one instance whose UUID equals its Space UUID, preserving old bookmarks and timestamps. New instances get independent UUIDs. Spaces without an App remain unchanged. The public Space API retains its `app` field and `spaces.app_type` as a compatibility reference; creating a Space through that API also creates its original instance atomically. Other instances never replace that reference.
+Each existing `spaces.app_type` becomes one instance whose UUID equals its Space UUID, preserving old bookmarks and timestamps. An App later attached to an empty Space gets an independent UUID. Spaces without an App remain unchanged. The public Space API retains its `app` field and `spaces.app_type` as a compatibility reference; creating a Space through that API also creates its original instance atomically.
 
-`services/app-instances.ts` provides list/resolve/create/update/delete operations. Reads reuse Space visibility and membership; management reuses Space-owner access (including namespace owners). Custom registrations remain restricted to their creator for instance creation. Removing the original instance clears the legacy reference without choosing a replacement; deleting any instance leaves content, versions, permissions and quota intact. Space deletion cascades to its instances. App creation, updates and removal commit atomically with `app.created`, `app.updated` and `app.deleted` audit events; config contents are not logged.
+`services/app-instances.ts` provides list/resolve/create/update/delete operations. Reads reuse Space visibility and membership; management reuses Space-owner access (including namespace owners). Custom registrations remain restricted to their creator for instance creation. Object App creation locks the Space and returns 409 when an App already exists. Removing the original instance clears the legacy reference; deleting an instance leaves content, versions, permissions and quota intact, and then another App may be chosen. Space deletion cascades to its App. App creation, updates and removal commit atomically with `app.created`, `app.updated` and `app.deleted` audit events; config contents are not logged.
 
 Names default to the Space name at creation and can subsequently differ. Config is limited to 16 KiB of JSON and validated against the deployed plugin's optional TypeBox `configSchema`; without a schema, only `{}` is accepted. Built-ins currently have no configurable options. The database has an additional 32 KiB serialized-JSON ceiling to allow PostgreSQL's whitespace formatting. PWA settings default to `{ enabled: false, iconObjectId: null, themeColor: null, offlinePolicy: 'shell' }`; a null color inherits the platform theme. See PWA delivery below.
 
@@ -31,7 +31,7 @@ App URLs share the Space resource prefix. The database reserves `git`, `object`,
 | --- | --- | --- |
 | GET | `/apps` | Built-ins and the signed-in user's custom registrations |
 | GET | `/namespaces/:namespaceSlug/spaces/:spaceSlug/apps` | `{ apps, canManage }`, including independent IDs, names and types |
-| POST | `/namespaces/:namespaceSlug/spaces/:spaceSlug/apps` | Create an instance with `{ appType, name? }`; omitted name defaults to the Space name |
+| POST | `/namespaces/:namespaceSlug/spaces/:spaceSlug/apps` | Attach an Object Space's single App with `{ appType, name? }`; returns 409 if one already exists |
 | PATCH | `/namespaces/:namespaceSlug/spaces/:spaceSlug/apps/:appId` | Rename with `{ name }`; ID, type and owning Space stay fixed |
 | DELETE | `/namespaces/:namespaceSlug/spaces/:spaceSlug/apps/:appId` | Remove only that instance; 204 with no body |
 | PUT | `/namespaces/:namespaceSlug/spaces/:spaceSlug/apps/:appId/pwa` | Owner-only name/PWA settings, with publication acknowledgement |

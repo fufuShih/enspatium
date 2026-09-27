@@ -70,8 +70,9 @@ test('PWA settings publish only consented metadata, preserve identity, scope ico
   expect(offline.statusCode).toBe(200)
   expect(offline.body).toBe('<html>Generic offline page</html>')
   expect(offline.headers['content-security-policy']).toContain("default-src 'none'")
-  const second = await owner.request<{ id: string }>('POST', apps, 201, { appType: 'note', name: 'Second' })
-  await owner.request('PUT', `${apps}/${second.id}/pwa`, 200, { ...body, name: 'Second' })
+  const second = await owner.request<PublicSpace>('POST', base, 201, { name: 'Second', slug: 'second', type: 'object', app: 'note' })
+  const secondApps = `${base}/${second.slug}/apps`
+  await owner.request('PUT', `${secondApps}/${second.id}/pwa`, 200, { ...body, name: 'Second' })
   const secondManifest = (await app.inject(`/app/note/${second.id}/manifest.webmanifest`)).json()
   expect(secondManifest.id).not.toBe(manifest.json().id)
   expect(secondManifest.scope).not.toBe(manifest.json().scope)

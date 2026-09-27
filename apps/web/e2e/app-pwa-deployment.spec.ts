@@ -27,21 +27,26 @@ test('production HTTPS serves App HTML, manifests, workers and all built-in view
     const space = await createSpace(page, 'Production notebook', undefined, 'note')
     const api = `/api/namespaces/${space.account}/spaces/${space.slug}`
     const { id } = await (await page.request.get(api)).json() as { id: string }
-    const instances = [{ id, appType: 'note' }]
+    const instances = [{ id, appType: 'note', api }]
     for (const appType of ['ebook', 'media']) {
-      const response = await page.request.post(api + '/apps', { data: { appType, name: appType } })
+      const response = await page.request.post(`/api/namespaces/${space.account}/spaces`, {
+        data: { name: appType, slug: `production-${appType}`, type: 'object', app: appType },
+      })
       expect(response.status()).toBe(201)
-      instances.push(await response.json())
+      const created = await response.json() as { id: string; slug: string }
+      instances.push({ id: created.id, appType, api: `/api/namespaces/${space.account}/spaces/${created.slug}` })
     }
     for (const instance of instances) {
-      const response = await page.request.put(`${api}/apps/${instance.id}/pwa`, { data: { name: instance.appType + ' installation',
+      const response = await page.request.put(`${instance.api}/apps/${instance.id}/pwa`, { data: { name: instance.appType + ' installation',
         pwa: { enabled: true, iconObjectId: null, themeColor: null, offlinePolicy: 'shell' }, publishAcknowledged: true } })
       expect(response.status()).toBe(200)
     }
-    for (const [key, data, type] of [['Private.md', Buffer.from('# Private production content'), 'text/markdown'], ['Story.epub', epubFixture(), 'application/epub+zip'], ['Story.pdf', pdfFixture(), 'application/pdf'],
-      ['photo.png', await readFile(new URL('./media-fixtures/photo.png', import.meta.url)), 'image/png']] as const) {
-      expect((await page.request.put(api + '/objects/' + key, { data, headers: { 'content-type': type } })).status()).toBe(201)
-    }
+    const library = instances.find(instance => instance.appType === 'ebook')!
+    const media = instances.find(instance => instance.appType === 'media')!
+    expect((await page.request.put(api + '/objects/Private.md', { data: '# Private production content', headers: { 'content-type': 'text/markdown' } })).status()).toBe(201)
+    expect((await page.request.put(library.api + '/objects/Story.epub', { data: epubFixture(), headers: { 'content-type': 'application/epub+zip' } })).status()).toBe(201)
+    expect((await page.request.put(library.api + '/objects/Story.pdf', { data: pdfFixture(), headers: { 'content-type': 'application/pdf' } })).status()).toBe(201)
+    expect((await page.request.put(media.api + '/objects/photo.png', { data: await readFile(new URL('./media-fixtures/photo.png', import.meta.url)), headers: { 'content-type': 'image/png' } })).status()).toBe(201)
     const base = `/app/note/${id}/`
     const response = await page.goto(base)
     expect(response!.status()).toBe(200)
@@ -67,7 +72,6 @@ test('production HTTPS serves App HTML, manifests, workers and all built-in view
       expect(worker.headers()['content-type']).toContain('javascript')
       expect(await worker.text()).not.toContain('<html')
     }
-    const library = instances.find(instance => instance.appType === 'ebook')!
     const libraryPath = `/app/ebook/${library.id}/`
     await page.goto(libraryPath)
     await page.getByRole('link', { name: 'Read Story.epub' }).click()
@@ -76,7 +80,6 @@ test('production HTTPS serves App HTML, manifests, workers and all built-in view
     await page.goto(libraryPath)
     await page.getByRole('link', { name: 'Read Story.pdf' }).click()
     await expect(page.getByLabel('PDF page 1')).toBeVisible()
-    const media = instances.find(instance => instance.appType === 'media')!
     await page.goto(`/app/media/${media.id}/`)
     await page.getByRole('button', { name: 'Open media photo.png' }).click()
     const photo = page.getByRole('region', { name: 'Now playing' }).getByRole('img')

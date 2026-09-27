@@ -15,6 +15,7 @@ export function spaceAppError(error: unknown) {
     case 401: return 'Please sign in again to manage apps.'
     case 403: return 'Only a Space owner can manage apps. Custom app types also require their creator.'
     case 404: return 'This app or Space no longer exists. Refresh the list.'
+    case 409: return 'This Space already has an app. Remove it before choosing another app.'
     default: return 'Unable to update apps. Refresh the list before trying again.'
   }
 }

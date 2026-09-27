@@ -2,9 +2,9 @@ import { readFile } from 'node:fs/promises'
 import { test, expect } from './fixtures.js'
 import { createSpace, register, signIn } from './helpers.js'
 import { epubFixture } from './ebook-fixtures.js'
-import { createAppInstance, deleteAppInstance, updateAppInstance } from '../../../packages/server/src/services/app-instances.js'
+import { deleteAppInstance, updateAppInstance } from '../../../packages/server/src/services/app-instances.js'
 
-test('independent App IDs share Space content and preserve deep links, login returns and legacy entries', async ({ page, browser, environment }) => {
+test('single-App Spaces preserve deep links, login returns and legacy entries', async ({ page, browser, environment }) => {
   test.setTimeout(120_000)
   const user = await register(page, 'Instance owner')
   await signIn(page, user)
@@ -13,22 +13,26 @@ test('independent App IDs share Space content and preserve deep links, login ret
   const { id: spaceId } = await (await page.request.get(base)).json() as { id: string }
   const actor = await environment.app.db.selectFrom('users').select('id').where('email', '=', user.email).executeTakeFirstOrThrow()
   const args = [environment.app.db, actor.id, space.account, space.slug] as const
-  const notebook = await createAppInstance(...args, { appType: 'note', name: 'Second notebook' })
-  const library = await createAppInstance(...args, { appType: 'ebook', name: 'Shared bookshelf' })
-  const gallery = await createAppInstance(...args, { appType: 'media', name: 'Shared photos' })
-  expect(new Set([spaceId, notebook.id, library.id, gallery.id]).size).toBe(4)
+  const notebook = { id: spaceId }
+  const library = await (await page.request.post(`/api/namespaces/${space.account}/spaces`, {
+    data: { name: 'Shared bookshelf', slug: 'shared-bookshelf', type: 'object', app: 'ebook' },
+  })).json() as { id: string; slug: string }
+  const gallery = await (await page.request.post(`/api/namespaces/${space.account}/spaces`, {
+    data: { name: 'Shared photos', slug: 'shared-photos', type: 'object', app: 'media' },
+  })).json() as { id: string; slug: string }
+  expect(new Set([notebook.id, library.id, gallery.id]).size).toBe(3)
   const noteUpload = await page.request.put(base + '/objects/Shared.md', { data: '# Shared words', headers: { 'content-type': 'text/markdown' } })
   expect(noteUpload.status()).toBe(201)
   const note = await noteUpload.json() as { id: string }
-  expect((await page.request.put(base + '/objects/Story.epub', { data: epubFixture(), headers: { 'content-type': 'application/epub+zip' } })).status()).toBe(201)
-  expect((await page.request.put(base + '/objects/photo.png', { data: await readFile(new URL('./media-fixtures/photo.png', import.meta.url)), headers: { 'content-type': 'image/png' } })).status()).toBe(201)
+  const libraryBase = `/api/namespaces/${space.account}/spaces/${library.slug}`
+  const galleryBase = `/api/namespaces/${space.account}/spaces/${gallery.slug}`
+  expect((await page.request.put(libraryBase + '/objects/Story.epub', { data: epubFixture(), headers: { 'content-type': 'application/epub+zip' } })).status()).toBe(201)
+  expect((await page.request.put(galleryBase + '/objects/photo.png', { data: await readFile(new URL('./media-fixtures/photo.png', import.meta.url)), headers: { 'content-type': 'image/png' } })).status()).toBe(201)
 
   // Bookmarks without a trailing slash and old UUIDs continue to work.
   await page.goto(`/app/note/${spaceId}`)
   await expect(page).toHaveTitle('Shared notebook · Note')
   await expect(page.getByRole('link', { name: 'Open Shared.md' })).toHaveAttribute('href', `/app/note/${spaceId}/note/${note.id}`)
-  await page.goto(`/app/note/${notebook.id}/`)
-  await expect(page).toHaveTitle('Second notebook · Note')
   await expect(page.getByRole('link', { name: 'Files ↗' })).toHaveAttribute('href', space.url)
   const link = page.getByRole('link', { name: 'Open Shared.md' })
   const deepLink = `/app/note/${notebook.id}/note/${note.id}`
@@ -40,10 +44,10 @@ test('independent App IDs share Space content and preserve deep links, login ret
   await expect(editor).toContainText('Shared words')
   await editor.click()
   await page.keyboard.press('ControlOrMeta+End')
-  await page.keyboard.insertText('\n\nFrom the second instance')
+  await page.keyboard.insertText('\n\nFrom the app')
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.getByRole('status').filter({ hasText: /^Saved$/ })).toBeVisible()
-  expect(await (await page.request.get(base + '/objects/Shared.md')).text()).toContain('From the second instance')
+  expect(await (await page.request.get(base + '/objects/Shared.md')).text()).toContain('From the app')
   await page.getByRole('button', { name: '+ New note', exact: true }).click()
   await page.getByLabel('Note name', { exact: true }).fill('Second note')
   await page.getByRole('button', { name: 'Create note', exact: true }).click()
@@ -80,16 +84,11 @@ test('independent App IDs share Space content and preserve deep links, login ret
     await guest.getByLabel('Password', { exact: true }).fill(user.password)
     await guest.getByRole('main').getByRole('button', { name: 'Sign in', exact: true }).click()
     await expect(guest).toHaveURL(returnUrl)
-    await expect(guest.getByRole('textbox', { name: 'Note content' })).toContainText('From the second instance')
+    await expect(guest.getByRole('textbox', { name: 'Note content' })).toContainText('From the app')
   } finally { await guestContext.close() }
-  await deleteAppInstance(...args, spaceId)
+  await deleteAppInstance(...args, notebook.id)
   expect((await page.request.get(`/api/apps/note/spaces/${spaceId}`)).status()).toBe(404)
   await page.goto(`/app/note/${spaceId}/note/${note.id}`)
-  await expect(page.getByRole('heading', { name: 'App not found' })).toBeVisible()
-  await page.goto(deepLink)
-  await expect(editor).toContainText('From the second instance')
-  await deleteAppInstance(...args, notebook.id)
-  await page.reload()
   await expect(page.getByRole('heading', { name: 'App not found' })).toBeVisible()
   expect((await page.request.get(base + '/objects/Shared.md')).status()).toBe(200)
 })

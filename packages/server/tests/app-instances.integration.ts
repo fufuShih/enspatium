@@ -43,7 +43,7 @@ test('migration preserves legacy UUIDs, timestamps, Space settings and membershi
   expect(await app.db.selectFrom('space_members').selectAll().orderBy('space_id').execute()).toEqual(memberships)
 })
 
-test('instances share content and Space permissions; deleting an App does not delete content', async ({ onTestFinished }) => {
+test('a single App shares Space content and permissions; deleting it does not delete content', async ({ onTestFinished }) => {
   const { app, session } = await createFixture({
     after: cleanup => onTestFinished(cleanup), diagnostic: message => console.info(message),
   })
@@ -53,16 +53,12 @@ test('instances share content and Space permissions; deleting an App does not de
   await owner.request('POST', '/auth/login', 200, credentials)
   const namespace = await app.db.selectFrom('namespaces').selectAll().where('owner_user_id', '=', user.id).executeTakeFirstOrThrow()
   const base = `/namespaces/${namespace.slug}/spaces`
-  const space = await owner.request<PublicSpace>('POST', base, 201, { name: 'Shared content', slug: 'shared-content', type: 'object', app: 'note' })
+  const space = await owner.request<PublicSpace>('POST', base, 201, { name: 'Shared content', slug: 'shared-content', type: 'object' })
   const args = [app.db, user.id, namespace.slug, space.slug] as const
-  const original = await getAppInstance(app.db, user.id, 'note', space.id)
-  expect(original).toMatchObject({ id: space.id, space_id: space.id, config: {}, pwa: pwaDefaults })
   const second = await createAppInstance(...args, { appType: 'note' })
-  const third = await createAppInstance(...args, { appType: 'media', name: '  Media view  ' })
-  expect(second).toMatchObject({ name: space.name, space_id: space.id, app_type: 'note' })
-  expect(second.id).not.toBe(space.id)
-  expect(third.name).toBe('Media view')
-  expect(await listAppInstances(...args)).toHaveLength(3)
+  expect(second).toMatchObject({ name: space.name, space_id: space.id, app_type: 'note', config: {}, pwa: pwaDefaults })
+  await expect(createAppInstance(...args, { appType: 'media', name: 'Media view' })).rejects.toMatchObject({ statusCode: 409 })
+  expect(await listAppInstances(...args)).toHaveLength(1)
   expect(await getAppInstance(app.db, user.id, 'note', second.id)).toMatchObject({ space_id: space.id })
   await expect(getAppInstance(app.db, user.id, 'media', second.id)).rejects.toMatchObject({ statusCode: 404 })
   await expect(getAppInstance(app.db, undefined, 'note', second.id)).rejects.toMatchObject({ statusCode: 401 })
@@ -70,7 +66,6 @@ test('instances share content and Space permissions; deleting an App does not de
   const renamed = await updateAppInstance(...args, second.id, { name: 'Second notebook', config: {} })
   expect(renamed.name).toBe('Second notebook')
   expect(renamed.updated_at.getTime()).toBeGreaterThan(second.updated_at.getTime())
-  expect((await getAppInstance(app.db, user.id, 'note', original.id)).name).toBe(space.name)
   await expect(updateAppInstance(...args, second.id, { config: { arbitrary: true } })).rejects.toMatchObject({ statusCode: 400 })
 
   const member = await session().request<PublicUser>('POST', '/users', 201, {
@@ -82,15 +77,14 @@ test('instances share content and Space permissions; deleting an App does not de
   const memberArgs = [app.db, member.id, namespace.slug, space.slug] as const
   for (const role of ['reader', 'writer'] as const) {
     await app.db.updateTable('space_members').set({ role }).where('space_id', '=', space.id).where('user_id', '=', member.id).execute()
-    expect(await listAppInstances(...memberArgs)).toHaveLength(3)
+    expect(await listAppInstances(...memberArgs)).toHaveLength(1)
     await expect(createAppInstance(...memberArgs, { appType: 'note' })).rejects.toMatchObject({ statusCode: 403 })
     await expect(updateAppInstance(...memberArgs, second.id, { name: 'Denied' })).rejects.toMatchObject({ statusCode: 403 })
     await expect(deleteAppInstance(...memberArgs, second.id)).rejects.toMatchObject({ statusCode: 403 })
   }
   await app.db.updateTable('space_members').set({ role: 'writer' }).where('space_id', '=', space.id).where('user_id', '=', user.id).execute()
   await app.db.updateTable('space_members').set({ role: 'owner' }).where('space_id', '=', space.id).where('user_id', '=', member.id).execute()
-  const memberApp = await createAppInstance(...memberArgs, { appType: 'ebook' })
-  await deleteAppInstance(...memberArgs, memberApp.id)
+  await expect(createAppInstance(...memberArgs, { appType: 'ebook' })).rejects.toMatchObject({ statusCode: 409 })
   await app.db.deleteFrom('space_members').where('space_id', '=', space.id).where('user_id', '=', member.id).execute()
   await expect(getAppInstance(app.db, member.id, 'note', second.id)).rejects.toMatchObject({ statusCode: 403 })
   await owner.request('PATCH', `${base}/${space.slug}`, 200, { visibility: 'public' })
@@ -114,18 +108,15 @@ test('instances share content and Space permissions; deleting an App does not de
   const objects = await app.db.selectFrom('space_objects').selectAll().where('space_id', '=', space.id).execute()
   const versions = await app.db.selectFrom('space_object_versions').selectAll().where('space_id', '=', space.id).execute()
   const spaceBefore = await app.db.selectFrom('spaces').selectAll().where('id', '=', space.id).executeTakeFirstOrThrow()
-  await deleteAppInstance(...args, third.id)
-  await owner.request('GET', `/apps/note/spaces/${space.id}`)
-  await deleteAppInstance(...args, original.id)
-  await owner.request('GET', `/apps/note/spaces/${space.id}`, 404)
-  expect(await listAppInstances(...args)).toMatchObject([{ id: second.id }])
-  expect(await app.db.selectFrom('spaces').selectAll().where('id', '=', space.id).executeTakeFirstOrThrow()).toEqual({ ...spaceBefore, app_type: null })
+  await deleteAppInstance(...args, second.id)
+  expect(await listAppInstances(...args)).toEqual([])
+  expect(await app.db.selectFrom('spaces').selectAll().where('id', '=', space.id).executeTakeFirstOrThrow()).toEqual(spaceBefore)
   expect(await app.db.selectFrom('space_objects').selectAll().where('space_id', '=', space.id).execute()).toEqual(objects)
   expect(await app.db.selectFrom('space_object_versions').selectAll().where('space_id', '=', space.id).execute()).toEqual(versions)
   const download = await app.inject({ url: objectUrl, headers: { cookie } })
   expect(download.statusCode).toBe(200)
   expect(download.body).toBe('# Shared content')
-  await expect(getAppInstance(app.db, user.id, 'note', original.id)).rejects.toMatchObject({ statusCode: 404 })
+  await expect(getAppInstance(app.db, user.id, 'note', second.id)).rejects.toMatchObject({ statusCode: 404 })
   await owner.request('DELETE', `${base}/${space.slug}`, 204)
   expect(await app.db.selectFrom('space_apps').selectAll().where('space_id', '=', space.id).execute()).toEqual([])
   expect(await app.db.selectFrom('space_objects').selectAll().where('space_id', '=', space.id).execute()).toEqual([])
@@ -141,7 +132,16 @@ test('storage and identity constraints hold at the service and database boundari
   const base = `/namespaces/${namespace.slug}/spaces`
   const objectSpace = await owner.request<PublicSpace>('POST', base, 201, { name: 'Files', slug: 'files', type: 'object' })
   const gitSpace = await owner.request<PublicSpace>('POST', base, 201, { name: 'Repository', slug: 'repository', type: 'git' })
+  const constraintSpace = await owner.request<PublicSpace>('POST', base, 201, { name: 'Constraints', slug: 'constraints', type: 'object' })
+  const raceSpace = await owner.request<PublicSpace>('POST', base, 201, { name: 'Race', slug: 'race', type: 'object' })
   const args = [app.db, user.id, namespace.slug, objectSpace.slug] as const
+  const concurrent = await Promise.allSettled([
+    createAppInstance(app.db, user.id, namespace.slug, raceSpace.slug, { appType: 'note' }),
+    createAppInstance(app.db, user.id, namespace.slug, raceSpace.slug, { appType: 'media' }),
+  ])
+  expect(concurrent.filter(result => result.status === 'fulfilled')).toHaveLength(1)
+  expect(concurrent.filter(result => result.status === 'rejected').map(result => result.reason)).toMatchObject([{ statusCode: 409 }])
+  expect(await app.db.selectFrom('space_apps').select('id').where('space_id', '=', raceSpace.id).execute()).toHaveLength(1)
   await expect(createAppInstance(...args, { appType: 'unknown' })).rejects.toMatchObject({ statusCode: 400 })
   await expect(createAppInstance(...args, { appType: 'media', name: ' ' })).rejects.toMatchObject({ statusCode: 400 })
   await expect(createAppInstance(...args, { appType: 'media', config: { unsafe: true } })).rejects.toMatchObject({ statusCode: 400 })
@@ -153,7 +153,10 @@ test('storage and identity constraints hold at the service and database boundari
   await app.db.updateTable('space_members').set({ role: 'writer' }).where('space_id', '=', objectSpace.id).where('user_id', '=', user.id).execute()
   await app.db.insertInto('space_members').values({ space_id: objectSpace.id, user_id: other.id, role: 'owner' }).execute()
   await expect(createAppInstance(app.db, other.id, namespace.slug, objectSpace.slug, { appType: 'custom-view' })).rejects.toMatchObject({ statusCode: 403 })
-  const values = { space_id: objectSpace.id, app_type: 'media', storage_type: 'object' as const, name: 'App' }
+  await expect(app.db.insertInto('space_apps').values({
+    space_id: objectSpace.id, app_type: 'media', storage_type: 'object', name: 'Duplicate',
+  }).execute()).rejects.toMatchObject({ code: '23505', constraint: 'space_apps_space_id_unique' })
+  const values = { space_id: constraintSpace.id, app_type: 'media', storage_type: 'object' as const, name: 'App' }
   for (const invalid of [{ space_id: gitSpace.id }, { app_type: 'unknown' }, { storage_type: 'git' as const }, { space_id: randomUUID() }]) {
     await expect(app.db.insertInto('space_apps').values({ ...values, ...invalid }).execute()).rejects.toMatchObject({ code: '23503' })
   }

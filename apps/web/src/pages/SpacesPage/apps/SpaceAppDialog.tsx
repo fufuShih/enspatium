@@ -50,7 +50,7 @@ export default function SpaceAppDialog({ account, space, action, onClose, onSave
       if (!controller.signal.aborted) {
         const message = spaceAppError(failure)
         setError(message)
-        if ([401, 403, 404].includes(apiStatus(failure) ?? 0)) {
+        if ([401, 403, 404, 409].includes(apiStatus(failure) ?? 0)) {
           onDenied(message)
           if (apiStatus(failure) === 401) void client.invalidateQueries({ queryKey: ['session'] })
           void refreshSpaceApps(client, account, space.slug)
@@ -69,9 +69,9 @@ export default function SpaceAppDialog({ account, space, action, onClose, onSave
         <Dialog.Body>
           {removing ? <>
             <Text fontSize="14px" fontWeight="500" mb="12px" overflowWrap="anywhere">{action.instance.name}</Text>
-            <Dialog.Description fontSize="13px" lineHeight="1.8">Only this app's entry and settings will be removed. Files, versions, permissions and other apps are kept. Existing links to this app will stop working. This cannot be undone.</Dialog.Description>
+            <Dialog.Description fontSize="13px" lineHeight="1.8">Only this app's entry and settings will be removed. Files, versions and permissions are kept. Existing links to this app will stop working. This cannot be undone.</Dialog.Description>
           </> : <>
-            <Dialog.Description fontSize="13px" color="var(--muted)" lineHeight="1.8" mb="20px">{action.kind === 'create' ? 'Apps share this Space’s files, visibility and permissions. You can create more than one app of the same type.' : 'The app name can differ from the Space name. Its URL and content stay the same.'}</Dialog.Description>
+            <Dialog.Description fontSize="13px" color="var(--muted)" lineHeight="1.8" mb="20px">{action.kind === 'create' ? 'Choose the single app used to present this Space’s files. You can remove it later to choose another app.' : 'The app name can differ from the Space name. Its URL and content stay the same.'}</Dialog.Description>
             {action.kind === 'rename' && action.instance.pwa.enabled && <Text fontSize="13px" mb="16px">PWA is enabled: this name is public installation information.</Text>}
             {action.kind === 'create' && <Box mb="18px">
               <chakra.label htmlFor="app-type" display="block" fontSize="13px" mb="8px">App type</chakra.label>

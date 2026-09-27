@@ -2,14 +2,20 @@ import { readFile } from 'node:fs/promises'
 import { test, expect } from './fixtures.js'
 import { createSpace, register, signIn } from './helpers.js'
 
-test('two Apps publish independent manifests, retain private content and remove only their own registrations', async ({ page, browser, environment }, testInfo) => {
+test('Apps in separate Spaces publish independent manifests, retain private content and remove their own registrations', async ({ page, browser, environment }, testInfo) => {
   test.setTimeout(120_000)
   const user = await register(page, 'PWA owner')
   await signIn(page, user)
   const space = await createSpace(page, 'Private files', undefined, 'note')
   const api = `/api/namespaces/${space.account}/spaces/${space.slug}`
   const { id } = await (await page.request.get(api)).json() as { id: string }
-  const second = await (await page.request.post(api + '/apps', { data: { appType: 'note', name: 'Second' } })).json() as { id: string }
+  const second = await (await page.request.post(`/api/namespaces/${space.account}/spaces`, {
+    data: { name: 'Second', slug: 'second-pwa', type: 'object', app: 'note' },
+  })).json() as { id: string; slug: string }
+  const secondApi = `/api/namespaces/${space.account}/spaces/${second.slug}`
+  expect((await page.request.put(secondApi + '/objects/Secret.md', {
+    data: '# Separate private words', headers: { 'content-type': 'text/markdown' },
+  })).status()).toBe(201)
   const upload = await page.request.put(api + '/objects/Secret.md', { data: '# Private words', headers: { 'content-type': 'text/markdown' } })
   expect(upload.status()).toBe(201)
   const note = await upload.json() as { id: string }
@@ -34,11 +40,9 @@ test('two Apps publish independent manifests, retain private content and remove 
   await dialog.getByRole('button', { name: 'Save PWA settings' }).click()
   await expect(dialog).not.toBeVisible()
   await expect(panel.getByRole('status')).toContainText('Installation metadata is public')
-  await panel.getByRole('button', { name: 'PWA settings for Second' }).click()
-  await dialog.getByLabel('Enable PWA', { exact: true }).check()
-  await dialog.getByLabel(/I understand that the app name/).check()
-  await dialog.getByRole('button', { name: 'Save PWA settings' }).click()
-  await expect(dialog).not.toBeVisible()
+  expect((await page.request.put(`${secondApi}/apps/${second.id}/pwa`, { data: {
+    name: 'Second', pwa: { enabled: true, iconObjectId: null, themeColor: null, offlinePolicy: 'shell' }, publishAcknowledged: true,
+  } })).status()).toBe(200)
   const firstManifest = await (await page.request.get(firstPath + 'manifest.webmanifest')).json() as { id: string; name: string; scope: string; icons: { src: string }[] }
   const secondManifest = await (await page.request.get(secondPath + 'manifest.webmanifest')).json() as typeof firstManifest
   expect(firstManifest.id).not.toBe(secondManifest.id)
@@ -91,7 +95,7 @@ test('two Apps publish independent manifests, retain private content and remove 
   expect((await page.request.get(firstPath + 'manifest.webmanifest')).status()).toBe(404)
   expect((await page.request.get(firstPath + 'icon-192.png')).status()).toBe(404)
   expect((await page.request.get(secondPath + 'manifest.webmanifest')).status()).toBe(200)
-  await page.request.delete(api + '/apps/' + second.id)
+  await page.request.delete(secondApi + '/apps/' + second.id)
   await secondApp.bringToFront()
   await secondApp.evaluate(() => window.dispatchEvent(new Event('visibilitychange')))
   // Refetch failures retain stale query data; a 404 must still remove metadata.

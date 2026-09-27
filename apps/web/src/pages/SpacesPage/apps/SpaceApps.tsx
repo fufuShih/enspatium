@@ -22,6 +22,7 @@ export default function SpaceApps({ account, space, installationSettings = false
   } })
   const canManage = !query.isError && Boolean(user && query.data?.canManage)
   const hasCompatibleView = appPlugins.some(plugin => plugin.integration.storageType === space.type)
+  const canCreate = canManage && hasCompatibleView && query.data?.apps.length === 0
   // Discard a stale dialog immediately when refreshed permissions revoke access.
   if (!canManage && action) setAction(null)
   function open(next: SpaceAppAction) { setNotice(''); setError(''); setAction(next) }
@@ -30,9 +31,9 @@ export default function SpaceApps({ account, space, installationSettings = false
   return <Box as="section" aria-label="Space apps" mb="32px" border="1px solid var(--border)" borderRadius="8px" p={{ base: '18px', md: '24px' }}>
     <Flex align="center" justify="space-between" gap="12px" mb="10px">
       <Heading as="h2" fontSize="18px" fontWeight="500">{installationSettings ? 'App installation settings' : 'Apps'}</Heading>
-      {canManage && hasCompatibleView && !installationSettings && <ActionButton onClick={() => open({ kind: 'create' })}>New app</ActionButton>}
+      {canCreate && !installationSettings && <ActionButton onClick={() => open({ kind: 'create' })}>New app</ActionButton>}
     </Flex>
-    <Text color="var(--muted)" fontSize="13px" lineHeight="1.8" mb="18px">Different views of the same content. Files and access are managed by this Space.</Text>
+    <Text color="var(--muted)" fontSize="13px" lineHeight="1.8" mb="18px">One app can present this Space’s content. Files and access are managed by the Space.</Text>
     {canManage && !installationSettings && <PageLink to={spacePath(account, space.slug) + '/settings#apps'} display="inline-block" mb="16px" fontSize="13px">Installation settings</PageLink>}
     {notice && <Text role="status" mb="14px" fontSize="13px" color="fg.success">{notice}</Text>}
     {error && <Text role="alert" mb="14px" fontSize="13px" color="fg.error">{error}</Text>}

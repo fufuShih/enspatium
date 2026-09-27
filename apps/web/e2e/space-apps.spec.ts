@@ -1,7 +1,7 @@
 import { test, expect } from './fixtures.js'
 import { createSpace, register, signIn } from './helpers.js'
 
-test('Space Apps creates independent views, renames stable links and removes only the selected app', async ({ page }, testInfo) => {
+test('an Object Space allows one replaceable App with stable links and shared content', async ({ page }, testInfo) => {
   test.setTimeout(120_000)
   const duplicateKeys: string[] = []
   page.on('console', message => { if (message.text().includes('same key')) duplicateKeys.push(message.text()) })
@@ -23,20 +23,16 @@ test('Space Apps creates independent views, renames stable links and removes onl
     await expect(row(name)).toBeVisible()
   }
   await create('note', 'First notebook')
-  await create('note', 'Second notebook')
-  await create('media', 'Photos')
   const firstHref = await row('First notebook').getByRole('link').getAttribute('href')
-  const secondHref = await row('Second notebook').getByRole('link').getAttribute('href')
-  expect(firstHref).not.toEqual(secondHref)
-  for (const name of ['First notebook', 'Second notebook']) {
-    const opened = page.waitForEvent('popup')
-    await row(name).getByRole('link').click()
-    const app = await opened
-    await expect(app).toHaveTitle(`${name} · Note`)
-    await expect(app.getByRole('link', { name: 'Open Shared.md' })).toBeVisible()
-    await app.close()
-  }
-  await row('Second notebook').getByRole('button', { name: 'Rename Second notebook' }).click()
+  await expect(panel.getByRole('button', { name: 'New app', exact: true })).toHaveCount(0)
+  expect((await page.request.post(base + '/apps', { data: { appType: 'media', name: 'Extra app' } })).status()).toBe(409)
+  const opened = page.waitForEvent('popup')
+  await row('First notebook').getByRole('link').click()
+  const openedApp = await opened
+  await expect(openedApp).toHaveTitle('First notebook · Note')
+  await expect(openedApp.getByRole('link', { name: 'Open Shared.md' })).toBeVisible()
+  await openedApp.close()
+  await row('First notebook').getByRole('button', { name: 'Rename First notebook' }).click()
   const rename = page.getByRole('dialog', { name: 'Rename app' })
   await rename.getByLabel('App name', { exact: true }).fill('Renamed notebook')
   // A failed request keeps the draft and the existing App intact.
@@ -50,32 +46,31 @@ test('Space Apps creates independent views, renames stable links and removes onl
   await page.unroute('**/api/namespaces/*/spaces/*/apps/*')
   await rename.getByRole('button', { name: 'Save name' }).click()
   await expect(rename).not.toBeVisible()
-  await expect(row('Renamed notebook').getByRole('link')).toHaveAttribute('href', secondHref!)
+  await expect(row('Renamed notebook').getByRole('link')).toHaveAttribute('href', firstHref!)
   const renamedApp = page.waitForEvent('popup')
   await row('Renamed notebook').getByRole('link').click()
-  const app = await renamedApp
-  await expect(app).toHaveTitle('Renamed notebook · Note')
-  await app.close()
+  const renamedWindow = await renamedApp
+  await expect(renamedWindow).toHaveTitle('Renamed notebook · Note')
+  await renamedWindow.close()
 
   await page.setViewportSize({ width: 390, height: 844 })
   await expect(row('Renamed notebook').getByRole('button', { name: 'Remove Renamed notebook' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   await page.screenshot({ path: testInfo.outputPath('space-apps-mobile.png'), fullPage: true })
   await page.setViewportSize({ width: 1280, height: 900 })
-  await row('First notebook').getByRole('button', { name: 'Remove First notebook' }).click()
+  await row('Renamed notebook').getByRole('button', { name: 'Remove Renamed notebook' }).click()
   const removal = page.getByRole('alertdialog', { name: 'Remove app?' })
-  await expect(removal).toContainText('Files, versions, permissions and other apps are kept.')
+  await expect(removal).toContainText('Files, versions and permissions are kept.')
   await expect(removal.getByRole('button', { name: 'Cancel' })).toBeFocused()
   await page.screenshot({ path: testInfo.outputPath('space-app-remove.png'), animations: 'disabled' })
   await removal.getByRole('button', { name: 'Cancel' }).click()
-  await expect(row('First notebook')).toBeVisible()
-  await row('First notebook').getByRole('button', { name: 'Remove First notebook' }).click()
+  await expect(row('Renamed notebook')).toBeVisible()
+  await row('Renamed notebook').getByRole('button', { name: 'Remove Renamed notebook' }).click()
   await removal.getByRole('button', { name: 'Remove app', exact: true }).click()
   await expect(removal).not.toBeVisible()
-  await expect(row('First notebook')).toHaveCount(0)
+  await expect(row('Renamed notebook')).toHaveCount(0)
   await expect(panel.getByRole('status')).toContainText('Files and versions were kept.')
-  await expect(row('Renamed notebook')).toBeVisible()
-  await expect(row('Photos')).toBeVisible()
+  await expect(panel.getByRole('button', { name: 'New app', exact: true })).toBeVisible()
   expect(await (await page.request.get(base + '/objects/Shared.md')).text()).toBe('# Shared words')
   await page.screenshot({ path: testInfo.outputPath('space-apps-desktop.png'), fullPage: true })
   await page.getByRole('button', { name: 'User menu for ' + user.name, exact: true }).click()
@@ -88,11 +83,13 @@ test('Space Apps creates independent views, renames stable links and removes onl
   await expect(creation.getByLabel('App name', { exact: true })).toHaveValue('Shared content')
   await expect(creation.getByLabel('App type', { exact: true })).toBeEnabled()
   await page.screenshot({ path: testInfo.outputPath('space-app-create-mobile-dark.png'), animations: 'disabled' })
-  await creation.getByRole('button', { name: 'Cancel' }).click()
+  await creation.getByLabel('App type', { exact: true }).selectOption('media')
+  await creation.getByLabel('App name', { exact: true }).fill('Photos')
+  await creation.getByRole('button', { name: 'Create app', exact: true }).click()
+  await expect(row('Photos')).toBeVisible()
+  await expect(panel.getByRole('button', { name: 'New app', exact: true })).toHaveCount(0)
   await page.goto(firstHref!)
   await expect(page.getByRole('heading', { name: 'App not found' })).toBeVisible()
-  await page.goto(secondHref!)
-  await expect(page.getByRole('link', { name: 'Open Shared.md' })).toBeVisible()
   expect(duplicateKeys).toEqual([])
 })
 
