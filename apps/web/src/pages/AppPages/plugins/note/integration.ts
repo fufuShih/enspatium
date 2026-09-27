@@ -17,6 +17,15 @@ export function noteKey(name: string) {
   return result
 }
 
+export function noteFileKey(folder: string, name: string) {
+  const filename = name.trim()
+  if (!filename || filename.includes('/') || filename.includes('\\')) {
+    throw new Error('Enter a note filename without slashes.')
+  }
+  const prefix = folder ? folder.replace(/\/$/, '') + '/' : ''
+  return noteKey(prefix + filename)
+}
+
 export async function loadNote(instance: AppInstance, id: string, signal: AbortSignal) {
   const file = await getAppInstanceObject('note', instance.id, id, { signal })
   if (file.sizeBytes > noteSizeLimit) throw new Error('This note exceeds the 1 MiB editor limit. Download it from Files.')

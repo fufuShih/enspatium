@@ -70,7 +70,7 @@ export default function NoteEditor({ initialContent, editable, onChange, onSave 
         <ActionButton aria-label="Bold" onClick={() => insert('**', '**')} border="0" p="6px 10px" fontWeight="700">B</ActionButton>
         <ActionButton aria-label="Italic" onClick={() => insert('*', '*')} border="0" p="6px 10px" fontStyle="italic">I</ActionButton>
         <ActionButton aria-label="Bullet list" onClick={() => prefixLine('- ')} border="0" p="6px 10px">List</ActionButton>
-        <Text ml="auto" fontSize="11px" color="var(--muted)">Markdown · Ctrl / ⌘ S to save</Text>
+        <Text ml="auto" fontSize="11px" color="var(--muted)">Markdown · Autosaves after 1.5 seconds · Ctrl / ⌘ S</Text>
       </> : <Text fontSize="12px" color="var(--muted)">Read only</Text>}
     </Flex>
     <Box ref={host} minH="50dvh" css={{

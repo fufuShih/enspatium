@@ -13,3 +13,8 @@ test('Note accepts Markdown and filename fallback without admitting unrelated te
   expect(classifyAppObject(ebookPlugin, 'book.pdf', 'text/plain')).toBeUndefined()
   expect(classifyAppObject(ebookPlugin, 'book.pdf', 'application/octet-stream')?.kind).toBe('pdf')
 })
+
+test('Note recognizes persistent folder markers', () => {
+  expect(classifyAppObject(notePlugin, 'Projects/.enspatium-folder', 'application/vnd.enspatium.folder')?.kind).toBe('folder')
+  expect(classifyAppObject(notePlugin, 'Projects/.enspatium-folder', 'application/octet-stream')).toBeUndefined()
+})

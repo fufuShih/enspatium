@@ -14,6 +14,12 @@ import NoteActions from './NoteActions'
 import { appPath } from '../../paths'
 import { useOnline } from '../../../../hooks/useOnline'
 
+const autoSaveDelayMs = 1500
+
+function RefreshIcon() {
+  return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6v5h-5" /><path d="M19 11a8 8 0 1 0 .2 5" /></svg>
+}
+
 export default function NoteDocument({ instance, id, editable }: { instance: AppInstance; id: string; editable: boolean }) {
   const { user } = useAuth()
   const [reload, setReload] = useState(0)
@@ -38,7 +44,9 @@ function OpenNote({ instance, loaded, editable, onReload }: { instance: AppInsta
   const [deleted, setDeleted] = useState(false)
   const [managing, setManaging] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [autoSavePaused, setAutoSavePaused] = useState(false)
   const saving = useRef(false)
+  const saveLatest = useRef<(source?: 'manual' | 'auto') => Promise<void>>(async () => undefined)
   const stayButton = useRef<HTMLButtonElement>(null)
   const [error, setError] = useState('')
   const dirty = content !== saved
@@ -54,17 +62,28 @@ function OpenNote({ instance, loaded, editable, onReload }: { instance: AppInsta
     return () => window.removeEventListener('beforeunload', protect)
   }, [dirty, working, deleted])
 
-  async function save() {
+  async function save(source: 'manual' | 'auto' = 'manual') {
     if (!navigator.onLine) { setError('You are offline. Reconnect and save explicitly, or download your draft.'); return }
     if (!editable || !dirty || working || deleted || saving.current) return
+    const snapshot = content
     saving.current = true; setBusy(true); setError('')
     try {
-      const updated = await saveNote(instance, file.key, content, file.versionId)
-      setFile(previous => ({ ...previous, ...updated })); setSaved(content)
-      await refreshObjectLists(client, instance.account, instance.slug)
-    } catch (failure) { setError(noteError(failure)) }
+      const updated = await saveNote(instance, file.key, snapshot, file.versionId)
+      setFile(previous => ({ ...previous, ...updated })); setSaved(snapshot); setAutoSavePaused(false)
+      // Keep background saves cheap; active lists already refresh periodically.
+      if (source === 'manual') await refreshObjectLists(client, instance.account, instance.slug)
+    } catch (failure) { setAutoSavePaused(true); setError(noteError(failure)) }
     finally { saving.current = false; setBusy(false) }
   }
+  useEffect(() => { saveLatest.current = save })
+  useEffect(() => {
+    if (!editable || !online || !dirty || working || deleted || autoSavePaused) return
+    const timer = window.setTimeout(() => { void saveLatest.current('auto') }, autoSaveDelayMs)
+    return () => window.clearTimeout(timer)
+  }, [autoSavePaused, content, deleted, dirty, editable, online, saved, working])
+  useEffect(() => {
+    if (blocker.state === 'blocked' && !dirty && !working) blocker.proceed?.()
+  }, [blocker, dirty, working])
   function reload() {
     if (!dirty || window.confirm('Discard your unsaved changes and reload this note?')) onReload()
   }
@@ -75,18 +94,21 @@ function OpenNote({ instance, loaded, editable, onReload }: { instance: AppInsta
     link.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
+  const saveStatus = busy || (dirty && online && !autoSavePaused) ? 'Saving…' : dirty ? autoSavePaused ? 'Autosave paused' : 'Waiting for connection' : 'Saved'
   return <>
     <Flex align="center" gap="12px" mb="28px" flexWrap="wrap">
       <Box flex={{ base: '1 0 100%', lg: '1' }} minW="0"><Text color="var(--muted)" fontSize="11px" mb="7px" overflowWrap="anywhere">{file.key}</Text><Heading as="h1" fontSize="25px" fontWeight="500" letterSpacing="-.03em" overflowWrap="anywhere">{file.key.split('/').at(-1)!.replace(/\.(md|markdown)$/i, '')}</Heading></Box>
-      <Text role="status" fontSize="12px" color="var(--muted)">{busy ? 'Saving…' : dirty ? 'Unsaved changes' : 'Saved'}</Text>
-      <ActionButton onClick={reload} disabled={!online || working || deleted}>Reload note</ActionButton>
-      {editable && <>
-        <ActionButton onClick={() => { void save() }} disabled={!online || !dirty || working || deleted} bg="var(--surface-strong)">Save</ActionButton>
-        <NoteActions instance={instance} file={file} dirty={dirty} disabled={!online || working || deleted} onBusy={setManaging} onMoved={moved => { setFile(previous => ({ ...previous, ...moved })); setError('') }} onDeleted={() => setDeleted(true)} />
-      </>}
+      <Flex align="center" gap="8px" minH="36px" flexShrink="0">
+        <Text role="status" title={saveStatus} width="104px" flexShrink="0" textAlign="right" whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis" fontSize="12px" lineHeight="20px" color="var(--muted)">{saveStatus}</Text>
+        <ActionButton aria-label="Refresh note" title="Refresh note" onClick={reload} disabled={!online || working || deleted} width="36px" height="36px" p="0"><RefreshIcon /></ActionButton>
+        {editable && <>
+          <ActionButton onClick={() => { void save('manual') }} disabled={!online || !dirty || working || deleted} bg="var(--surface-strong)" minH="36px">Save</ActionButton>
+          <NoteActions instance={instance} file={file} dirty={dirty} disabled={!online || working || deleted} onBusy={setManaging} onMoved={moved => { setFile(previous => ({ ...previous, ...moved })); setError('') }} onDeleted={() => setDeleted(true)} />
+        </>}
+      </Flex>
     </Flex>
     {(error || !online) && <Box mb="20px" border="1px solid var(--border)" borderRadius="8px" p="14px"><Text role="alert" color="fg.error" fontSize="13px">{error || 'You are offline. Editing is paused; keep this tab open or download your unsaved draft.'}</Text>{dirty && <ActionButton mt="10px" onClick={downloadDraft}>Download draft</ActionButton>}</Box>}
-    <NoteEditor initialContent={loaded.content} editable={online && editable && !working && !deleted} onChange={setContent} onSave={() => { void save() }} />
+    <NoteEditor initialContent={loaded.content} editable={online && editable && !working && !deleted} onChange={value => { setContent(value); setAutoSavePaused(false) }} onSave={() => { void save('manual') }} />
     <Dialog.Root role="alertdialog" open={blocker.state === 'blocked'} onOpenChange={event => { if (!event.open) blocker.reset?.() }} placement="center" initialFocusEl={() => stayButton.current}>
       <Portal><Dialog.Backdrop /><Dialog.Positioner p="20px"><Dialog.Content bg="var(--background)" color="var(--foreground)" border="1px solid var(--border)" borderRadius="12px" maxW="380px">
         <Dialog.Header><Dialog.Title fontSize="18px">{working ? 'Updating your note' : 'Leave without saving?'}</Dialog.Title></Dialog.Header>

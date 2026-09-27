@@ -6,6 +6,8 @@ import type { PublicUser } from '../src/db/types/user.types.js'
 import type { PublicNamespace } from '../src/db/types/namespace.types.js'
 import type { PublicSpace } from '../src/db/types/space.types.js'
 import type { ObjectFolderPage } from '../src/services/object/object.js'
+import { objectFolderContentType, objectFolderMarkerName } from '../src/services/object/folders.js'
+import type { PublicSpaceObject } from '../src/db/types/object.types.js'
 
 test('object folders group before pagination, preserve key boundaries and enforce access', async ({ onTestFinished }) => {
   const { origin, root, app, session } = await createFixture({ after: cleanup => onTestFinished(cleanup), diagnostic: message => console.info(message) })
@@ -21,8 +23,8 @@ test('object folders group before pagination, preserve key boundaries and enforc
   const namespaces = await owner.request<PublicNamespace[]>('GET', '/namespaces')
   const base = '/namespaces/' + namespaces.find(item => item.kind === 'personal')!.slug + '/spaces/files'
   const space = await owner.request<PublicSpace>('POST', base.replace(/\/files$/, ''), 201, { name: 'Files', slug: 'files', type: 'object', visibility: 'private' })
-  async function upload(key: string, content: string, status = 201) {
-    const response = await fetch(origin + base + '/objects/' + encodeURIComponent(key), { method: 'PUT', headers: { cookie, 'content-type': 'text/plain' }, body: content })
+  async function upload(key: string, content: string, status = 201, contentType = 'text/plain') {
+    const response = await fetch(origin + base + '/objects/' + encodeURIComponent(key), { method: 'PUT', headers: { cookie, 'content-type': contentType }, body: content })
     await response.arrayBuffer()
     expect(response.status).toBe(status)
   }
@@ -32,6 +34,7 @@ test('object folders group before pagination, preserve key boundaries and enforc
   await upload('中文😀/a%_folder/file.txt', 'Unicode content')
   await upload('中文😀/abc/file.txt', 'Not a literal match')
   await upload('readme.txt', 'Root content')
+  await upload(`empty/${objectFolderMarkerName}`, '', 201, objectFolderContentType)
   await upload('docs', 'Cannot replace folder', 409)
   await upload('readme.txt/child.txt', 'Cannot use file as folder', 409)
   await guest.request('GET', base + '/object-tree', 401)
@@ -54,8 +57,9 @@ test('object folders group before pagination, preserve key boundaries and enforc
     allObjects.push(...page.objects.map(object => object.key))
     cursor = page.nextCursor
   } while (cursor)
-  expect(new Set(allFolders).size).toBe(109)
-  expect(allFolders).toHaveLength(109)
+  expect(new Set(allFolders).size).toBe(110)
+  expect(allFolders).toHaveLength(110)
+  expect(allFolders).toContain('empty/')
   expect(allObjects).toEqual(['readme.txt'])
   const docs = await owner.request<ObjectFolderPage>('GET', base + '/object-tree?prefix=docs%2F')
   expect(docs.folders).toEqual(['docs/nested/'])
@@ -65,6 +69,7 @@ test('object folders group before pagination, preserve key boundaries and enforc
   expect(unicode.objects).toEqual([])
   const empty = await owner.request<ObjectFolderPage>('GET', base + '/object-tree?prefix=empty%2F')
   expect(empty).toMatchObject({ folders: [], objects: [], nextCursor: null })
+  expect(await owner.request<PublicSpaceObject[]>('GET', base + '/objects?prefix=empty%2F')).toEqual([])
   for (const query of ['prefix=docs', 'prefix=..%2F', 'prefix=docs%2F&cursor=elsewhere%2F', 'filter=nested%2F', 'limit=101']) await owner.request('GET', base + '/object-tree?' + query, 400)
   await upload('docs/new.txt', 'New upload')
   const download = await fetch(origin + base + '/objects/' + encodeURIComponent('docs/new.txt'), { headers: { cookie } })

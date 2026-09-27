@@ -18,6 +18,7 @@ import {
   ObjectStorageError,
   openObjectFile,
 } from './storage.js'
+import { objectFolderContentType, objectFolderMarkerName } from './folders.js'
 
 const defaultContentType = 'application/octet-stream'
 export const defaultObjectListLimit = 100
@@ -87,8 +88,9 @@ export async function browseObjects(
     // Group the complete matching key set BEFORE pagination, so a folder with
     // many descendants cannot hide other folders. char_length handles Unicode.
     const cursorFolder = cursor.endsWith('/')
-    const after = cursor ? sql`where (entries.is_folder = ${cursorFolder} and entries.entry_key collate "C" > ${cursor} collate "C")
-      or (not entries.is_folder and ${cursorFolder})` : sql``
+    const after = cursor ? sql`and ((entries.is_folder = ${cursorFolder} and entries.entry_key collate "C" > ${cursor} collate "C")
+      or (not entries.is_folder and ${cursorFolder}))` : sql``
+    const markerKey = prefix + objectFolderMarkerName
     const result = await sql<SpaceObject & { entry_key: string; is_folder: boolean }>`
       with children as (
         select distinct case
@@ -102,6 +104,8 @@ export async function browseObjects(
       select entries.entry_key, entries.is_folder, objects.*
       from entries left join space_objects objects
         on objects.space_id = ${space.id} and objects.key = entries.entry_key and not entries.is_folder
+      where (entries.entry_key <> ${markerKey}
+        or objects.content_type <> ${objectFolderContentType})
       ${after}
       order by entries.is_folder desc, entries.entry_key collate "C" asc
       limit ${limit + 1}
@@ -143,6 +147,10 @@ export async function listObjects(
       .selectAll()
       .where('space_id', '=', space.id)
       .where('is_deleted', '=', false)
+      .where(eb => eb.or([
+        eb('content_type', '<>', objectFolderContentType),
+        eb('key', 'not like', `%/${objectFolderMarkerName}`),
+      ]))
 
     if (prefix) {
       query = query.where('key', 'like', escapeLikePrefix(prefix) + '%')

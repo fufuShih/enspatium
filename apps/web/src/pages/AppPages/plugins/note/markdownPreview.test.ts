@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 import { EditorState } from '@codemirror/state'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { previewDecorations, safeNoteLink } from './markdownPreview'
-import { noteKey } from './integration'
+import { noteFileKey, noteKey } from './integration'
 
 test('live preview hides inactive markup without changing source and reveals the selected line', () => {
   const doc = '# Title\n\n**Bold** and *italic* with [link](https://example.com)\n\n<custom>[[wiki]]</custom>'
@@ -31,4 +31,10 @@ test('note names preserve nested folders and reject traversal and blank segments
   for (const name of ['', '../secret', 'a/../b', '/a', 'a//b', 'a\\b', 'a/ /b', 'a\nb']) {
     expect(() => noteKey(name)).toThrow()
   }
+})
+
+test('note files combine an explicit folder and filename', () => {
+  expect(noteFileKey('Journal/2026', 'Today')).toBe('Journal/2026/Today.md')
+  expect(noteFileKey('', 'Inbox.md')).toBe('Inbox.md')
+  expect(() => noteFileKey('Journal', 'nested/Today')).toThrow()
 })

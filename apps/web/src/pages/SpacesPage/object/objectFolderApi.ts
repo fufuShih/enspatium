@@ -1,4 +1,8 @@
+import { uploadObject } from '../../../api/generated/objects.ts'
 import { spacePath } from '../shared/spaceApi.ts'
+
+export const objectFolderMarkerName = '.enspatium-folder'
+export const objectFolderContentType = 'application/vnd.enspatium.folder'
 
 export function objectFolderLocation(account: string, slug: string, prefix = '', filter = '', cursor = '', deleted = false) {
   const params = new URLSearchParams()
@@ -23,4 +27,26 @@ export function newObjectFolder(prefix: string, name: string) {
     (prefix + name + '/').length >= 1024
   ) return null
   return prefix + name + '/'
+}
+
+export function objectFolderPath(input: string) {
+  const names = input.trim().replace(/\/$/, '').split('/')
+  if (!names.length || names.some(name => !name)) return null
+  let prefix = ''
+  for (const name of names) {
+    const next = newObjectFolder(prefix, name)
+    if (!next) return null
+    prefix = next
+  }
+  return prefix
+}
+
+export function objectFolderMarkerKey(prefix: string) {
+  return prefix + objectFolderMarkerName
+}
+
+export async function createObjectFolder(account: string, slug: string, prefix: string) {
+  return uploadObject(account, slug, objectFolderMarkerKey(prefix), new Blob([], { type: objectFolderContentType }), { expectedVersion: 'none' }, {
+    headers: { 'Content-Type': objectFolderContentType },
+  })
 }

@@ -8,7 +8,7 @@ import RequestState from '../../../components/RequestState'
 import { useAuth } from '../../../context/auth'
 import { apiCode, apiStatus } from '../../../context/session'
 import { fileErrorMessage, fileListLimit, formatFileSize, refreshObjectLists } from './objectFileApi'
-import { newObjectFolder, objectBreadcrumbs, objectFolderLocation } from './objectFolderApi'
+import { createObjectFolder, newObjectFolder, objectBreadcrumbs, objectFolderLocation } from './objectFolderApi'
 import type { ListObjects200Item } from '../../../api/generated/api.schemas.ts'
 import ObjectFileViewer from './ObjectFileViewer'
 import ObjectFileIcon from './ObjectFileIcon'
@@ -40,6 +40,7 @@ function ObjectFolder({ account, slug, prefix, uploads }: { account: string; slu
   const location = (path = prefix, filter = nameFilter, after = '') => objectFolderLocation(account, slug, path, filter, after, deleted)
   const [folderName, setFolderName] = useState('')
   const [creatingFolder, setCreatingFolder] = useState(false)
+  const [creatingFolderBusy, setCreatingFolderBusy] = useState(false)
   const { user } = useAuth()
   const client = useQueryClient()
   const downloadController = useRef<AbortController | null>(null)
@@ -117,16 +118,24 @@ function ObjectFolder({ account, slug, prefix, uploads }: { account: string; slu
         {crumbs.map((crumb, index) => <Fragment key={crumb.prefix}><Text as="span" mx="8px" aria-hidden="true">/</Text><PageLink to={location(crumb.prefix, '')} aria-current={index === crumbs.length - 1 ? 'page' : undefined}>{crumb.name}</PageLink></Fragment>)}
       </Box>
       {prefix && <PageLink to={location(crumbs.at(-2)?.prefix || '', '')} display="inline-block" mb="20px" fontSize="13px">Back to parent folder</PageLink>}
-      {creatingFolder && <Box asChild mb="20px" p="16px" border="1px solid var(--border)" borderRadius="8px"><form onSubmit={event => {
+      {creatingFolder && <Box asChild mb="20px" p="16px" border="1px solid var(--border)" borderRadius="8px"><form onSubmit={async event => {
         event.preventDefault()
-        const next = newObjectFolder(prefix, folderName)
+        if (creatingFolderBusy) return
+        const next = newObjectFolder(prefix, folderName.trim())
         if (!next) { setError('Enter a valid folder name without slashes or reserved characters.'); return }
-        if (files.data?.objects.some(file => file.key === prefix + folderName)) { setError('A file already uses this name. Choose another folder name.'); return }
-        navigate(location(next, ''))
+        if (files.data?.objects.some(file => file.key === prefix + folderName.trim())) { setError('A file already uses this name. Choose another folder name.'); return }
+        setCreatingFolderBusy(true); setError('')
+        try {
+          await createObjectFolder(account, slug, next)
+          await refreshObjectLists(client, account, slug)
+          navigate(location(next, ''))
+        } catch (failure) {
+          setError(apiStatus(failure) === 409 ? 'This folder already exists, or its name conflicts with a file.' : fileErrorMessage(failure, 'upload'))
+        } finally { setCreatingFolderBusy(false) }
       }}>
         <chakra.label htmlFor="new-folder-name" fontSize="13px">Folder name</chakra.label>
-        <Flex gap="8px" mt="8px" wrap="wrap"><TextInput id="new-folder-name" value={folderName} onChange={event => setFolderName(event.target.value)} required maxLength={255} autoFocus /><ActionButton type="submit">Open folder</ActionButton><ActionButton type="button" onClick={() => setCreatingFolder(false)}>Cancel</ActionButton></Flex>
-        <Text mt="10px" fontSize="12px" color="var(--muted)">Upload a file to make this folder appear in the list.</Text>
+        <Flex gap="8px" mt="8px" wrap="wrap"><TextInput id="new-folder-name" value={folderName} disabled={creatingFolderBusy} onChange={event => setFolderName(event.target.value)} required maxLength={255} autoFocus /><ActionButton type="submit" loading={creatingFolderBusy}>Create folder</ActionButton><ActionButton type="button" disabled={creatingFolderBusy} onClick={() => setCreatingFolder(false)}>Cancel</ActionButton></Flex>
+        <Text mt="10px" fontSize="12px" color="var(--muted)">The folder is saved and remains visible even while it is empty.</Text>
       </form></Box>}
       {user && !deleted && !files.isError && <ObjectUploadPanel uploads={uploads} account={account} slug={slug} prefix={prefix} disabled={files.isPending || batchLocked} />}
       {notice && <Text role="status" mb="16px" fontSize="13px" bg="bg.success" color="fg.success" p="12px 14px" borderRadius="8px" overflowWrap="anywhere">{notice}{movedKey && objectParent(movedKey) !== prefix && <PageLink ml="12px" textDecoration="underline" to={objectFolderLocation(account, slug, objectParent(movedKey))}>Open destination folder</PageLink>}</Text>}
